@@ -198,3 +198,13 @@ gradle-app.setting
 
 .env
 config.yml
+backend/config.yml
+.secrets/
+
+# Allow symlink to .env in backend/
+!backend/.env
+
+# PHP dependencies (built during deployment)
+backend/vendor/
+
+**/*/__pycache__/

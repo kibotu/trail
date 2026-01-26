@@ -1,65 +1,100 @@
-version: '3.8'
+# Trail Service - Docker Compose Configuration
+# Matches production server setup (PHP + Apache, MariaDB, phpMyAdmin)
+# Compatible with Docker Compose v2+ (docker compose command)
+# Uses .env file as single source of truth for all credentials
+
+name: trail-service
 
 services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "8000:80"
-    volumes:
-      - ./:/var/www/html
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - php
-    networks:
-      - trail-network
-
-  php:
+  # PHP + Apache Web Server
+  web:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - DB_HOST=mysql
-      - DB_NAME=trail_db
-      - DB_USER=trail_user
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_PORT=3306
-    depends_on:
-      - mysql
-    networks:
-      - trail-network
-
-  mysql:
-    image: mysql:8.0
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.4}
+    container_name: trail-web
     ports:
-      - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DOCKER_MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=trail_db
-      - MYSQL_USER=trail_user
-      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - "18000:80"  # Non-standard port to avoid conflicts
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ../migrations:/docker-entrypoint-initdb.d
+      - ./:/var/www/html:cached
+    environment:
+      APACHE_RUN_USER: www-data
+      APACHE_RUN_GROUP: www-data
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: 3306
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      FTP_USER: ${FTP_USER}
+      FTP_PASSWORD: ${FTP_PASSWORD}
+    env_file:
+      - ../.env
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - trail-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # MariaDB Database
+  db:
+    image: mariadb:10.11
+    container_name: trail-db
+    ports:
+      - "13306:3306"  # Non-standard port to avoid conflicts
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DOCKER_MYSQL_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - ../.env
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+      - ../migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - trail-network
+    restart: unless-stopped
+
+  # phpMyAdmin for database management
   phpmyadmin:
     image: phpmyadmin:latest
+    container_name: trail-pma
     ports:
-      - "8080:80"
+      - "18080:80"  # Non-standard port to avoid conflicts
     environment:
-      - PMA_HOST=mysql
-      - PMA_PORT=3306
+      PMA_HOST: db
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
+      UPLOAD_LIMIT: 50M
     depends_on:
-      - mysql
+      db:
+        condition: service_healthy
     networks:
       - trail-network
-
-volumes:
-  mysql_data:
+    restart: unless-stopped
 
 networks:
   trail-network:
-    driver: bridge
+
+volumes:
+  db-data:

@@ -52,6 +52,11 @@ def main():
     """Run full deployment process."""
     console.print("[bold blue]Trail Full Deployment[/bold blue]\n")
     
+    # Step 0: Prepare deployment (composer install)
+    if not run_script("prepare_deploy", "Step 0: Build Dependencies"):
+        console.print("[red]Deployment failed at dependency build[/red]")
+        sys.exit(1)
+    
     # Step 1: Run database migrations
     if not run_script("db_migrate", "Step 1: Database Migrations"):
         console.print("[red]Deployment failed at database migrations[/red]")

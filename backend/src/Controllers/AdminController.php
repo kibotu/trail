@@ -15,7 +15,7 @@ class AdminController
 {
     public static function dashboard(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         
         $entryModel = new Entry($db);
@@ -35,7 +35,7 @@ class AdminController
 
     public static function entries(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -65,7 +65,7 @@ class AdminController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -79,7 +79,7 @@ class AdminController
     {
         $entryId = (int) $args['id'];
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -91,7 +91,7 @@ class AdminController
 
     public static function users(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $userModel = new User($db);
 
@@ -112,7 +112,7 @@ class AdminController
     {
         $userId = (int) $args['id'];
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $userModel = new User($db);
 

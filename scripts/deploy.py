@@ -45,7 +45,11 @@ def load_config():
 
 
 def get_files_to_upload():
-    """Get list of files to upload (exclude certain directories)."""
+    """Get list of files to upload (exclude certain directories).
+    
+    NOTE: vendor/ directory IS uploaded because production server has no Composer.
+    Run 'composer install' locally/Docker before deployment to ensure vendor/ is up to date.
+    """
     backend_dir = Path(__file__).parent.parent / "backend"
     
     if not backend_dir.exists():
@@ -53,7 +57,7 @@ def get_files_to_upload():
         sys.exit(1)
     
     exclude_patterns = {
-        '.git', '.gitignore', 'tests', 'vendor', 'node_modules',
+        '.git', '.gitignore', 'tests', 'node_modules',
         '.env', '.DS_Store', 'docker-compose.yml', 'Dockerfile',
         'phpunit.xml', '.phpunit.cache', 'docker'
     }
@@ -97,9 +101,37 @@ def upload_file(ftp, local_file, remote_file):
         ftp.storbinary(f'STOR {remote_file}', f)
 
 
+def check_vendor_directory():
+    """Verify vendor directory exists and warn if it seems outdated."""
+    backend_dir = Path(__file__).parent.parent / "backend"
+    vendor_dir = backend_dir / "vendor"
+    composer_lock = backend_dir / "composer.lock"
+    
+    if not vendor_dir.exists():
+        console.print("[red]✗ Error: vendor/ directory not found![/red]")
+        console.print("[yellow]Run 'composer install' in the backend directory first.[/yellow]")
+        sys.exit(1)
+    
+    # Check if vendor is older than composer.lock
+    if composer_lock.exists():
+        vendor_autoload = vendor_dir / "autoload.php"
+        if vendor_autoload.exists():
+            if composer_lock.stat().st_mtime > vendor_autoload.stat().st_mtime:
+                console.print("[yellow]⚠ Warning: composer.lock is newer than vendor/[/yellow]")
+                console.print("[yellow]Consider running 'composer install' to update dependencies.[/yellow]")
+                response = input("Continue anyway? (y/N): ")
+                if response.lower() != 'y':
+                    sys.exit(0)
+    
+    console.print(f"[green]✓[/green] vendor/ directory found")
+
+
 def main():
     """Deploy PHP files to FTP server."""
     console.print("[bold blue]Trail FTP Deployment Tool[/bold blue]\n")
+    
+    # Check vendor directory exists
+    check_vendor_directory()
     
     # Load configuration
     config = load_config()

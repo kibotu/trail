@@ -36,7 +36,7 @@ class EntryController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -60,7 +60,7 @@ class EntryController
         $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 

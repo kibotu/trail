@@ -20,7 +20,7 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../..');
 $dotenv->safeLoad();
 
 // Load configuration
-$config = Config::load(__DIR__ . '/../../config.yml');
+$config = Config::load(__DIR__ . '/../config.yml');
 
 // Create Slim app
 $app = AppFactory::create();

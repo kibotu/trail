@@ -25,7 +25,7 @@ class AuthController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $config = Config::load(__DIR__ . '/../../../config.yml');
+        $config = Config::load(__DIR__ . '/../../config.yml');
         $googleAuth = new GoogleAuthService($config);
         $userData = $googleAuth->verifyIdToken($googleToken);
 
