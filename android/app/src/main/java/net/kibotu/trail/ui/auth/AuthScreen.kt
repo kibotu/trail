@@ -16,10 +16,14 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.R
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
 @Composable
 fun AuthScreen(
@@ -39,41 +43,60 @@ fun AuthScreen(
     val handleGoogleSignIn: () -> Unit = {
         scope.launch {
             try {
+                Timber.d("Starting Google Sign-In")
+                viewModel.setLoading()
+                
                 val credentialManager = CredentialManager.create(context)
                 
-                // Get the web client ID from google-services.json
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId("991796147217-iu13ude75qcsue5epgm272rvo28do7lp.apps.googleusercontent.com")
+                // Use GetSignInWithGoogleOption instead of GetGoogleIdOption
+                // This may avoid the AssistedSignInActivity crash with multiple accounts
+                val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(BuildConfig.WEB_CLIENT_ID)
                     .build()
                 
                 val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
+                    .addCredentialOption(signInWithGoogleOption)
                     .build()
                 
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context as Activity
-                )
+                Timber.d("Requesting credential with 60s timeout")
+                
+                // Add timeout to prevent hanging
+                val result = withTimeout(60000L) { // 60 second timeout
+                    credentialManager.getCredential(
+                        request = request,
+                        context = context as Activity
+                    )
+                }
+                
+                Timber.d("Credential received: ${result.credential.type}")
                 
                 val credential = result.credential
                 
-                if (credential is GoogleIdTokenCredential) {
-                    val googleIdToken = credential.idToken
-                    viewModel.authenticateWithGoogle(googleIdToken)
-                } else {
-                    viewModel.setError("Unexpected credential type")
+                when (credential) {
+                    is GoogleIdTokenCredential -> {
+                        val googleIdToken = credential.idToken
+                        Timber.i("Got Google ID token, authenticating with backend")
+                        viewModel.authenticateWithGoogle(googleIdToken)
+                    }
+                    else -> {
+                        Timber.e("Unexpected credential type: ${credential.type}")
+                        viewModel.setError("Unexpected credential type: ${credential.type}")
+                    }
                 }
             } catch (e: GetCredentialCancellationException) {
-                // User cancelled the sign-in flow
+                Timber.d("User cancelled sign-in")
                 viewModel.setError("Sign-in cancelled")
             } catch (e: NoCredentialException) {
-                // No Google accounts available
+                Timber.e(e, "No credentials found")
                 viewModel.setError("No Google accounts found. Please add a Google account to your device.")
             } catch (e: GetCredentialException) {
-                viewModel.setError("Sign-in failed: ${e.message}")
+                Timber.e(e, "Credential exception")
+                viewModel.setError("Sign-in failed: ${e.message}\n\nTry updating Google Play Services or restarting your device.")
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Timber.e(e, "Sign-in timeout after 60 seconds")
+                viewModel.setError("Sign-in timed out. This may be due to a Google Play Services issue. Try restarting your device.")
             } catch (e: Exception) {
-                viewModel.setError("Unexpected error: ${e.message}")
+                Timber.e(e, "Unexpected error during sign-in")
+                viewModel.setError("Unexpected error: ${e.message}\n\nTry updating Google Play Services.")
             }
         }
     }

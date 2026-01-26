@@ -12,10 +12,19 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import timber.log.Timber
 
 class TrailApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        
+        // Initialize Timber
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        } else {
+            // Plant a tree that logs to Crashlytics in production
+            Timber.plant(CrashlyticsTree())
+        }
         
         // Initialize Firebase
         Firebase.initialize(this)
@@ -31,6 +40,20 @@ class TrailApplication : Application() {
                 repositoryModule,
                 viewModelModule
             )
+        }
+        
+        Timber.i("TrailApplication initialized")
+    }
+    
+    /**
+     * Custom Timber tree that logs errors and warnings to Firebase Crashlytics
+     */
+    private class CrashlyticsTree : Timber.Tree() {
+        override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+            if (priority == android.util.Log.ERROR || priority == android.util.Log.WARN) {
+                Firebase.crashlytics.log("$tag: $message")
+                t?.let { Firebase.crashlytics.recordException(it) }
+            }
         }
     }
 }

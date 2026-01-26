@@ -43,6 +43,14 @@ class AuthViewModel(private val repository: TrailRepository) : ViewModel() {
         }
     }
     
+    fun setError(message: String) {
+        _authState.value = AuthState.Error(message)
+    }
+    
+    fun setLoading() {
+        _authState.value = AuthState.Loading
+    }
+    
     fun logout() {
         viewModelScope.launch {
             repository.logout()

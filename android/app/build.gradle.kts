@@ -33,6 +33,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Default Web Client ID (used for backend token validation)
+        buildConfigField("String", "WEB_CLIENT_ID", "\"991796147217-iu13ude75qcsue5epgm272rvo28do7lp.apps.googleusercontent.com\"")
     }
 
     signingConfigs {
@@ -63,6 +66,9 @@ android {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
+            
+            // Release OAuth Client ID
+            buildConfigField("String", "WEB_CLIENT_ID", "\"991796147217-iu13ude75qcsue5epgm272rvo28do7lp.apps.googleusercontent.com\"")
         }
         debug {
             signingConfig = signingConfigs.getByName("debug")
@@ -75,11 +81,15 @@ android {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
+            
+            // Debug OAuth Client ID
+            buildConfigField("String", "WEB_CLIENT_ID", "\"991796147217-iu13ude75qcsue5epgm272rvo28do7lp.apps.googleusercontent.com\"")
         }
     }
     
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     bundle {
@@ -135,6 +145,9 @@ java {
 }
 
 dependencies {
+
+    // https://mvnrepository.com/artifact/com.squareup.leakcanary/plumber-android
+    implementation("com.squareup.leakcanary:plumber-android:2.14")
     implementation("net.kibotu:AndroidResourceExtensions:2.0.3")
     implementation("net.kibotu:ApplicationProvider:2.1.5")
 
@@ -189,6 +202,9 @@ dependencies {
     
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+    
+    // Timber for logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
     
     // Testing
     testImplementation("junit:junit:4.13.2")
