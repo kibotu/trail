@@ -19,7 +19,7 @@ class TrailApplication : Application() {
         super.onCreate()
         
         // Initialize Timber
-        if (BuildConfig.DEBUG) {
+        if (resources.getBoolean(R.bool.development)) {
             Timber.plant(Timber.DebugTree())
         } else {
             // Plant a tree that logs to Crashlytics in production

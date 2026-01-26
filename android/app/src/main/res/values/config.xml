@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <bool name="development">false</bool>
+    <string name="google_oauth_2_client">991796147217-qasmipups3pp58raeu2ue8tk67jkob5j.apps.googleusercontent.com</string>
 </resources>

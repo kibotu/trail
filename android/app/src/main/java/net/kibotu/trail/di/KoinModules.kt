@@ -53,7 +53,7 @@ val networkModule = module {
                 bearer {
                     loadTokens {
                         val repository = get<TrailRepository>()
-                        val token = runBlocking { repository.getJwtToken() }
+                        val token = repository.getJwtToken()
                         token?.let { BearerTokens(it, "") }
                     }
                 }
