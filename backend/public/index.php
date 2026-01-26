@@ -15,9 +15,12 @@ use Trail\Controllers\RssController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Load environment variables
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../..');
-$dotenv->safeLoad();
+// Load environment variables (optional - Docker sets them via env_file)
+$envPath = __DIR__ . '/..';
+if (file_exists($envPath . '/.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable($envPath);
+    $dotenv->safeLoad();
+}
 
 // Load configuration
 $config = Config::load(__DIR__ . '/../config.yml');
