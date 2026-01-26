@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Trail\Database\Database;
 use Trail\Models\Entry;
 use Trail\Config\Config;
+use Trail\Services\TextSanitizer;
 
 class EntryController
 {
@@ -17,22 +18,38 @@ class EntryController
         $userId = $request->getAttribute('user_id');
         $data = json_decode((string) $request->getBody(), true);
         
-        $url = $data['url'] ?? '';
-        $message = $data['message'] ?? '';
+        $text = $data['text'] ?? '';
 
-        // Validation
-        if (empty($url) || empty($message)) {
-            $response->getBody()->write(json_encode(['error' => 'URL and message are required']));
+        // Validation: Check if text is provided
+        if (empty($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text is required']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid URL format']));
+        // Validation: Check UTF-8 encoding (for emoji support)
+        if (!TextSanitizer::isValidUtf8($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid text encoding']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        if (mb_strlen($message) > 280) {
-            $response->getBody()->write(json_encode(['error' => 'Message must be 280 characters or less']));
+        // Validation: Check length before sanitization
+        if (mb_strlen($text) > 280) {
+            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Check for dangerous patterns before sanitization
+        if (!TextSanitizer::isSafe($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text contains potentially dangerous content']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Sanitize text to remove scripts while preserving URLs and emojis
+        $sanitizedText = TextSanitizer::sanitize($text);
+
+        // Double-check length after sanitization
+        if (mb_strlen($sanitizedText) > 280) {
+            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -40,7 +57,7 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entryId = $entryModel->create($userId, $url, $message);
+        $entryId = $entryModel->create($userId, $sanitizedText);
         $entry = $entryModel->findById($entryId);
 
         $response->getBody()->write(json_encode([

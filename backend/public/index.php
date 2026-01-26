@@ -71,6 +71,7 @@ $app->get('/api/health', function ($request, $response) {
 
 // Authentication routes
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth']);
+$app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development only
 
 // Entry routes (authenticated)
 $app->group('/api/entries', function ($group) {

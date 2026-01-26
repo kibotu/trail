@@ -23,13 +23,7 @@ ob_start();
                 <br>
                 <small><?= date('M j, Y g:i A', strtotime($entry['created_at'])) ?></small>
             </header>
-            <p><strong>Message:</strong> <?= htmlspecialchars($entry['message']) ?></p>
-            <p class="entry-url">
-                <strong>URL:</strong> 
-                <a href="<?= htmlspecialchars($entry['url']) ?>" target="_blank" rel="noopener">
-                    <?= htmlspecialchars($entry['url']) ?>
-                </a>
-            </p>
+            <p><strong>Text:</strong> <?= htmlspecialchars($entry['text']) ?></p>
             <footer>
                 <button class="secondary" onclick="deleteEntry(<?= $entry['id'] ?>)">Delete</button>
             </footer>

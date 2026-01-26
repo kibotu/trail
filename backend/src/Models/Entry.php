@@ -16,13 +16,13 @@ class Entry
         $this->db = $db;
     }
 
-    public function create(int $userId, string $url, string $message): int
+    public function create(int $userId, string $text): int
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO {$this->table} (user_id, url, message) 
-             VALUES (?, ?, ?)"
+            "INSERT INTO {$this->table} (user_id, text) 
+             VALUES (?, ?)"
         );
-        $stmt->execute([$userId, $url, $message]);
+        $stmt->execute([$userId, $text]);
         
         return (int) $this->db->lastInsertId();
     }
@@ -70,15 +70,15 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function update(int $id, string $url, string $message): bool
+    public function update(int $id, string $text): bool
     {
         $stmt = $this->db->prepare(
             "UPDATE {$this->table} 
-             SET url = ?, message = ?, updated_at = CURRENT_TIMESTAMP 
+             SET text = ?, updated_at = CURRENT_TIMESTAMP 
              WHERE id = ?"
         );
         
-        return $stmt->execute([$url, $message, $id]);
+        return $stmt->execute([$text, $id]);
     }
 
     public function delete(int $id): bool

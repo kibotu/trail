@@ -25,8 +25,7 @@ data class User(
 
 @Serializable
 data class CreateEntryRequest(
-    val url: String,
-    val message: String
+    val text: String
 )
 
 @Serializable
@@ -39,8 +38,7 @@ data class CreateEntryResponse(
 data class Entry(
     val id: Int,
     @SerialName("user_id") val userId: Int,
-    val url: String,
-    val message: String,
+    val text: String,
     @SerialName("user_name") val userName: String,
     @SerialName("user_email") val userEmail: String,
     @SerialName("gravatar_url") val gravatarUrl: String,

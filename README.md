@@ -1,21 +1,21 @@
 # Trail
 
-Multi-user link journaling service. Share URLs from Android with 280-char messages. Google OAuth, admin dashboard, public RSS.
+Multi-user link journaling service. Share text posts (max 280 characters) with URLs and emojis from Android. Google OAuth, admin dashboard, public RSS.
 
 **Stack**: PHP 8.4 + Apache + Slim 4 | MariaDB 10.11 | Android (Kotlin + Compose + Ktor + Koin)
 
-**Security**: OAuth, JWT, rate limiting (60/min), bot protection, CSRF tokens, rootless containers
+**Security**: OAuth, JWT, rate limiting (60/min), XSS protection, bot protection, CSRF tokens, rootless containers
 
 ## Quick Start
 
 ```bash
-# 1. Configure
+# Configure
 cp .env.example .env
 cp config.yml.example config.yml
 cp config.yml.example backend/config.yml
 # Edit .env and config files with credentials
 
-# 2. Run
+# Run
 ./run.sh
 
 # Access:
@@ -23,8 +23,6 @@ cp config.yml.example backend/config.yml
 # Admin:    http://localhost:18000/admin/login.php
 # Database: http://localhost:18080 (phpMyAdmin)
 ```
-
-The script handles Docker, migrations, permissions, and displays all URLs.
 
 ### Development Mode (Skip OAuth)
 
@@ -41,7 +39,47 @@ cd backend && make up
 # Click any dev user (no OAuth required)
 ```
 
-See [backend/DEVELOPMENT.md](backend/DEVELOPMENT.md) for details.
+**Dev users**: `dev@example.com`, `admin@example.com`, `user@example.com` (configured in `config.yml`)
+
+## API
+
+```bash
+# Android app auth
+POST /api/auth/google
+{ "google_token": "..." } → { "jwt": "...", "user": {...} }
+
+# Create entry (authenticated) - Max 280 characters
+POST /api/entries
+{ "text": "Check this out! https://example.com 🎉" } → { "id": 123, "created_at": "..." }
+# Text is sanitized to prevent XSS while preserving URLs and emojis
+
+# List entries (authenticated)
+GET /api/entries?page=1&limit=20
+→ { "entries": [...], "total": 100, "page": 1, "pages": 5 }
+
+# Public RSS
+GET /rss              # All entries
+GET /rss/{user_id}    # Per-user feed
+```
+
+**Text field**: Single field supporting URLs (http://, https://, www.), emojis, UTF-8. XSS protection blocks scripts, event handlers, dangerous protocols while preserving legitimate content.
+
+## Testing
+
+```bash
+# Quick test (recommended)
+./run.sh
+./test-api.sh        # API security + validation tests
+cd backend && composer test  # Unit tests
+
+# What gets tested:
+# ✅ All API endpoints (public, authenticated, admin)
+# ✅ XSS prevention (5 attack vectors)
+# ✅ Input validation (empty, too long, invalid UTF-8)
+# ✅ Authentication & authorization
+# ✅ Rate limiting (60 requests/min)
+# ✅ Content preservation (URLs, emojis)
+```
 
 ## Deployment
 
@@ -69,38 +107,15 @@ uv run python full_deploy.py            # Build + migrate + FTP + verify
 
 **Deployment**: `vendor/` uploaded via FTP (production lacks Composer). Docker matches production (PHP 8.4 + Apache + MariaDB).
 
-## API
+## Security
 
-```bash
-# Android app auth
-POST /api/auth/google
-{ "google_token": "..." } → { "jwt": "...", "user": {...} }
+**XSS Prevention**: All script tags, JavaScript protocols, and event handlers stripped. URLs and emojis preserved.
 
-# Create entry (authenticated)
-POST /api/entries
-{ "url": "https://...", "message": "..." } → { "id": 123, "created_at": "..." }
+**What's blocked**: `<script>`, `javascript:`, `vbscript:`, `data:` protocols, event handlers (`onclick`, `onerror`), `<iframe>`, `<object>`, `<embed>`, PHP code
 
-# List entries (authenticated)
-GET /api/entries?page=1&limit=20
-→ { "entries": [...], "total": 100, "page": 1, "pages": 5 }
+**What's preserved**: URLs (http://, https://, www.), emojis, UTF-8 characters, plain text
 
-# Public RSS
-GET /rss              # All entries
-GET /rss/{user_id}    # Per-user feed
-```
-
-## Web Admin
-
-Access `/admin/` with Google OAuth. Features: view entries/users, dashboard stats, session auth (24h expiry).
-
-## Structure
-
-```
-backend/         # PHP 8.4 + Slim 4 (MVC, tests, Docker)
-android/         # Kotlin + Compose (MVVM, Koin, tests)
-migrations/      # SQL migrations
-scripts/         # Python UV (install, migrate, deploy)
-```
+**Validation**: UTF-8 encoding check, 280-character limit, dangerous pattern detection, HTML sanitization
 
 ## Production Notes
 
@@ -111,6 +126,35 @@ scripts/         # Python UV (install, migrate, deploy)
 **Why**: Production constraints require build-then-deploy. `vendor/` excluded from Git (cleaner repo), built fresh each deployment.
 
 **Extensions**: Production has all required PHP extensions (mysqli, pdo_mysql, mbstring, gd, curl, openssl, json, zip, bcmath, intl, opcache). Docker matches exactly.
+
+## Structure
+
+```
+backend/         # PHP 8.4 + Slim 4 (MVC, tests, Docker)
+android/         # Kotlin + Compose (MVVM, Koin, tests)
+migrations/      # SQL migrations
+scripts/         # Python UV (install, migrate, deploy)
+```
+
+## Environment Switching
+
+**Development** (skip OAuth):
+```bash
+# In .env
+APP_ENV=development
+
+# Restart
+cd backend && make restart
+```
+
+**Production** (require OAuth):
+```bash
+# In .env
+APP_ENV=production
+
+# Restart
+cd backend && make restart
+```
 
 ## Troubleshooting
 
@@ -130,13 +174,7 @@ scripts/         # Python UV (install, migrate, deploy)
 
 **Class not found on production**: Re-run `full_deploy.py` to rebuild and upload `vendor/`
 
-## Testing
-
-**Backend**: `cd backend && composer test`
-
-**Android**: `cd android && ./gradlew test`
-
-**Integration**: Start Docker, run migrations, access http://localhost:18000/admin
+**Dev login not showing**: Set `APP_ENV=development` in `.env`, restart: `cd backend && make restart`
 
 ---
 

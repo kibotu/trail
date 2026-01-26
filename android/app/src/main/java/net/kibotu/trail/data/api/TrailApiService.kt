@@ -23,11 +23,11 @@ class TrailApiService(private val client: HttpClient) {
         }
     }
     
-    suspend fun createEntry(url: String, message: String): Result<CreateEntryResponse> {
+    suspend fun createEntry(text: String): Result<CreateEntryResponse> {
         return try {
             val response = client.post("/api/entries") {
                 contentType(ContentType.Application.Json)
-                setBody(CreateEntryRequest(url, message))
+                setBody(CreateEntryRequest(text))
             }
             Result.success(response.body())
         } catch (e: Exception) {

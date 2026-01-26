@@ -10,6 +10,7 @@ use Trail\Database\Database;
 use Trail\Models\Entry;
 use Trail\Models\User;
 use Trail\Config\Config;
+use Trail\Services\TextSanitizer;
 
 class AdminController
 {
@@ -57,19 +58,39 @@ class AdminController
         $entryId = (int) $args['id'];
         $data = json_decode((string) $request->getBody(), true);
 
-        $url = $data['url'] ?? '';
-        $message = $data['message'] ?? '';
+        $text = $data['text'] ?? '';
 
-        if (empty($url) || empty($message)) {
-            $response->getBody()->write(json_encode(['error' => 'URL and message are required']));
+        if (empty($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text is required']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
+
+        // Validation: Check UTF-8 encoding (for emoji support)
+        if (!TextSanitizer::isValidUtf8($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid text encoding']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validation: Check length before sanitization
+        if (mb_strlen($text) > 280) {
+            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Check for dangerous patterns before sanitization
+        if (!TextSanitizer::isSafe($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text contains potentially dangerous content']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Sanitize text to remove scripts while preserving URLs and emojis
+        $sanitizedText = TextSanitizer::sanitize($text);
 
         $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $success = $entryModel->update($entryId, $url, $message);
+        $success = $entryModel->update($entryId, $sanitizedText);
 
         $response->getBody()->write(json_encode(['success' => $success]));
         return $response->withHeader('Content-Type', 'application/json');

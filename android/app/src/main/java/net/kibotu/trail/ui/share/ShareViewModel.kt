@@ -22,32 +22,35 @@ class ShareViewModel(private val repository: TrailRepository) : ViewModel() {
     private val _shareState = MutableStateFlow<ShareState>(ShareState.Initial)
     val shareState: StateFlow<ShareState> = _shareState.asStateFlow()
     
-    private val _url = MutableStateFlow("")
-    val url: StateFlow<String> = _url.asStateFlow()
+    private val _text = MutableStateFlow("")
+    val text: StateFlow<String> = _text.asStateFlow()
     
-    private val _message = MutableStateFlow("")
-    val message: StateFlow<String> = _message.asStateFlow()
-    
-    fun setUrl(newUrl: String) {
-        _url.value = newUrl
+    fun setText(newText: String) {
+        if (newText.length <= 280) {
+            _text.value = newText
+        }
     }
     
-    fun setMessage(newMessage: String) {
-        if (newMessage.length <= 280) {
-            _message.value = newMessage
+    fun setSharedUrl(url: String) {
+        // If a URL is shared, prepend it to the text if not already present
+        if (url.isNotBlank() && !_text.value.contains(url)) {
+            val newText = if (_text.value.isBlank()) url else "$url ${_text.value}"
+            if (newText.length <= 280) {
+                _text.value = newText
+            }
         }
     }
     
     fun shareEntry() {
         viewModelScope.launch {
-            if (_url.value.isBlank() || _message.value.isBlank()) {
-                _shareState.value = ShareState.Error("URL and message are required")
+            if (_text.value.isBlank()) {
+                _shareState.value = ShareState.Error("Text is required")
                 return@launch
             }
             
             _shareState.value = ShareState.Loading
             
-            val result = repository.createEntry(_url.value, _message.value)
+            val result = repository.createEntry(_text.value)
             
             _shareState.value = if (result.isSuccess) {
                 ShareState.Success
@@ -61,7 +64,6 @@ class ShareViewModel(private val repository: TrailRepository) : ViewModel() {
     
     fun resetState() {
         _shareState.value = ShareState.Initial
-        _url.value = ""
-        _message.value = ""
+        _text.value = ""
     }
 }

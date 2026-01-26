@@ -63,8 +63,8 @@ class TrailRepository(
         }
     }
     
-    suspend fun createEntry(url: String, message: String): Result<CreateEntryResponse> {
-        return apiService.createEntry(url, message)
+    suspend fun createEntry(text: String): Result<CreateEntryResponse> {
+        return apiService.createEntry(text)
     }
     
     suspend fun getEntries(page: Int = 1, limit: Int = 20): Result<EntriesResponse> {

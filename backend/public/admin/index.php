@@ -319,10 +319,18 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <div class="entry-item">
                         <img src="<?= $gravatarUrl ?>" alt="Avatar" class="entry-avatar">
                         <div class="entry-content">
-                            <div class="entry-message"><?= htmlspecialchars($entry['message']) ?></div>
-                            <a href="<?= htmlspecialchars($entry['url']) ?>" target="_blank" class="entry-url">
-                                <?= htmlspecialchars($entry['url']) ?>
-                            </a>
+                            <?php
+                                $text = $entry['text'] ?? '';
+                                // Check if text is a URL
+                                $isUrl = filter_var($text, FILTER_VALIDATE_URL);
+                            ?>
+                            <?php if ($isUrl): ?>
+                                <a href="<?= htmlspecialchars($text) ?>" target="_blank" class="entry-url">
+                                    <?= htmlspecialchars($text) ?>
+                                </a>
+                            <?php else: ?>
+                                <div class="entry-message"><?= htmlspecialchars($text) ?></div>
+                            <?php endif; ?>
                             <div class="entry-meta">
                                 <span><?= htmlspecialchars($entry['name'] ?: $entry['email']) ?></span>
                                 <span>•</span>

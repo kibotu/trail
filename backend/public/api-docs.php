@@ -69,7 +69,7 @@ $endpoints = [
         'path' => '/api/admin/entries/{id}',
         'description' => 'Update an entry (admin only)',
         'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"url\":\"https://example.com\",\"message\":\"Updated\"}' \\\n     {$baseUrl}/api/admin/entries/123"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text with https://example.com\"}' \\\n     {$baseUrl}/api/admin/entries/123"
     ],
     [
         'method' => 'POST',
@@ -88,9 +88,9 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/entries',
-        'description' => 'Create a new entry (authenticated)',
+        'description' => 'Create a new entry (authenticated) - Max 280 characters',
         'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"url\":\"https://example.com\",\"message\":\"Check this out!\"}' \\\n     {$baseUrl}/api/entries"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
     ],
     [
         'method' => 'GET',

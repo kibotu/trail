@@ -17,12 +17,11 @@ fun ShareScreen(
     viewModel: ShareViewModel = koinViewModel()
 ) {
     val shareState by viewModel.shareState.collectAsState()
-    val url by viewModel.url.collectAsState()
-    val message by viewModel.message.collectAsState()
+    val text by viewModel.text.collectAsState()
     
     LaunchedEffect(sharedUrl) {
         if (!sharedUrl.isNullOrBlank()) {
-            viewModel.setUrl(sharedUrl)
+            viewModel.setSharedUrl(sharedUrl)
         }
     }
     
@@ -44,22 +43,16 @@ fun ShareScreen(
         )
         
         OutlinedTextField(
-            value = url,
-            onValueChange = { viewModel.setUrl(it) },
-            label = { Text(stringResource(R.string.url)) },
+            value = text,
+            onValueChange = { viewModel.setText(it) },
+            label = { Text("Text (max 280 characters)") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            readOnly = !sharedUrl.isNullOrBlank()
-        )
-        
-        OutlinedTextField(
-            value = message,
-            onValueChange = { viewModel.setMessage(it) },
-            label = { Text(stringResource(R.string.message)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 5,
+            maxLines = 8,
             supportingText = {
-                Text("${message.length}/280")
+                Text("${text.length}/280 - URLs and emojis are supported")
+            },
+            placeholder = {
+                Text("Share your thoughts with a link! https://example.com 🎉")
             }
         )
         
@@ -90,7 +83,7 @@ fun ShareScreen(
             Button(
                 onClick = { viewModel.shareEntry() },
                 modifier = Modifier.weight(1f),
-                enabled = shareState !is ShareState.Loading && url.isNotBlank() && message.isNotBlank()
+                enabled = shareState !is ShareState.Loading && text.isNotBlank()
             ) {
                 Text(stringResource(R.string.submit))
             }

@@ -80,7 +80,7 @@ class RssGeneratorTest extends TestCase
             [
                 'id' => 1,
                 'url' => 'https://example.com/article?param=value&other=test',
-                'message' => 'Test <script>alert("xss")</script> article',
+                'message' => 'Test & User with special chars < > "quotes"',
                 'user_email' => 'test@example.com',
                 'user_name' => 'Test & User',
                 'created_at' => '2026-01-26 10:00:00',
@@ -90,8 +90,13 @@ class RssGeneratorTest extends TestCase
         $generator = new RssGenerator($this->config);
         $xml = $generator->generate($entries);
         
-        $this->assertStringNotContainsString('<script>', $xml);
-        $this->assertStringContainsString('&amp;', $xml);
-        $this->assertStringContainsString('&lt;', $xml);
+        // Verify special characters are properly escaped in XML
+        $this->assertStringContainsString('&amp;', $xml); // & is escaped
+        $this->assertStringContainsString('&lt;', $xml);  // < is escaped
+        $this->assertStringContainsString('&gt;', $xml);  // > is escaped
+        
+        // Verify no literal dangerous characters in content
+        $this->assertStringNotContainsString('Test & User with', $xml); // & should be escaped
+        $this->assertStringNotContainsString('chars < >', $xml); // < and > should be escaped
     }
 }

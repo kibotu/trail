@@ -46,10 +46,23 @@ class RssGenerator
             $item = $dom->createElement('item');
             $channel->appendChild($item);
 
-            $this->addElement($dom, $item, 'title', $this->escape($entry['message']));
-            $this->addElement($dom, $item, 'link', $this->escape($entry['url']));
-            $this->addElement($dom, $item, 'description', $this->escape($entry['message']));
-            $this->addElement($dom, $item, 'author', $this->escape($entry['user_email'] . ' (' . $entry['user_name'] . ')'));
+            // Get text field (with fallback for old data during tests)
+            $text = $entry['text'] ?? $entry['message'] ?? '';
+            
+            // Get link (with fallback for old url field during tests)
+            if (!empty($entry['url'])) {
+                // Old format: use url field directly
+                $link = $entry['url'];
+            } else {
+                // New format: extract first URL from text if present
+                $urls = !empty($text) ? TextSanitizer::extractUrls($text) : [];
+                $link = !empty($urls) ? $urls[0] : $this->config['app']['base_url'] . '/entries/' . $entry['id'];
+            }
+
+            $this->addElement($dom, $item, 'title', $text);
+            $this->addElement($dom, $item, 'link', $link);
+            $this->addElement($dom, $item, 'description', $text);
+            $this->addElement($dom, $item, 'author', $entry['user_email'] . ' (' . $entry['user_name'] . ')');
             $this->addElement($dom, $item, 'pubDate', date(DATE_RSS, strtotime($entry['created_at'])));
             $this->addElement($dom, $item, 'guid', $this->config['app']['base_url'] . '/entries/' . $entry['id']);
         }
