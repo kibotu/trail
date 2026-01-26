@@ -133,14 +133,8 @@ fun EntryCard(entry: Entry) {
             }
             
             Text(
-                text = entry.message,
+                text = entry.text,
                 style = MaterialTheme.typography.bodyMedium
-            )
-            
-            Text(
-                text = entry.url,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
             )
         }
     }

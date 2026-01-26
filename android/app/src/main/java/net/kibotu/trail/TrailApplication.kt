@@ -19,11 +19,11 @@ class TrailApplication : Application() {
         
         // Initialize Firebase
         Firebase.initialize(this)
-        Firebase.crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+        Firebase.crashlytics.isCrashlyticsCollectionEnabled = resources.getBoolean(R.bool.development)
         
         // Initialize Koin
         startKoin {
-            androidLogger(if (BuildConfig.DEBUG) Level.DEBUG else Level.ERROR)
+            androidLogger(if (resources.getBoolean(R.bool.development)) Level.DEBUG else Level.ERROR)
             androidContext(this@TrailApplication)
             modules(
                 appModule,

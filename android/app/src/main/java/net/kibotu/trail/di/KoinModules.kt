@@ -1,5 +1,6 @@
 package net.kibotu.trail.di
 
+import com.github.florent37.application.provider.application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.auth.Auth
@@ -11,11 +12,14 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
+import io.ktor.client.request.header
 import io.ktor.http.URLProtocol
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import net.kibotu.trail.BuildConfig
+import net.kibotu.resourceextension.resBoolean
+import net.kibotu.trail.R
 import net.kibotu.trail.data.api.TrailApiService
 import net.kibotu.trail.data.repository.TrailRepository
 import net.kibotu.trail.ui.auth.AuthViewModel
@@ -39,12 +43,12 @@ val networkModule = module {
                     prettyPrint = true
                 })
             }
-            
+
             install(Logging) {
                 logger = Logger.SIMPLE
-                level = if (BuildConfig.DEBUG) LogLevel.INFO else LogLevel.NONE
+                level = if (R.bool.development.resBoolean) LogLevel.INFO else LogLevel.NONE
             }
-            
+
             install(Auth) {
                 bearer {
                     loadTokens {
@@ -54,18 +58,21 @@ val networkModule = module {
                     }
                 }
             }
-            
+
             defaultRequest {
                 url {
                     protocol = URLProtocol.HTTPS
                     host = "example.com" // TODO: Replace with actual host
                     path("trail/")
                 }
-                header("User-Agent", "Trail Android/${BuildConfig.VERSION_NAME}")
+                val version = application?.let { app ->
+                    app.packageManager.getPackageInfo(app.packageName, 0)?.versionName
+                } ?: -1
+                header("User-Agent", "Trail Android/${version}")
             }
         }
     }
-    
+
     single { TrailApiService(get()) }
 }
 

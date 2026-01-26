@@ -208,3 +208,5 @@ backend/config.yml
 backend/vendor/
 
 **/*/__pycache__/
+
+**/*/.idea/
