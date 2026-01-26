@@ -26,6 +26,23 @@ cp config.yml.example backend/config.yml
 
 The script handles Docker, migrations, permissions, and displays all URLs.
 
+### Development Mode (Skip OAuth)
+
+For local development without Google OAuth:
+
+```bash
+# Set development mode in .env
+APP_ENV=development
+
+# Start services
+cd backend && make up
+
+# Login at http://localhost:18000/admin/login.php
+# Click any dev user (no OAuth required)
+```
+
+See [backend/DEVELOPMENT.md](backend/DEVELOPMENT.md) for details.
+
 ## Deployment
 
 **Backend** (build-then-deploy):

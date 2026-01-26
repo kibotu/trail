@@ -21,6 +21,7 @@ services:
     environment:
       APACHE_RUN_USER: www-data
       APACHE_RUN_GROUP: www-data
+      APP_ENV: ${APP_ENV:-development}
       DB_HOST: db
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}

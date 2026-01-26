@@ -24,7 +24,19 @@ class SecurityMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (!$this->config['security']['bot_protection']['enabled']) {
+        // Skip bot protection in development mode
+        $isDevelopment = ($this->config['app']['environment'] ?? 'production') === 'development';
+        
+        if (!$this->config['security']['bot_protection']['enabled'] || $isDevelopment) {
+            return $handler->handle($request);
+        }
+
+        // Allow public endpoints without restrictions
+        $path = $request->getUri()->getPath();
+        $publicPaths = ['/', '/api', '/api/health'];
+        
+        // Allow RSS feeds (starts with /api/rss)
+        if (in_array($path, $publicPaths) || str_starts_with($path, '/api/rss')) {
             return $handler->handle($request);
         }
 

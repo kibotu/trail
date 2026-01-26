@@ -32,6 +32,8 @@ $isLoggedIn = false;
 $userEmail = null;
 $authUrl = null;
 $errorMessage = null;
+$isDevelopment = false;
+$devUsers = [];
 
 try {
     $config = Config::load(__DIR__ . '/../../config.yml');
@@ -45,13 +47,23 @@ try {
         exit;
     }
 
+    // Check if we're in development mode
+    $isDevelopment = ($config['app']['environment'] ?? 'production') === 'development';
+    
+    if ($isDevelopment) {
+        // Get dev users for quick login
+        $devUsers = $config['development']['dev_users'] ?? [];
+    }
+
     // Build Google OAuth URL
     $googleOAuth = $config['google_oauth'] ?? null;
-    if ($googleOAuth === null) {
+    if ($googleOAuth === null && !$isDevelopment) {
         throw new Exception("Google OAuth not configured");
     }
 
-    $authUrl = buildGoogleAuthUrl($googleOAuth);
+    if ($googleOAuth !== null) {
+        $authUrl = buildGoogleAuthUrl($googleOAuth);
+    }
 
     // Check for error message
     if (isset($_GET['error'])) {
@@ -167,6 +179,76 @@ try {
             height: 20px;
         }
 
+        .dev-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .dev-badge {
+            display: inline-block;
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .dev-users {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .dev-user-button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .dev-user-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .dev-user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.125rem;
+        }
+
+        .dev-user-name {
+            font-weight: 600;
+        }
+
+        .dev-user-email {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .dev-user-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent);
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
         .footer {
             margin-top: 2rem;
             text-align: center;
@@ -221,9 +303,28 @@ try {
                     </svg>
                     Sign in with Google
                 </a>
-            <?php else: ?>
+            <?php elseif (!$isDevelopment): ?>
                 <div class="error-message">
                     Google OAuth is not configured. Please check your configuration.
+                </div>
+            <?php endif; ?>
+
+            <?php if ($isDevelopment && !empty($devUsers)): ?>
+                <div class="dev-section">
+                    <div class="dev-badge">🔧 Development Mode</div>
+                    <div class="dev-users">
+                        <?php foreach ($devUsers as $devUser): ?>
+                            <a href="/admin/dev-login.php?email=<?= urlencode($devUser['email']) ?>" class="dev-user-button">
+                                <div class="dev-user-info">
+                                    <span class="dev-user-name"><?= htmlspecialchars($devUser['name']) ?></span>
+                                    <span class="dev-user-email"><?= htmlspecialchars($devUser['email']) ?></span>
+                                </div>
+                                <?php if ($devUser['is_admin']): ?>
+                                    <span class="dev-user-badge">Admin</span>
+                                <?php endif; ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

@@ -43,4 +43,18 @@ app:
   base_url: https://example.com/trail
   rss_title: "Trail - Link Journal"
   rss_description: "Public link journal feed"
-  environment: production  # or 'development'
+  environment: ${APP_ENV}
+
+# Development settings (only used when environment=development)
+development:
+  # Bypass Google OAuth with these test users
+  dev_users:
+    - email: dev@example.com
+      name: Dev User
+      is_admin: true
+    - email: admin@example.com
+      name: Admin User
+      is_admin: true
+    - email: user@example.com
+      name: Regular User
+      is_admin: false

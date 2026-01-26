@@ -41,8 +41,30 @@ $app->add(new CorsMiddleware());
 $app->add(new SecurityMiddleware($config));
 $app->add(new RateLimitMiddleware($config));
 
+// Root endpoint - Redirect to API docs
+$app->get('/', function ($request, $response) {
+    return $response
+        ->withHeader('Location', '/api')
+        ->withStatus(302);
+});
+
+// API Documentation endpoint - serve static file
+$app->get('/api', function ($request, $response) {
+    $docsFile = __DIR__ . '/api-docs.php';
+    if (file_exists($docsFile)) {
+        ob_start();
+        include $docsFile;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    
+    $response->getBody()->write('API documentation not found');
+    return $response->withStatus(404);
+});
+
 // Health check endpoint
-$app->get('/health', function ($request, $response) {
+$app->get('/api/health', function ($request, $response) {
     $response->getBody()->write(json_encode(['status' => 'ok']));
     return $response->withHeader('Content-Type', 'application/json');
 });
@@ -57,8 +79,7 @@ $app->group('/api/entries', function ($group) {
 })->add(new AuthMiddleware($config));
 
 // Admin routes (authenticated + admin)
-$app->group('/admin', function ($group) {
-    $group->get('', [AdminController::class, 'dashboard']);
+$app->group('/api/admin', function ($group) {
     $group->get('/entries', [AdminController::class, 'entries']);
     $group->post('/entries/{id}', [AdminController::class, 'updateEntry']);
     $group->delete('/entries/{id}', [AdminController::class, 'deleteEntry']);
@@ -67,7 +88,7 @@ $app->group('/admin', function ($group) {
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes
-$app->get('/rss', [RssController::class, 'globalFeed']);
-$app->get('/rss/{user_id}', [RssController::class, 'userFeed']);
+$app->get('/api/rss', [RssController::class, 'globalFeed']);
+$app->get('/api/rss/{user_id}', [RssController::class, 'userFeed']);
 
 $app->run();
