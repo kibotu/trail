@@ -1,8 +1,8 @@
 database:
-  host: localhost
+  host: ${DB_HOST}
   port: 3306
-  name: trail_db
-  user: trail_user
+  name: ${DB_NAME}
+  user: ${DB_USER}
   password: ${DB_PASSWORD}
   prefix: trail_
   charset: utf8mb4

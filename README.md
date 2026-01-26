@@ -121,18 +121,6 @@ scripts/         # Python UV (install, migrate, deploy)
 
 **Integration**: Start Docker, run migrations, access http://localhost:18000/admin
 
-## Documentation
-
-**Deployment**: `DEPLOYMENT.md` (detailed guide)
-
-**Testing**: `TESTING_PRODUCTION_PARITY.md` (verification steps)
-
-**Extensions**: `PHP_EXTENSIONS_COMPARISON.md` (production parity)
-
-**Environment**: `ENV_CONFIGURATION.md` (.env setup)
-
-**Docker**: `backend/DOCKER.md` (container details)
-
 ---
 
 **~7,100 lines** | Production-ready | MIT License
