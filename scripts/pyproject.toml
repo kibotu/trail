@@ -1,0 +1,22 @@
+[project]
+name = "trail-deploy"
+version = "1.0.0"
+description = "Trail deployment scripts"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "mysql-connector-python>=9.1.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+deploy = "deploy:main"
+db-migrate = "db_migrate:main"
+full-deploy = "full_deploy:main"
+install = "install:main"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+]
