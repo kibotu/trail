@@ -289,9 +289,9 @@ usort($endpoints, function($a, $b) {
     
     <div class="container">
         <div class="quick-links">
-            <a href="/admin/login.php" class="quick-link">
-                <div class="icon">🔐</div>
-                <div class="label">Admin Login</div>
+            <a href="/" class="quick-link">
+                <div class="icon">🏠</div>
+                <div class="label">Home</div>
             </a>
             <a href="/api/rss" class="quick-link">
                 <div class="icon">📡</div>

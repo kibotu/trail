@@ -49,7 +49,7 @@ try {
 
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
-    header('Location: /admin/login.php?error=' . urlencode($e->getMessage()));
+    header('Location: /?error=' . urlencode($e->getMessage()));
     exit;
 }
 
@@ -136,6 +136,25 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         .user-email {
             font-size: 0.875rem;
             color: var(--text-secondary);
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+            background: var(--bg-tertiary);
         }
 
         .logout-btn {
@@ -257,6 +276,21 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 align-items: flex-start;
             }
 
+            .header-right {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            .user-info {
+                order: -1;
+                width: 100%;
+            }
+
+            .nav-link {
+                font-size: 0.8125rem;
+                padding: 0.4rem 0.75rem;
+            }
+
             .container {
                 padding: 1rem;
             }
@@ -274,6 +308,14 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="header-title">Trail Admin</div>
         </div>
         <div class="header-right">
+            <a href="/" class="nav-link">
+                <span>🏠</span>
+                <span>Home</span>
+            </a>
+            <a href="/api" class="nav-link">
+                <span>📚</span>
+                <span>API</span>
+            </a>
             <div class="user-info">
                 <img src="<?= $avatarUrl ?>" alt="Avatar" class="avatar">
                 <div class="user-email"><?= htmlspecialchars($session['email']) ?></div>

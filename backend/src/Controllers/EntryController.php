@@ -72,7 +72,7 @@ class EntryController
     {
         $queryParams = $request->getQueryParams();
         
-        $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
+        $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../config.yml');

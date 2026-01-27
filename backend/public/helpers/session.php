@@ -141,7 +141,7 @@ function getAuthenticatedUser(PDO $db): ?array
 /**
  * Require authentication - redirect to login if not authenticated.
  */
-function requireAuthentication(PDO $db, string $redirectUrl = '/admin/login.php'): array
+function requireAuthentication(PDO $db, string $redirectUrl = '/'): array
 {
     $session = getAuthenticatedUser($db);
 
@@ -156,7 +156,7 @@ function requireAuthentication(PDO $db, string $redirectUrl = '/admin/login.php'
 /**
  * Require admin authentication.
  */
-function requireAdminAuthentication(PDO $db, string $redirectUrl = '/admin/login.php'): array
+function requireAdminAuthentication(PDO $db, string $redirectUrl = '/'): array
 {
     $session = requireAuthentication($db, $redirectUrl);
 

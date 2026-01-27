@@ -62,7 +62,7 @@ class RssGenerator
             $this->addElement($dom, $item, 'title', $text);
             $this->addElement($dom, $item, 'link', $link);
             $this->addElement($dom, $item, 'description', $text);
-            $this->addElement($dom, $item, 'author', $entry['user_email'] . ' (' . $entry['user_name'] . ')');
+            $this->addElement($dom, $item, 'author', $entry['user_name']);
             $this->addElement($dom, $item, 'pubDate', date(DATE_RSS, strtotime($entry['created_at'])));
             $this->addElement($dom, $item, 'guid', $this->config['app']['base_url'] . '/entries/' . $entry['id']);
         }

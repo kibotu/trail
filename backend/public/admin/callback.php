@@ -90,7 +90,7 @@ try {
 
 } catch (Exception $e) {
     error_log("OAuth callback error: " . $e->getMessage());
-    header('Location: /admin/login.php?error=' . urlencode($e->getMessage()));
+    header('Location: /?error=' . urlencode($e->getMessage()));
     exit;
 }
 

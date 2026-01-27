@@ -34,11 +34,37 @@ $app->add(new CorsMiddleware());
 $app->add(new SecurityMiddleware($config));
 $app->add(new RateLimitMiddleware($config));
 
-// Root endpoint - Redirect to API docs
-$app->get('/', function ($request, $response) {
-    return $response
-        ->withHeader('Location', '/api')
-        ->withStatus(302);
+// Root endpoint - Show public entries landing page
+$app->get('/', function ($request, $response) use ($config) {
+    $landingPage = __DIR__ . '/../templates/public/landing.php';
+    if (file_exists($landingPage)) {
+        require_once __DIR__ . '/helpers/session.php';
+        
+        // Check if user is logged in
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        
+        // Build Google OAuth URL for the login button (only if not logged in)
+        $googleOAuth = $config['google_oauth'] ?? null;
+        $googleAuthUrl = null;
+        
+        if ($googleOAuth !== null && !$isLoggedIn) {
+            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
+        }
+        
+        ob_start();
+        include $landingPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    
+    $response->getBody()->write('Landing page not found');
+    return $response->withStatus(404);
 });
 
 // API Documentation endpoint - serve static file

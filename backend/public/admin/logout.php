@@ -35,5 +35,5 @@ try {
 }
 
 // Redirect to login page
-header('Location: /admin/login.php');
+header('Location: /');
 exit;
