@@ -43,4 +43,25 @@ class TrailApi(private val client: HttpClient) {
             Result.failure(e)
         }
     }
+
+    suspend fun updateEntry(entryId: Int, request: UpdateEntryRequest): Result<UpdateEntryResponse> {
+        return try {
+            val response = client.put("api/entries/$entryId") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            Result.success(response.body<UpdateEntryResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteEntry(entryId: Int): Result<Unit> {
+        return try {
+            client.delete("api/entries/$entryId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

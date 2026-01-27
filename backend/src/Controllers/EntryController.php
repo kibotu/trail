@@ -100,4 +100,87 @@ class EntryController
         
         return $response->withHeader('Content-Type', 'application/json');
     }
+
+    public static function update(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $userId = $request->getAttribute('user_id');
+        $isAdmin = $request->getAttribute('is_admin') ?? false;
+        $entryId = (int) $args['id'];
+        $data = json_decode((string) $request->getBody(), true);
+
+        $text = $data['text'] ?? '';
+
+        // Validation: Check if text is provided
+        if (empty($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validation: Check UTF-8 encoding (for emoji support)
+        if (!TextSanitizer::isValidUtf8($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid text encoding']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validation: Check length before sanitization
+        if (mb_strlen($text) > 280) {
+            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Check for dangerous patterns before sanitization
+        if (!TextSanitizer::isSafe($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Text contains potentially dangerous content']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Security: Sanitize text to remove scripts while preserving URLs and emojis
+        $sanitizedText = TextSanitizer::sanitize($text);
+
+        $config = Config::load(__DIR__ . '/../../config.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        // Authorization: Check if user can modify this entry
+        if (!$entryModel->canModify($entryId, $userId, $isAdmin)) {
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized to modify this entry']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        $success = $entryModel->update($entryId, $sanitizedText);
+
+        if ($success) {
+            $entry = $entryModel->findById($entryId);
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'updated_at' => $entry['updated_at']
+            ]));
+            return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+        }
+
+        $response->getBody()->write(json_encode(['error' => 'Failed to update entry']));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+
+    public static function delete(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $userId = $request->getAttribute('user_id');
+        $isAdmin = $request->getAttribute('is_admin') ?? false;
+        $entryId = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../config.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        // Authorization: Check if user can modify this entry
+        if (!$entryModel->canModify($entryId, $userId, $isAdmin)) {
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized to delete this entry']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        $success = $entryModel->delete($entryId);
+
+        $response->getBody()->write(json_encode(['success' => $success]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 }

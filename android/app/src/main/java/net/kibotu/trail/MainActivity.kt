@@ -97,8 +97,16 @@ fun TrailApp(viewModel: TrailViewModel) {
                 entries = state.entries,
                 isLoading = state.isLoading,
                 userName = state.userName,
+                currentUserId = state.userId,
+                isAdmin = state.isAdmin,
                 onSubmitEntry = { text ->
                     viewModel.submitEntry(text)
+                },
+                onUpdateEntry = { entryId, text ->
+                    viewModel.updateEntry(entryId, text)
+                },
+                onDeleteEntry = { entryId ->
+                    viewModel.deleteEntry(entryId)
                 },
                 onRefresh = {
                     viewModel.loadEntries()

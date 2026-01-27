@@ -11,7 +11,8 @@ data class Entry(
     @SerialName("user_name") val userName: String,
     @SerialName("gravatar_hash") val gravatarHash: String,
     @SerialName("gravatar_url") val gravatarUrl: String,
-    @SerialName("created_at") val createdAt: String
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String? = null
 )
 
 @Serializable
@@ -32,4 +33,15 @@ data class CreateEntryRequest(
 data class CreateEntryResponse(
     val id: Int,
     @SerialName("created_at") val createdAt: String
+)
+
+@Serializable
+data class UpdateEntryRequest(
+    val text: String
+)
+
+@Serializable
+data class UpdateEntryResponse(
+    val success: Boolean,
+    @SerialName("updated_at") val updatedAt: String
 )

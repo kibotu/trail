@@ -19,6 +19,8 @@ sealed class UiState {
     data class Entries(
         val entries: List<Entry> = emptyList(),
         val userName: String = "",
+        val userId: Int = 0,
+        val isAdmin: Boolean = false,
         val isLoading: Boolean = false
     ) : UiState()
     data class Error(val message: String) : UiState()
@@ -40,11 +42,16 @@ class TrailViewModel(private val context: Context) : ViewModel() {
             try {
                 val token = tokenManager.getAuthToken()
                 if (token != null) {
-                    // Get user name from token manager
+                    // Get user info from token manager
                     val userName = tokenManager.userName.first() ?: ""
+                    val userId = tokenManager.userId.first()?.toIntOrNull() ?: 0
                     
                     ApiClient.setAuthToken(token)
-                    _uiState.value = UiState.Entries(userName = userName)
+                    _uiState.value = UiState.Entries(
+                        userName = userName,
+                        userId = userId,
+                        isAdmin = false // Will be updated from auth response if needed
+                    )
                     loadEntries()
                     
                     // If there's pending shared text, submit it
@@ -82,7 +89,11 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     ApiClient.setAuthToken(authResponse.token)
                     
                     // Navigate to entries
-                    _uiState.value = UiState.Entries(userName = authResponse.user.name)
+                    _uiState.value = UiState.Entries(
+                        userName = authResponse.user.name,
+                        userId = authResponse.user.id,
+                        isAdmin = authResponse.user.isAdmin
+                    )
                     loadEntries()
                     
                     // Submit pending shared text if available
@@ -112,17 +123,17 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 val result = ApiClient.api.getEntries()
                 
                 result.onSuccess { entriesResponse ->
-                    val currentUserName = if (currentState is UiState.Entries) {
-                        currentState.userName
+                    if (currentState is UiState.Entries) {
+                        _uiState.value = currentState.copy(
+                            entries = entriesResponse.entries,
+                            isLoading = false
+                        )
                     } else {
-                        ""
+                        _uiState.value = UiState.Entries(
+                            entries = entriesResponse.entries,
+                            isLoading = false
+                        )
                     }
-                    
-                    _uiState.value = UiState.Entries(
-                        entries = entriesResponse.entries,
-                        userName = currentUserName,
-                        isLoading = false
-                    )
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to load entries", e)
                     if (currentState is UiState.Entries) {
@@ -166,5 +177,48 @@ class TrailViewModel(private val context: Context) : ViewModel() {
 
     fun setPendingSharedText(text: String) {
         pendingSharedText = text
+    }
+
+    fun updateEntry(entryId: Int, text: String) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.updateEntry(entryId, UpdateEntryRequest(text))
+                
+                result.onSuccess {
+                    // Reload entries after successful update
+                    loadEntries()
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to update entry", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error updating entry", e)
+            }
+        }
+    }
+
+    fun deleteEntry(entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.deleteEntry(entryId)
+                
+                result.onSuccess {
+                    // Reload entries after successful deletion
+                    loadEntries()
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to delete entry", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error deleting entry", e)
+            }
+        }
+    }
+
+    fun canModifyEntry(entry: Entry): Boolean {
+        val currentState = _uiState.value
+        return if (currentState is UiState.Entries) {
+            currentState.isAdmin || entry.userId == currentState.userId
+        } else {
+            false
+        }
     }
 }

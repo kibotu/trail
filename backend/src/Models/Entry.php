@@ -103,4 +103,24 @@ class Entry
         
         return (int) $result['count'];
     }
+
+    /**
+     * Check if a user can modify an entry (creator or admin)
+     */
+    public function canModify(int $entryId, int $userId, bool $isAdmin): bool
+    {
+        if ($isAdmin) {
+            return true;
+        }
+
+        $stmt = $this->db->prepare("SELECT user_id FROM {$this->table} WHERE id = ?");
+        $stmt->execute([$entryId]);
+        $entry = $stmt->fetch();
+
+        if (!$entry) {
+            return false;
+        }
+
+        return (int) $entry['user_id'] === $userId;
+    }
 }

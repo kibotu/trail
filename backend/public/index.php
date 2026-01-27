@@ -70,6 +70,8 @@ $app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development 
 $app->group('/api/entries', function ($group) {
     $group->post('', [EntryController::class, 'create']);
     $group->get('', [EntryController::class, 'list']);
+    $group->put('/{id}', [EntryController::class, 'update']);
+    $group->delete('/{id}', [EntryController::class, 'delete']);
 })->add(new AuthMiddleware($config));
 
 // Admin routes (authenticated + admin)
