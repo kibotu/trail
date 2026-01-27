@@ -40,7 +40,7 @@ class AdminController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAll(100, 0);
+        $entries = $entryModel->getAll(100, null);
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
@@ -116,7 +116,7 @@ class AdminController
         $db = Database::getInstance($config);
         $userModel = new User($db);
 
-        $users = $userModel->getAll(100, 0);
+        $users = $userModel->getAll(100, null);
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($users as &$user) {

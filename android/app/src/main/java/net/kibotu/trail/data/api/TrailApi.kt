@@ -20,11 +20,11 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun getEntries(page: Int = 1, limit: Int = 20): Result<EntriesResponse> {
+    suspend fun getEntries(limit: Int = 20, before: String? = null): Result<EntriesResponse> {
         return try {
             val response = client.get("api/entries") {
-                parameter("page", page)
                 parameter("limit", limit)
+                before?.let { parameter("before", it) }
             }
             Result.success(response.body<EntriesResponse>())
         } catch (e: Exception) {

@@ -62,14 +62,26 @@ class User
         return $stmt->execute([$id]);
     }
 
-    public function getAll(int $limit = 50, int $offset = 0): array
+    public function getAll(int $limit = 50, ?string $before = null): array
     {
-        $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table} 
-             ORDER BY created_at DESC 
-             LIMIT ? OFFSET ?"
-        );
-        $stmt->execute([$limit, $offset]);
+        if ($before !== null) {
+            // Cursor-based pagination: get users created before the cursor timestamp
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table} 
+                 WHERE created_at < ? 
+                 ORDER BY created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$before, $limit]);
+        } else {
+            // Initial load: get most recent users
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table} 
+                 ORDER BY created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$limit]);
+        }
         
         return $stmt->fetchAll();
     }

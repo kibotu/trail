@@ -75,9 +75,9 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/entries',
-        'description' => 'List user entries (authenticated)',
+        'description' => 'List user entries (authenticated) - Supports cursor-based pagination with ?limit=20&before=TIMESTAMP',
         'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20\n\n# Next page:\ncurl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20&before=2024-01-01%2012:00:00"
     ],
     [
         'method' => 'POST',

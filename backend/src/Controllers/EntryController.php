@@ -72,28 +72,32 @@ class EntryController
     {
         $queryParams = $request->getQueryParams();
         
-        $page = max(1, (int) ($queryParams['page'] ?? 1));
         $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
-        $offset = ($page - 1) * $limit;
+        $before = $queryParams['before'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAll($limit, $offset);
-        $total = $entryModel->count();
-        $pages = ceil($total / $limit);
+        $entries = $entryModel->getAll($limit, $before);
+        $hasMore = count($entries) === $limit;
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
         }
 
+        // Get the cursor for the next page (created_at of the last entry)
+        $nextCursor = null;
+        if ($hasMore && !empty($entries)) {
+            $lastEntry = end($entries);
+            $nextCursor = $lastEntry['created_at'];
+        }
+
         $response->getBody()->write(json_encode([
             'entries' => $entries,
-            'total' => $total,
-            'page' => $page,
-            'pages' => $pages,
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
             'limit' => $limit,
         ]));
         
@@ -105,28 +109,32 @@ class EntryController
         $userId = $request->getAttribute('user_id');
         $queryParams = $request->getQueryParams();
         
-        $page = max(1, (int) ($queryParams['page'] ?? 1));
         $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
-        $offset = ($page - 1) * $limit;
+        $before = $queryParams['before'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../config.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getByUser($userId, $limit, $offset);
-        $total = $entryModel->countByUser($userId);
-        $pages = ceil($total / $limit);
+        $entries = $entryModel->getByUser($userId, $limit, $before);
+        $hasMore = count($entries) === $limit;
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
         }
 
+        // Get the cursor for the next page (created_at of the last entry)
+        $nextCursor = null;
+        if ($hasMore && !empty($entries)) {
+            $lastEntry = end($entries);
+            $nextCursor = $lastEntry['created_at'];
+        }
+
         $response->getBody()->write(json_encode([
             'entries' => $entries,
-            'total' => $total,
-            'page' => $page,
-            'pages' => $pages,
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
             'limit' => $limit,
         ]));
         

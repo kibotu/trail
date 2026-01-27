@@ -19,7 +19,7 @@ class RssController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAll(100, 0);
+        $entries = $entryModel->getAll(100, null);
 
         $rssGenerator = new RssGenerator($config);
         $xml = $rssGenerator->generate($entries);
@@ -36,7 +36,7 @@ class RssController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getByUser($userId, 100, 0);
+        $entries = $entryModel->getByUser($userId, 100, null);
 
         $rssGenerator = new RssGenerator($config);
         $xml = $rssGenerator->generate($entries, $userId);

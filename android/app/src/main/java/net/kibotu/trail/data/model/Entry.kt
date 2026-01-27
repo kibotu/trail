@@ -18,9 +18,8 @@ data class Entry(
 @Serializable
 data class EntriesResponse(
     val entries: List<Entry>,
-    val total: Int,
-    val page: Int,
-    val pages: Int,
+    @SerialName("has_more") val hasMore: Boolean,
+    @SerialName("next_cursor") val nextCursor: String? = null,
     val limit: Int
 )
 

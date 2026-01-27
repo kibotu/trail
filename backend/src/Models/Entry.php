@@ -41,31 +41,59 @@ class Entry
         return $entry ?: null;
     }
 
-    public function getByUser(int $userId, int $limit = 20, int $offset = 0): array
+    public function getByUser(int $userId, int $limit = 20, ?string $before = null): array
     {
-        $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
-             FROM {$this->table} e 
-             JOIN trail_users u ON e.user_id = u.id 
-             WHERE e.user_id = ? 
-             ORDER BY e.created_at DESC 
-             LIMIT ? OFFSET ?"
-        );
-        $stmt->execute([$userId, $limit, $offset]);
+        if ($before !== null) {
+            // Cursor-based pagination: get entries created before the cursor timestamp
+            $stmt = $this->db->prepare(
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                 FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 WHERE e.user_id = ? AND e.created_at < ? 
+                 ORDER BY e.created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$userId, $before, $limit]);
+        } else {
+            // Initial load: get most recent entries
+            $stmt = $this->db->prepare(
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                 FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 WHERE e.user_id = ? 
+                 ORDER BY e.created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$userId, $limit]);
+        }
         
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, int $offset = 0): array
+    public function getAll(int $limit = 50, ?string $before = null): array
     {
-        $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
-             FROM {$this->table} e 
-             JOIN trail_users u ON e.user_id = u.id 
-             ORDER BY e.created_at DESC 
-             LIMIT ? OFFSET ?"
-        );
-        $stmt->execute([$limit, $offset]);
+        if ($before !== null) {
+            // Cursor-based pagination: get entries created before the cursor timestamp
+            $stmt = $this->db->prepare(
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                 FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 WHERE e.created_at < ? 
+                 ORDER BY e.created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$before, $limit]);
+        } else {
+            // Initial load: get most recent entries
+            $stmt = $this->db->prepare(
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                 FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 ORDER BY e.created_at DESC 
+                 LIMIT ?"
+            );
+            $stmt->execute([$limit]);
+        }
         
         return $stmt->fetchAll();
     }
