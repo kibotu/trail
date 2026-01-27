@@ -32,8 +32,8 @@ jwt:
 security:
   rate_limit:
     enabled: true
-    requests_per_minute: 60
-    requests_per_hour: 1000
+    requests_per_minute: 120  # Increased for post creation, edit/delete operations
+    requests_per_hour: 3000   # Increased for active user sessions
   bot_protection:
     enabled: true
     require_user_agent: true

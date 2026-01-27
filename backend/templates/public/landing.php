@@ -164,6 +164,125 @@
             padding: 2rem 1rem;
         }
 
+        .create-post-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .create-post-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .create-post-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .post-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .post-textarea {
+            width: 100%;
+            min-height: 100px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-family: inherit;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .post-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .post-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .post-form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .char-counter {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .char-counter.warning {
+            color: #f59e0b;
+        }
+
+        .char-counter.error {
+            color: #ef4444;
+        }
+
+        .submit-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.625rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .submit-button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .submit-button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .post-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .post-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
         .entries-container {
             display: flex;
             flex-direction: column;
@@ -399,6 +518,24 @@
                 padding: 1rem 0.5rem;
             }
 
+            .create-post-section {
+                padding: 1rem;
+            }
+
+            .create-post-header h2 {
+                font-size: 1.125rem;
+            }
+
+            .post-textarea {
+                min-height: 80px;
+                font-size: 0.9375rem;
+            }
+
+            .submit-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+
             .entry-card {
                 padding: 1rem;
             }
@@ -469,6 +606,32 @@
             </div>
         <?php endif; ?>
         
+        <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+        <div class="create-post-section">
+            <div class="create-post-header">
+                <span style="font-size: 1.5rem;">✍️</span>
+                <h2>Create a Post</h2>
+            </div>
+            <form class="post-form" id="createPostForm" onsubmit="return false;">
+                <textarea 
+                    id="postText" 
+                    class="post-textarea" 
+                    placeholder="Share a link, thought, or update... (max 280 characters)"
+                    maxlength="280"
+                    rows="3"
+                ></textarea>
+                <div class="post-form-footer">
+                    <span class="char-counter" id="charCounter">0 / 280</span>
+                    <button type="submit" class="submit-button" id="submitButton">
+                        <span>📝</span>
+                        <span>Post</span>
+                    </button>
+                </div>
+            </form>
+            <div id="postMessage" style="display: none;"></div>
+        </div>
+        <?php endif; ?>
+        
         <div class="entries-container" id="entriesContainer">
             <!-- Entries will be loaded here -->
         </div>
@@ -495,6 +658,100 @@
         const userEmail = <?= json_encode($userName ?? null) ?>;
         const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
         const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+
+        // Character counter for post form
+        if (isLoggedIn) {
+            const postText = document.getElementById('postText');
+            const charCounter = document.getElementById('charCounter');
+            const submitButton = document.getElementById('submitButton');
+            const createPostForm = document.getElementById('createPostForm');
+            const postMessage = document.getElementById('postMessage');
+
+            // Update character counter
+            postText.addEventListener('input', function() {
+                const length = this.value.length;
+                charCounter.textContent = `${length} / 280`;
+                
+                // Update counter color
+                charCounter.classList.remove('warning', 'error');
+                if (length > 260) {
+                    charCounter.classList.add('error');
+                } else if (length > 240) {
+                    charCounter.classList.add('warning');
+                }
+                
+                // Disable submit if empty or too long
+                submitButton.disabled = length === 0 || length > 280;
+            });
+
+            // Handle form submission
+            createPostForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const text = postText.value.trim();
+                if (!text || text.length > 280) {
+                    return;
+                }
+
+                if (!jwtToken) {
+                    showMessage('You must be logged in to post', 'error');
+                    return;
+                }
+
+                // Disable form during submission
+                submitButton.disabled = true;
+                postText.disabled = true;
+                submitButton.innerHTML = '<span>⏳</span><span>Posting...</span>';
+
+                try {
+                    const response = await fetch('/api/entries', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${jwtToken}`
+                        },
+                        body: JSON.stringify({ text })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to create post');
+                    }
+
+                    const data = await response.json();
+                    
+                    // Clear form
+                    postText.value = '';
+                    charCounter.textContent = '0 / 280';
+                    
+                    // Show success message
+                    showMessage('✓ Post created successfully!', 'success');
+                    
+                    // Reload entries to show new post
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+
+                } catch (error) {
+                    console.error('Error creating post:', error);
+                    showMessage(`Failed to create post: ${error.message}`, 'error');
+                } finally {
+                    submitButton.disabled = false;
+                    postText.disabled = false;
+                    submitButton.innerHTML = '<span>📝</span><span>Post</span>';
+                }
+            });
+
+            function showMessage(message, type) {
+                postMessage.textContent = message;
+                postMessage.className = type === 'success' ? 'post-success' : 'post-error';
+                postMessage.style.display = 'block';
+                
+                setTimeout(() => {
+                    postMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
 
         // Format timestamp
         function formatTimestamp(timestamp) {
