@@ -1,66 +1,68 @@
 package net.kibotu.trail
 
-import android.annotation.SuppressLint
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
-import net.kibotu.trail.R
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import android.content.ContentValues.TAG
-import android.content.Context
-import android.credentials.GetCredentialException
-import android.os.Build
-import android.util.Log
-import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.credentials.CredentialManager
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialCustomException
-import androidx.credentials.exceptions.NoCredentialException
-import androidx.credentials.GetCredentialRequest
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
-import java.security.SecureRandom
-import java.util.Base64
-import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.ui.Modifier
+import net.kibotu.trail.ui.screens.EntriesScreen
+import net.kibotu.trail.ui.screens.LoginScreen
 import net.kibotu.trail.ui.theme.GoogleAuthTheme
+import net.kibotu.trail.ui.viewmodel.TrailViewModel
+import net.kibotu.trail.ui.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: TrailViewModel
+
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        
+        viewModel = TrailViewModel(applicationContext)
 
         setContent {
-            //replace with your own web client ID from Google Cloud Console
-            val webClientId = stringResource(R.string.default_web_client_id)
-            //ExampleTheme - this is derived from the name of the project not any added library
-            //e.g. if this project was named "Testing" it would be generated as TestingTheme
             GoogleAuthTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    TrailApp(viewModel)
+                }
+            }
+        }
+        
+        // Handle shared content from other apps after setContent
+        handleSharedContent(intent)
+    }
 
-                    ) {
-                        //This requires the user to press the button
-                        ButtonUI(webClientId)
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSharedContent(intent)
+    }
+
+    private fun handleSharedContent(intent: Intent?) {
+        when (intent?.action) {
+            Intent.ACTION_SEND -> {
+                if (intent.type == "text/plain") {
+                    val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    sharedText?.let {
+                        // Set the pending shared text in the ViewModel
+                        // If user is logged in, it will be submitted automatically
+                        // If not, it will be submitted after login
+                        viewModel.setPendingSharedText(it)
                     }
                 }
             }
@@ -68,84 +70,51 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
-fun ButtonUI(webClientId: String) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+fun TrailApp(viewModel: TrailViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
 
-    val onClick: () -> Unit = {
-        val signInWithGoogleOption: GetSignInWithGoogleOption = GetSignInWithGoogleOption
-            .Builder(serverClientId = webClientId)
-            .setNonce(generateSecureRandomNonce())
-            .build()
-
-        val request: GetCredentialRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(signInWithGoogleOption)
-            .build()
-
-        coroutineScope.launch {
-            signIn(request, context)
+    when (val state = uiState) {
+        is UiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        is UiState.Login -> {
+            LoginScreen(
+                onLoginSuccess = { idToken ->
+                    // Pass any pending shared text to the sign-in handler
+                    viewModel.handleGoogleSignIn(idToken)
+                }
+            )
+        }
+        is UiState.Entries -> {
+            EntriesScreen(
+                entries = state.entries,
+                isLoading = state.isLoading,
+                userName = state.userName,
+                onSubmitEntry = { text ->
+                    viewModel.submitEntry(text)
+                },
+                onRefresh = {
+                    viewModel.loadEntries()
+                },
+                onLogout = {
+                    viewModel.logout()
+                }
+            )
+        }
+        is UiState.Error -> {
+            // Show error state - for now just go back to login
+            LoginScreen(
+                onLoginSuccess = { idToken ->
+                    viewModel.handleGoogleSignIn(idToken)
+                }
+            )
         }
     }
-    Image(
-        painter = painterResource(id = R.drawable.android_light_rd_si),
-        contentDescription = "",
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable(enabled = true, onClick = onClick)
-    )
-}
-
-@SuppressLint("NewApi")
-fun generateSecureRandomNonce(byteLength: Int = 32): String {
-    val randomBytes = ByteArray(byteLength)
-    SecureRandom.getInstanceStrong().nextBytes(randomBytes)
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
-}
-
-//This code will not work on Android versions < UPSIDE_DOWN_CAKE when GetCredentialException is
-//is thrown.
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-suspend fun signIn(request: GetCredentialRequest, context: Context): Exception? {
-    val credentialManager = CredentialManager.create(context)
-    val failureMessage = "Sign in failed!"
-    var e: Exception? = null
-    //using delay() here helps prevent NoCredentialException when the BottomSheet Flow is triggered
-    //on the initial running of our app
-    delay(250)
-    try {
-        // The getCredential is called to request a credential from Credential Manager.
-        val result = credentialManager.getCredential(
-            request = request,
-            context = context,
-        )
-        Log.i(TAG, result.toString())
-
-        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
-        Log.i(TAG, "(☞ﾟヮﾟ)☞  Sign in Successful!  ☜(ﾟヮﾟ☜)")
-
-    } catch (e: GetCredentialException) {
-        Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
-        Log.e(TAG, failureMessage + ": Failure getting credentials", e)
-
-    } catch (e: GoogleIdTokenParsingException) {
-        Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
-        Log.e(TAG, failureMessage + ": Issue with parsing received GoogleIdToken", e)
-
-    } catch (e: NoCredentialException) {
-        Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
-        Log.e(TAG, failureMessage + ": No credentials found", e)
-        return e
-
-    } catch (e: GetCredentialCustomException) {
-        Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
-        Log.e(TAG, failureMessage + ": Issue with custom credential request", e)
-
-    } catch (e: GetCredentialCancellationException) {
-        Toast.makeText(context, ": Sign-in cancelled", Toast.LENGTH_SHORT).show()
-        Log.e(TAG, failureMessage + ": Sign-in was cancelled", e)
-    }
-    return e
 }

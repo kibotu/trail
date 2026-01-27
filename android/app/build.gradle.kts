@@ -4,6 +4,7 @@ import kotlin.apply
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.play.services)
 }
 
@@ -109,8 +110,27 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.play.services.auth)
 
+    // networking with ktor
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.kotlinx.serialization.json)
+
+    // navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // datastore for token storage
+    implementation(libs.androidx.datastore.preferences)
+
+    // coil for image loading
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
