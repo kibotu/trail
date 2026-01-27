@@ -12,7 +12,7 @@ import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.data.repository.TrailRepository
 
 sealed class EntryListState {
-    object Loading : EntryListState()
+    data object Loading : EntryListState()
     data class Success(val entries: List<Entry>, val hasMore: Boolean) : EntryListState()
     data class Error(val message: String) : EntryListState()
 }

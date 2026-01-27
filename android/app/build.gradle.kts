@@ -151,8 +151,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     
     // Credential Manager for Google Sign-In
-    implementation("androidx.credentials:credentials:1.2.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.2.0")
+    // Using latest versions with Android 16 edge-to-edge fixes
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
     
     // Ktor Client
@@ -167,12 +168,19 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     
     // Koin
-    implementation("io.insert-koin:koin-androidx-compose:4.1.1")
-    implementation("io.insert-koin:koin-androidx-compose-navigation:4.1.1")
+    // https://central.sonatype.com/artifact/io.insert-koin/koin-compose/versions
+    implementation("io.insert-koin:koin-androidx-compose:4.2.0-beta4")
+    // https://central.sonatype.com/artifact/io.insert-koin/koin-compose-navigation3-android/versions
+    implementation("io.insert-koin:koin-compose-navigation3-android:4.2.0-beta4")
     
     // Navigation 3
     implementation("androidx.navigation3:navigation3-runtime:1.0.0")
     implementation("androidx.navigation3:navigation3-ui:1.0.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
+    implementation("androidx.compose.material3.adaptive:adaptive-navigation3:1.3.0-alpha06")
+    
+    // Kotlin Serialization for Navigation 3
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.10.0")
     
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
@@ -194,7 +202,7 @@ dependencies {
     
     // Timber for logging
     implementation("com.jakewharton.timber:timber:5.0.1")
-    
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.ktor:ktor-client-mock:3.4.0")

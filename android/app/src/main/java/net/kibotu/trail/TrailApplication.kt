@@ -5,6 +5,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.initialize
 import net.kibotu.trail.di.appModule
+import net.kibotu.trail.di.navigationModule
 import net.kibotu.trail.di.networkModule
 import net.kibotu.trail.di.repositoryModule
 import net.kibotu.trail.di.viewModelModule
@@ -38,7 +39,8 @@ class TrailApplication : Application() {
                 appModule,
                 networkModule,
                 repositoryModule,
-                viewModelModule
+                viewModelModule,
+                navigationModule
             )
         }
         

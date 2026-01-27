@@ -11,9 +11,9 @@ import kotlinx.coroutines.launch
 import net.kibotu.trail.data.repository.TrailRepository
 
 sealed class ShareState {
-    object Initial : ShareState()
-    object Loading : ShareState()
-    object Success : ShareState()
+    data object Initial : ShareState()
+    data object Loading : ShareState()
+    data object Success : ShareState()
     data class Error(val message: String) : ShareState()
 }
 

@@ -47,6 +47,15 @@ class TrailRepository(
         return result
     }
     
+    suspend fun saveDevAuthData(authResponse: AuthResponse): Result<Unit> {
+        return try {
+            saveAuthData(authResponse)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     private suspend fun saveAuthData(authResponse: AuthResponse) {
         context.dataStore.edit { preferences ->
             preferences[JWT_KEY] = authResponse.jwt

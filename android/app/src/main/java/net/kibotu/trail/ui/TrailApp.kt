@@ -1,67 +1,38 @@
 package net.kibotu.trail.ui
 
-import androidx.compose.runtime.*
-import net.kibotu.trail.ui.auth.AuthScreen
+import androidx.compose.runtime.Composable
 import net.kibotu.trail.ui.auth.AuthViewModel
-import net.kibotu.trail.ui.list.EntryListScreen
-import net.kibotu.trail.ui.share.ShareScreen
+import net.kibotu.trail.ui.navigation.NavigationViewModel
+import net.kibotu.trail.ui.navigation.TrailNavHost
 import org.koin.androidx.compose.koinViewModel
 
-sealed class Destination {
-    object Auth : Destination()
-    data class Share(val sharedUrl: String?) : Destination()
-    object EntryList : Destination()
-}
-
+/**
+ * Root composable for the Trail app using Navigation 3.
+ * 
+ * Navigation 3 differences from Navigation 2:
+ * - No NavController - uses direct back stack management
+ * - NavigationViewModel manages the back stack as mutableStateListOf
+ * - Simpler and more direct navigation API
+ * 
+ * Follows unidirectional data flow principles:
+ * - Navigation state is managed by NavigationViewModel
+ * - ViewModels emit state via StateFlow
+ * - UI observes state and emits events upward
+ * - Navigation decisions are centralized in TrailNavHost
+ *
+ * @param sharedUrl Optional URL shared from external sources (e.g., share intent)
+ * @param authViewModel ViewModel for authentication state (hoisted for testing)
+ * @param navigationViewModel ViewModel for navigation back stack (hoisted for testing)
+ */
 @Composable
 fun TrailApp(
-    sharedUrl: String?,
-    authViewModel: AuthViewModel = koinViewModel()
+    sharedUrl: String? = null,
+    authViewModel: AuthViewModel = koinViewModel(),
+    navigationViewModel: NavigationViewModel = koinViewModel()
 ) {
-    val isLoggedIn by authViewModel.isLoggedIn.collectAsState(initial = false)
-    
-    var currentDestination by remember {
-        mutableStateOf<Destination>(
-            if (sharedUrl != null) Destination.Share(sharedUrl) else Destination.Auth
-        )
-    }
-    
-    LaunchedEffect(isLoggedIn) {
-        if (!isLoggedIn && currentDestination != Destination.Auth) {
-            currentDestination = Destination.Auth
-        }
-    }
-    
-    when (val destination = currentDestination) {
-        is Destination.Auth -> {
-            AuthScreen(
-                onAuthSuccess = {
-                    currentDestination = if (sharedUrl != null) {
-                        Destination.Share(sharedUrl)
-                    } else {
-                        Destination.EntryList
-                    }
-                }
-            )
-        }
-        is Destination.Share -> {
-            ShareScreen(
-                sharedUrl = destination.sharedUrl,
-                onSuccess = {
-                    currentDestination = Destination.EntryList
-                },
-                onCancel = {
-                    currentDestination = Destination.EntryList
-                }
-            )
-        }
-        is Destination.EntryList -> {
-            EntryListScreen(
-                onSignOut = {
-                    authViewModel.logout()
-                    currentDestination = Destination.Auth
-                }
-            )
-        }
-    }
+    TrailNavHost(
+        sharedUrl = sharedUrl,
+        authViewModel = authViewModel,
+        navigationViewModel = navigationViewModel
+    )
 }
