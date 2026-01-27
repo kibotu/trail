@@ -7,25 +7,30 @@ ob_start();
 
 <?php if (empty($entries)): ?>
     <article>
-        <p>No entries found.</p>
+        <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No entries found.</p>
     </article>
 <?php else: ?>
     <?php foreach ($entries as $entry): ?>
         <article class="entry-card">
-            <header>
+            <header style="display: flex; align-items: center; gap: 1rem;">
                 <img src="<?= $entry['avatar_url'] ?>" 
                      alt="<?= htmlspecialchars($entry['user_name']) ?>" 
                      class="avatar" 
                      width="40" 
                      height="40">
-                <strong><?= htmlspecialchars($entry['user_name']) ?></strong>
-                <small><?= htmlspecialchars($entry['user_email']) ?></small>
-                <br>
-                <small><?= date('M j, Y g:i A', strtotime($entry['created_at'])) ?></small>
+                <div style="flex: 1;">
+                    <div>
+                        <strong style="color: var(--text-primary);"><?= htmlspecialchars($entry['user_name']) ?></strong>
+                        <small style="color: var(--text-secondary); margin-left: 0.5rem;"><?= htmlspecialchars($entry['user_email']) ?></small>
+                    </div>
+                    <small style="color: var(--text-secondary);"><?= date('M j, Y g:i A', strtotime($entry['created_at'])) ?></small>
+                </div>
             </header>
-            <p><strong>Text:</strong> <?= htmlspecialchars($entry['text']) ?></p>
+            <div style="margin: 1rem 0;">
+                <p style="color: var(--text-primary);"><?= htmlspecialchars($entry['text']) ?></p>
+            </div>
             <footer>
-                <button class="secondary" onclick="deleteEntry(<?= $entry['id'] ?>)">Delete</button>
+                <button class="danger" onclick="deleteEntry(<?= $entry['id'] ?>)">Delete</button>
             </footer>
         </article>
     <?php endforeach; ?>

@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.screens.EntriesScreen
 import net.kibotu.trail.ui.screens.LoginScreen
 import net.kibotu.trail.ui.theme.GoogleAuthTheme
@@ -24,20 +25,27 @@ import net.kibotu.trail.ui.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
     private lateinit var viewModel: TrailViewModel
+    private lateinit var themePreferences: ThemePreferences
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         viewModel = TrailViewModel(applicationContext)
+        themePreferences = ThemePreferences(applicationContext)
 
         setContent {
-            GoogleAuthTheme {
+            val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
+            
+            GoogleAuthTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    TrailApp(viewModel)
+                    TrailApp(
+                        viewModel = viewModel,
+                        themePreferences = themePreferences
+                    )
                 }
             }
         }
@@ -72,7 +80,10 @@ class MainActivity : ComponentActivity() {
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
-fun TrailApp(viewModel: TrailViewModel) {
+fun TrailApp(
+    viewModel: TrailViewModel,
+    themePreferences: ThemePreferences
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     when (val state = uiState) {
@@ -100,6 +111,9 @@ fun TrailApp(viewModel: TrailViewModel) {
                 onLogout = null,
                 onLogin = {
                     viewModel.navigateToLogin()
+                },
+                onToggleTheme = {
+                    themePreferences.toggleTheme()
                 }
             )
         }
@@ -133,7 +147,10 @@ fun TrailApp(viewModel: TrailViewModel) {
                 onLogout = {
                     viewModel.logout()
                 },
-                onLogin = null
+                onLogin = null,
+                onToggleTheme = {
+                    themePreferences.toggleTheme()
+                }
             )
         }
         is UiState.Error -> {

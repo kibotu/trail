@@ -9,7 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +40,8 @@ fun EntriesScreen(
     onDeleteEntry: (Int) -> Unit,
     onRefresh: () -> Unit,
     onLogout: (() -> Unit)?,
-    onLogin: (() -> Unit)?
+    onLogin: (() -> Unit)?,
+    onToggleTheme: () -> Unit
 ) {
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 280
@@ -46,11 +50,22 @@ fun EntriesScreen(
     
     val isPublicMode = userName == null
 
+    val isDarkTheme = MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Trail") },
                 actions = {
+                    // Theme toggle button
+                    IconButton(onClick = onToggleTheme) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = if (isDarkTheme) "Switch to light mode" else "Switch to dark mode",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
                     if (isPublicMode) {
                         onLogin?.let { loginAction ->
                             Button(

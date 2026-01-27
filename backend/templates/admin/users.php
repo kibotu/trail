@@ -7,37 +7,37 @@ ob_start();
 
 <?php if (empty($users)): ?>
     <article>
-        <p>No users found.</p>
+        <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No users found.</p>
     </article>
 <?php else: ?>
     <div style="overflow-x: auto;">
-        <table>
+        <table style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
-                    <th>Avatar</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Admin</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Avatar</th>
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Name</th>
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Email</th>
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Admin</th>
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Joined</th>
+                    <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-weight: 600;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($users as $user): ?>
-                    <tr>
-                        <td>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem;">
                             <img src="<?= $user['avatar_url'] ?>" 
                                  alt="<?= htmlspecialchars($user['name']) ?>" 
                                  class="avatar" 
-                                 width="50" 
-                                 height="50">
+                                 width="40" 
+                                 height="40">
                         </td>
-                        <td><?= htmlspecialchars($user['name']) ?></td>
-                        <td><?= htmlspecialchars($user['email']) ?></td>
-                        <td><?= $user['is_admin'] ? '✓' : '' ?></td>
-                        <td><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
-                        <td>
-                            <button class="secondary" onclick="deleteUser(<?= $user['id'] ?>)">Delete</button>
+                        <td style="padding: 1rem; color: var(--text-primary);"><?= htmlspecialchars($user['name']) ?></td>
+                        <td style="padding: 1rem; color: var(--text-secondary);"><?= htmlspecialchars($user['email']) ?></td>
+                        <td style="padding: 1rem;"><?= $user['is_admin'] ? '<span style="color: var(--accent);">✓ Admin</span>' : '' ?></td>
+                        <td style="padding: 1rem; color: var(--text-secondary);"><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
+                        <td style="padding: 1rem;">
+                            <button class="danger" onclick="deleteUser(<?= $user['id'] ?>)">Delete</button>
                         </td>
                     </tr>
                 <?php endforeach; ?>

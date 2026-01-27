@@ -18,10 +18,10 @@ ob_start();
 
 <article>
     <header><strong>Quick Actions</strong></header>
-    <p>
-        <a href="/admin/entries" role="button">View All Entries</a>
-        <a href="/admin/users" role="button" class="secondary">Manage Users</a>
-    </p>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="/admin/entries" class="button">View All Entries</a>
+        <a href="/admin/users" class="button secondary">Manage Users</a>
+    </div>
 </article>
 
 <?php

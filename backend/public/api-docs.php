@@ -130,7 +130,8 @@ usort($endpoints, function($a, $b) {
             line-height: 1.6;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e293b;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 3rem 2rem;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -189,8 +190,8 @@ usort($endpoints, function($a, $b) {
             transition: all 0.3s;
         }
         .endpoint-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         .endpoint-header {
             display: flex;
@@ -213,7 +214,7 @@ usort($endpoints, function($a, $b) {
         .path {
             font-family: "Courier New", monospace;
             font-size: 1.125rem;
-            color: #a5b4fc;
+            color: #60a5fa;
             flex: 1;
         }
         .auth-badge {
@@ -259,7 +260,7 @@ usort($endpoints, function($a, $b) {
         .curl-code {
             font-family: "Courier New", monospace;
             font-size: 0.875rem;
-            color: #a5f3fc;
+            color: #7dd3fc;
             white-space: pre-wrap;
             word-break: break-all;
             line-height: 1.8;

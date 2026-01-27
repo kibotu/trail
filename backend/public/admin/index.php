@@ -79,6 +79,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             --border: rgba(255, 255, 255, 0.1);
             --success: #10b981;
             --warning: #f59e0b;
+            --error: #ef4444;
         }
 
         body {
@@ -105,6 +106,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
 
         .logo {
             font-size: 1.5rem;
+            filter: grayscale(0);
         }
 
         .header-title {
