@@ -210,3 +210,5 @@ backend/vendor/
 **/*/__pycache__/
 
 **/*/.idea/
+
+android-backup/
