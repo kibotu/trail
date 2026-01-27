@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Trail\Services;
 
 use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+use Firebase\JWT\JWK;
 
 class GoogleAuthService
 {
@@ -14,40 +14,34 @@ class GoogleAuthService
     private const CACHE_TTL = 3600; // 1 hour
     
     private string $clientId;
+    private ?string $lastError = null;
 
     public function __construct(array $config)
     {
         $this->clientId = $config['google_oauth']['client_id'];
     }
 
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
+
     public function verifyIdToken(string $idToken): ?array
     {
+        $this->lastError = null;
+        
         try {
-            // Decode token header to get the key ID
-            $tks = explode('.', $idToken);
-            if (count($tks) !== 3) {
-                return null;
-            }
+            // Get Google's public keys in JWK format
+            $jwks = $this->getGoogleJWKS();
             
-            $headb64 = $tks[0];
-            $header = json_decode(JWT::urlsafeB64Decode($headb64), true);
-            
-            if (!isset($header['kid'])) {
-                return null;
-            }
-            
-            // Get Google's public keys
-            $certs = $this->getGoogleCerts();
-            if (!isset($certs[$header['kid']])) {
-                return null;
-            }
-            
-            // Verify the JWT signature
-            $publicKey = $certs[$header['kid']];
-            $payload = (array) JWT::decode($idToken, new Key($publicKey, 'RS256'));
+            // Parse JWKs and decode/verify the token
+            $keys = JWK::parseKeySet($jwks);
+            $payload = (array) JWT::decode($idToken, $keys);
             
             // Verify the token claims
-            if (!$this->verifyTokenClaims($payload)) {
+            $claimsResult = $this->verifyTokenClaims($payload);
+            if ($claimsResult !== true) {
+                $this->lastError = $claimsResult;
                 return null;
             }
 
@@ -58,45 +52,49 @@ class GoogleAuthService
                 'picture' => $payload['picture'] ?? '',
             ];
         } catch (\Exception $e) {
-            error_log("Google token verification failed: " . $e->getMessage());
+            $this->lastError = "Token verification exception: " . $e->getMessage();
             return null;
         }
     }
 
-    private function verifyTokenClaims(array $payload): bool
+    private function verifyTokenClaims(array $payload): string|bool
     {
         // Verify issuer
         if (!isset($payload['iss']) || 
             ($payload['iss'] !== 'https://accounts.google.com' && $payload['iss'] !== 'accounts.google.com')) {
-            return false;
+            return "Invalid issuer: " . ($payload['iss'] ?? 'missing');
         }
         
         // Verify audience (client ID)
         if (!isset($payload['aud']) || $payload['aud'] !== $this->clientId) {
-            return false;
+            return "Invalid audience - Expected: {$this->clientId}, Got: " . ($payload['aud'] ?? 'missing');
         }
         
         // Verify expiration
         if (!isset($payload['exp']) || $payload['exp'] < time()) {
-            return false;
+            $expTime = isset($payload['exp']) ? date('Y-m-d H:i:s', $payload['exp']) : 'missing';
+            $currentTime = date('Y-m-d H:i:s', time());
+            return "Token expired - exp: {$expTime}, current time: {$currentTime}";
         }
         
         // Verify issued at time is not in the future
         if (isset($payload['iat']) && $payload['iat'] > time() + 300) {
-            return false;
+            $iatTime = date('Y-m-d H:i:s', $payload['iat']);
+            $currentTime = date('Y-m-d H:i:s', time());
+            return "Token issued in the future - iat: {$iatTime}, current time: {$currentTime}";
         }
         
         return true;
     }
 
-    private function getGoogleCerts(): array
+    private function getGoogleJWKS(): array
     {
         // Check cache first
         if (file_exists(self::CACHE_FILE)) {
             $cacheData = json_decode(file_get_contents(self::CACHE_FILE), true);
             if ($cacheData && isset($cacheData['timestamp']) && 
                 (time() - $cacheData['timestamp']) < self::CACHE_TTL) {
-                return $cacheData['keys'];
+                return $cacheData['jwks'];
             }
         }
         
@@ -106,20 +104,12 @@ class GoogleAuthService
             throw new \Exception('Failed to fetch Google certificates');
         }
         
-        $data = json_decode($response, true);
-        if (!isset($data['keys'])) {
+        $jwks = json_decode($response, true);
+        if (!isset($jwks['keys'])) {
             throw new \Exception('Invalid Google certificates response');
         }
         
-        // Convert JWK to PEM format
-        $certs = [];
-        foreach ($data['keys'] as $key) {
-            if (isset($key['kid']) && isset($key['n']) && isset($key['e'])) {
-                $certs[$key['kid']] = $this->jwkToPem($key['n'], $key['e']);
-            }
-        }
-        
-        // Cache the certificates
+        // Cache the JWKs
         $cacheDir = dirname(self::CACHE_FILE);
         if (!is_dir($cacheDir)) {
             mkdir($cacheDir, 0755, true);
@@ -127,51 +117,9 @@ class GoogleAuthService
         
         file_put_contents(self::CACHE_FILE, json_encode([
             'timestamp' => time(),
-            'keys' => $certs
+            'jwks' => $jwks
         ]));
         
-        return $certs;
-    }
-
-    private function jwkToPem(string $n, string $e): string
-    {
-        // Decode base64url encoded values
-        $n = $this->base64UrlDecode($n);
-        $e = $this->base64UrlDecode($e);
-        
-        // Build the RSA public key in ASN.1 DER format
-        $modulus = $this->encodeLength(strlen($n)) . $n;
-        $exponent = $this->encodeLength(strlen($e)) . $e;
-        
-        $rsaPublicKey = pack('Ca*a*a*', 0x30, $this->encodeLength(strlen($modulus) + strlen($exponent)), $modulus, $exponent);
-        
-        // Add RSA algorithm identifier
-        $rsaOID = pack('H*', '300d06092a864886f70d0101010500');
-        $publicKey = pack('Ca*a*a*', 0x30, $this->encodeLength(strlen($rsaOID) + strlen($rsaPublicKey) + 3), $rsaOID, pack('C', 0x03), $this->encodeLength(strlen($rsaPublicKey) + 1) . pack('C', 0x00) . $rsaPublicKey);
-        
-        $pem = "-----BEGIN PUBLIC KEY-----\n";
-        $pem .= chunk_split(base64_encode($publicKey), 64, "\n");
-        $pem .= "-----END PUBLIC KEY-----\n";
-        
-        return $pem;
-    }
-
-    private function base64UrlDecode(string $data): string
-    {
-        $remainder = strlen($data) % 4;
-        if ($remainder) {
-            $data .= str_repeat('=', 4 - $remainder);
-        }
-        return base64_decode(strtr($data, '-_', '+/'));
-    }
-
-    private function encodeLength(int $length): string
-    {
-        if ($length < 128) {
-            return chr($length);
-        }
-        
-        $temp = ltrim(pack('N', $length), chr(0));
-        return pack('Ca*', 0x80 | strlen($temp), $temp);
+        return $jwks;
     }
 }

@@ -17,21 +17,33 @@ class AuthController
 {
     public static function googleAuth(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $data = json_decode((string) $request->getBody(), true);
-        $googleToken = $data['id_token'] ?? $data['google_token'] ?? '';
+        try {
+            $data = json_decode((string) $request->getBody(), true);
+            $googleToken = $data['id_token'] ?? $data['google_token'] ?? '';
 
-        if (empty($googleToken)) {
-            $response->getBody()->write(json_encode(['error' => 'Google token required']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-        }
+            if (empty($googleToken)) {
+                $response->getBody()->write(json_encode(['error' => 'Google token required']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
-        $googleAuth = new GoogleAuthService($config);
-        $userData = $googleAuth->verifyIdToken($googleToken);
+            $config = Config::load(__DIR__ . '/../../config.yml');
+            $googleAuth = new GoogleAuthService($config);
+            $userData = $googleAuth->verifyIdToken($googleToken);
 
-        if (!$userData) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid Google token']));
-            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+            if (!$userData) {
+                $errorDetail = $googleAuth->getLastError() ?? 'Invalid Google token';
+                $response->getBody()->write(json_encode([
+                    'error' => 'Invalid Google token',
+                    'detail' => $errorDetail
+                ]));
+                return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+            }
+        } catch (\Exception $e) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Server error during authentication',
+                'detail' => $e->getMessage()
+            ]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
         $db = Database::getInstance($config);
@@ -70,6 +82,7 @@ class AuthController
                 'id' => $userId,
                 'email' => $userData['email'],
                 'name' => $userData['name'],
+                'gravatar_hash' => $gravatarHash,
                 'gravatar_url' => GravatarService::generateUrl($gravatarHash),
                 'is_admin' => $isAdmin,
             ],
@@ -142,6 +155,7 @@ class AuthController
                 'id' => $userId,
                 'email' => $email,
                 'name' => $name,
+                'gravatar_hash' => $gravatarHash,
                 'gravatar_url' => GravatarService::generateUrl($gravatarHash),
                 'is_admin' => $isAdmin,
             ],
