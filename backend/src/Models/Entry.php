@@ -16,13 +16,29 @@ class Entry
         $this->db = $db;
     }
 
-    public function create(int $userId, string $text): int
+    public function create(int $userId, string $text, ?array $preview = null): int
     {
-        $stmt = $this->db->prepare(
-            "INSERT INTO {$this->table} (user_id, text) 
-             VALUES (?, ?)"
-        );
-        $stmt->execute([$userId, $text]);
+        if ($preview !== null) {
+            $stmt = $this->db->prepare(
+                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $userId,
+                $text,
+                $preview['url'] ?? null,
+                $preview['title'] ?? null,
+                $preview['description'] ?? null,
+                $preview['image'] ?? null,
+                $preview['site_name'] ?? null,
+            ]);
+        } else {
+            $stmt = $this->db->prepare(
+                "INSERT INTO {$this->table} (user_id, text) 
+                 VALUES (?, ?)"
+            );
+            $stmt->execute([$userId, $text]);
+        }
         
         return (int) $this->db->lastInsertId();
     }
@@ -98,15 +114,33 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function update(int $id, string $text): bool
+    public function update(int $id, string $text, ?array $preview = null): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE {$this->table} 
-             SET text = ?, updated_at = CURRENT_TIMESTAMP 
-             WHERE id = ?"
-        );
-        
-        return $stmt->execute([$text, $id]);
+        if ($preview !== null) {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table} 
+                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = ?"
+            );
+            
+            return $stmt->execute([
+                $text,
+                $preview['url'] ?? null,
+                $preview['title'] ?? null,
+                $preview['description'] ?? null,
+                $preview['image'] ?? null,
+                $preview['site_name'] ?? null,
+                $id
+            ]);
+        } else {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table} 
+                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = ?"
+            );
+            
+            return $stmt->execute([$text, $id]);
+        }
     }
 
     public function delete(int $id): bool

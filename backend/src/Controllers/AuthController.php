@@ -26,7 +26,7 @@ class AuthController
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
 
-            $config = Config::load(__DIR__ . '/../../config.yml');
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
             $googleAuth = new GoogleAuthService($config);
             $userData = $googleAuth->verifyIdToken($googleToken);
 
@@ -116,7 +116,7 @@ class AuthController
      */
     public static function devAuth(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Only allow in development mode
         if (($config['app']['environment'] ?? 'production') !== 'development') {

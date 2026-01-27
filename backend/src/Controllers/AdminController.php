@@ -16,7 +16,7 @@ class AdminController
 {
     public static function dashboard(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         
         $entryModel = new Entry($db);
@@ -36,7 +36,7 @@ class AdminController
 
     public static function entries(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -86,7 +86,7 @@ class AdminController
         // Security: Sanitize text to remove scripts while preserving URLs and emojis
         $sanitizedText = TextSanitizer::sanitize($text);
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -100,7 +100,7 @@ class AdminController
     {
         $entryId = (int) $args['id'];
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -112,7 +112,7 @@ class AdminController
 
     public static function users(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $userModel = new User($db);
 
@@ -133,7 +133,7 @@ class AdminController
     {
         $userId = (int) $args['id'];
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $userModel = new User($db);
 

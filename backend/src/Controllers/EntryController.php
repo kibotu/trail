@@ -10,6 +10,7 @@ use Trail\Database\Database;
 use Trail\Models\Entry;
 use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
+use Trail\Services\UrlEmbedService;
 
 class EntryController
 {
@@ -53,11 +54,24 @@ class EntryController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entryId = $entryModel->create($userId, $sanitizedText);
+        // Extract and fetch URL preview if text contains a URL
+        $preview = null;
+        try {
+            $embedService = new UrlEmbedService();
+            if ($embedService->hasUrl($sanitizedText)) {
+                $preview = $embedService->extractAndFetchPreview($sanitizedText);
+            }
+        } catch (\Throwable $e) {
+            // Log error but continue - preview is optional
+            error_log("EntryController::create: Preview fetch failed: " . $e->getMessage());
+            $preview = null;
+        }
+
+        $entryId = $entryModel->create($userId, $sanitizedText, $preview);
         $entry = $entryModel->findById($entryId);
 
         $response->getBody()->write(json_encode([
@@ -75,7 +89,7 @@ class EntryController
         $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -112,7 +126,7 @@ class EntryController
         $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -177,7 +191,7 @@ class EntryController
         // Security: Sanitize text to remove scripts while preserving URLs and emojis
         $sanitizedText = TextSanitizer::sanitize($text);
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -187,7 +201,20 @@ class EntryController
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
-        $success = $entryModel->update($entryId, $sanitizedText);
+        // Extract and fetch URL preview if text contains a URL
+        $preview = null;
+        try {
+            $embedService = new UrlEmbedService();
+            if ($embedService->hasUrl($sanitizedText)) {
+                $preview = $embedService->extractAndFetchPreview($sanitizedText);
+            }
+        } catch (\Throwable $e) {
+            // Log error but continue - preview is optional
+            error_log("EntryController::update: Preview fetch failed: " . $e->getMessage());
+            $preview = null;
+        }
+
+        $success = $entryModel->update($entryId, $sanitizedText, $preview);
 
         if ($success) {
             $entry = $entryModel->findById($entryId);
@@ -208,7 +235,7 @@ class EntryController
         $isAdmin = $request->getAttribute('is_admin') ?? false;
         $entryId = (int) $args['id'];
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 

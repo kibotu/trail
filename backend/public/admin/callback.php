@@ -23,7 +23,7 @@ header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 
 try {
-    $config = Config::load(__DIR__ . '/../../config.yml');
+    $config = Config::load(__DIR__ . '/../../secrets.yml');
     $db = Database::getInstance($config);
     
     $googleOAuth = $config['google_oauth'] ?? throw new Exception("Google OAuth not configured");

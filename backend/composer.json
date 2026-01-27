@@ -7,7 +7,8 @@
         "slim/slim": "^4.14",
         "slim/psr7": "^1.7",
         "firebase/php-jwt": "^6.10",
-        "symfony/yaml": "^7.2"
+        "symfony/yaml": "^7.2",
+        "embed/embed": "^4.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5"
@@ -27,6 +28,12 @@
     },
     "config": {
         "optimize-autoloader": true,
-        "sort-packages": true
+        "sort-packages": true,
+        "classmap-authoritative": true,
+        "apcu-autoloader": false,
+        "discard-changes": true,
+        "preferred-install": {
+            "*": "dist"
+        }
     }
 }

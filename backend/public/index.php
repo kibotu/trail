@@ -16,7 +16,7 @@ use Trail\Controllers\RssController;
 require __DIR__ . '/../vendor/autoload.php';
 
 // Load configuration (uses secrets.yml)
-$config = Config::load(__DIR__ . '/../config.yml');
+$config = Config::load(__DIR__ . '/../secrets.yml');
 
 // Create Slim app
 $app = AppFactory::create();

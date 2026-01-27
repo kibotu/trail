@@ -13,7 +13,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use Trail\Config\Config;
 
 // Load configuration (uses secrets.yml)
-$config = Config::load(__DIR__ . '/../config.yml');
+$config = Config::load(__DIR__ . '/../secrets.yml');
 $isDev = ($config['app']['environment'] ?? 'production') === 'development';
 
 // Get base URL

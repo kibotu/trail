@@ -16,7 +16,7 @@ use Trail\Database\Database;
 
 
 try {
-    $config = Config::load(__DIR__ . '/../../config.yml');
+    $config = Config::load(__DIR__ . '/../../secrets.yml');
     $db = Database::getInstance($config);
 
     // Get session ID from cookie

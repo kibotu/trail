@@ -345,6 +345,66 @@
             text-decoration: underline;
         }
 
+        .link-preview-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 0.75rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .link-preview-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .link-preview-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .link-preview-content {
+            padding: 0.75rem;
+        }
+
+        .link-preview-title {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+            margin-bottom: 0.375rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .link-preview-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .link-preview-url {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            color: var(--accent);
+        }
+
         .entry-footer {
             display: flex;
             justify-content: space-between;
@@ -794,6 +854,75 @@
             return entry.user_email === userEmail;
         }
 
+        // Extract domain from URL
+        function extractDomain(url) {
+            try {
+                return url
+                    .replace(/^https?:\/\//, '')
+                    .replace(/^www\./, '')
+                    .split('/')[0];
+            } catch (e) {
+                return url;
+            }
+        }
+
+        // Create link preview card HTML
+        function createLinkPreviewCard(entry) {
+            if (!entry.preview_url) return '';
+            
+            // Check if we have meaningful preview data (not just "Just a moment..." or similar)
+            const hasValidTitle = entry.preview_title && 
+                                 entry.preview_title.length > 3 && 
+                                 !entry.preview_title.toLowerCase().includes('just a moment') &&
+                                 !entry.preview_title.toLowerCase().includes('please wait');
+            const hasValidDescription = entry.preview_description && 
+                                       entry.preview_description.length > 10;
+            
+            // Show card if we have at least title, description, OR image
+            if (!hasValidTitle && !hasValidDescription && !entry.preview_image) {
+                return '';
+            }
+            
+            let previewHtml = `<a href="${escapeHtml(entry.preview_url)}" class="link-preview-card" target="_blank" rel="noopener noreferrer">`;
+            
+            // Preview image
+            if (entry.preview_image) {
+                previewHtml += `
+                    <img src="${escapeHtml(entry.preview_image)}" 
+                         alt="Preview" 
+                         class="link-preview-image" 
+                         loading="lazy"
+                         onerror="this.style.display='none'">
+                `;
+            }
+            
+            // Preview content
+            previewHtml += '<div class="link-preview-content">';
+            
+            // Title
+            if (hasValidTitle) {
+                previewHtml += `<div class="link-preview-title">${escapeHtml(entry.preview_title)}</div>`;
+            }
+            
+            // Description
+            if (hasValidDescription) {
+                previewHtml += `<div class="link-preview-description">${escapeHtml(entry.preview_description)}</div>`;
+            }
+            
+            // Site name / URL
+            const siteName = entry.preview_site_name || extractDomain(entry.preview_url);
+            previewHtml += `
+                <div class="link-preview-url">
+                    <span>🔗</span>
+                    <span>${escapeHtml(siteName)}</span>
+                </div>
+            `;
+            
+            previewHtml += '</div></a>';
+            
+            return previewHtml;
+        }
+
         // Create entry card HTML
         function createEntryCard(entry) {
             const card = document.createElement('div');
@@ -802,6 +931,7 @@
             
             const escapedText = escapeHtml(entry.text);
             const linkedText = linkifyText(escapedText);
+            const previewCard = createLinkPreviewCard(entry);
             
             const canModify = canModifyEntry(entry);
             
@@ -814,6 +944,7 @@
                 </div>
                 <div class="entry-content">
                     <div class="entry-text">${linkedText}</div>
+                    ${previewCard}
                 </div>
                 <div class="entry-footer">
                     <div class="timestamp">

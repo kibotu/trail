@@ -30,7 +30,7 @@ $isDevelopment = false;
 $devUsers = [];
 
 try {
-    $config = Config::load(__DIR__ . '/../../config.yml');
+    $config = Config::load(__DIR__ . '/../../secrets.yml');
     $db = Database::getInstance($config);
 
     // Check for existing valid session

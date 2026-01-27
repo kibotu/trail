@@ -15,7 +15,7 @@ class RssController
 {
     public static function globalFeed(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -32,7 +32,7 @@ class RssController
     {
         $userId = (int) $args['user_id'];
 
-        $config = Config::load(__DIR__ . '/../../config.yml');
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 

@@ -12,7 +12,13 @@ data class Entry(
     @SerialName("gravatar_hash") val gravatarHash: String,
     @SerialName("avatar_url") val avatarUrl: String,
     @SerialName("created_at") val createdAt: String,
-    @SerialName("updated_at") val updatedAt: String? = null
+    @SerialName("updated_at") val updatedAt: String? = null,
+    // URL Preview fields
+    @SerialName("preview_url") val previewUrl: String? = null,
+    @SerialName("preview_title") val previewTitle: String? = null,
+    @SerialName("preview_description") val previewDescription: String? = null,
+    @SerialName("preview_image") val previewImage: String? = null,
+    @SerialName("preview_site_name") val previewSiteName: String? = null
 )
 
 @Serializable

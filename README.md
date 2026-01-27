@@ -6,6 +6,7 @@ A modern Android app built with Jetpack Compose for sharing and managing links.
 
 - 🔐 Google Sign-In authentication
 - 📝 Share links with text (max 280 characters)
+- 🔗 Rich URL preview cards (including Medium articles via oEmbed + RSS!)
 - 📱 Beautiful Material 3 UI
 - 🚀 Modern architecture with unidirectional data flow
 - 🧭 Type-safe navigation with Navigation 3
@@ -247,6 +248,9 @@ See [SECURITY.md](SECURITY.md) for complete security documentation.
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture overview and patterns
 - [NAVIGATION_3_MIGRATION.md](NAVIGATION_3_MIGRATION.md) - Navigation 3 migration guide
 - [NAVIGATION_GUIDE.md](NAVIGATION_GUIDE.md) - Navigation patterns and best practices
+- [PREVIEW_CARD_IMPROVEMENTS.md](PREVIEW_CARD_IMPROVEMENTS.md) - URL preview card implementation
+- [MEDIUM_PREVIEW_IMPROVEMENTS.md](MEDIUM_PREVIEW_IMPROVEMENTS.md) - Medium article preview support
+- [QUICK_START_MEDIUM_PREVIEWS.md](QUICK_START_MEDIUM_PREVIEWS.md) - Quick start guide for Medium previews
 - [CHANGES.md](CHANGES.md) - Detailed changelog
 
 ## Code Style

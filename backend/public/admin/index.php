@@ -23,7 +23,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 try {
-    $config = Config::load(__DIR__ . '/../../config.yml');
+    $config = Config::load(__DIR__ . '/../../secrets.yml');
     $db = Database::getInstance($config);
 
     // Require authentication

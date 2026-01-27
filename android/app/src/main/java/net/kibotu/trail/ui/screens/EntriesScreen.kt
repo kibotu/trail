@@ -1,5 +1,8 @@
 package net.kibotu.trail.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -339,8 +343,127 @@ fun EntryItem(
                     text = entry.text,
                     style = MaterialTheme.typography.bodyMedium
                 )
+                
+                // URL Preview Card (only if we have valid preview data)
+                if (entry.previewUrl != null && hasValidPreviewData(entry)) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LinkPreviewCard(entry = entry)
+                }
             }
         }
+    }
+}
+
+// Check if entry has valid preview data (not just "Just a moment..." etc)
+private fun hasValidPreviewData(entry: Entry): Boolean {
+    val hasValidTitle = entry.previewTitle?.let { title ->
+        title.length > 3 && 
+        !title.lowercase().contains("just a moment") &&
+        !title.lowercase().contains("please wait")
+    } ?: false
+    
+    val hasValidDescription = entry.previewDescription?.let { desc ->
+        desc.length > 10
+    } ?: false
+    
+    // Show card if we have at least title, description, OR image
+    return hasValidTitle || hasValidDescription || entry.previewImage != null
+}
+
+@Composable
+fun LinkPreviewCard(entry: Entry) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                entry.previewUrl?.let { url ->
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                }
+            },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Preview Image (if available)
+            entry.previewImage?.let { imageUrl ->
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Link preview image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                )
+            }
+            
+            // Preview Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                // Title
+                entry.previewTitle?.let { title ->
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                
+                // Description
+                entry.previewDescription?.let { description ->
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 3,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+                
+                // Site Name / URL
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "🔗",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = entry.previewSiteName ?: extractDomain(entry.previewUrl ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun extractDomain(url: String): String {
+    return try {
+        val domain = url
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .removePrefix("www.")
+            .split("/")[0]
+        domain
+    } catch (e: Exception) {
+        url
     }
 }
 
