@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <bool name="development">false</bool>
-    <bool name="skip_auth_in_dev">false</bool>
-    <string name="google_oauth_2_client">991796147217-iu13ude75qcsue5epgm272rvo28do7lp.apps.googleusercontent.com</string>
 </resources>
