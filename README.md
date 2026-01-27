@@ -193,8 +193,57 @@ Tests include:
 - Navigation transitions
 - Error states
 
+## Backend Deployment
+
+Deploy the backend to production via FTP:
+
+```bash
+./sync.sh
+```
+
+The script automatically:
+- Installs production dependencies
+- Uploads only necessary files
+- Excludes development/test files
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guide.
+
+## Security
+
+The backend is protected with multiple security layers:
+
+- 🔒 `.htaccess` protection on all sensitive directories
+- 🛡️ Comprehensive security headers (XSS, Clickjacking, CSP)
+- 🚫 Bad bot & scanner blocking
+- 🔐 JWT token authentication
+- 🔑 Google OAuth integration
+- ⚡ Rate limiting
+
+**Verify security (local):**
+```bash
+cd backend
+./verify-security.sh
+```
+
+**Test production server:**
+```bash
+./test-security.sh
+```
+
+The security test performs 37 checks including:
+- Directory access protection
+- Sensitive file blocking
+- Security headers validation
+- Attack vector protection
+- HTTPS configuration
+
+See [SECURITY.md](SECURITY.md) for complete security documentation.
+
 ## Documentation
 
+- [SECURITY.md](SECURITY.md) - Security guide and best practices
+- [TEST_SECURITY_GUIDE.md](TEST_SECURITY_GUIDE.md) - Production security testing guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture overview and patterns
 - [NAVIGATION_3_MIGRATION.md](NAVIGATION_3_MIGRATION.md) - Navigation 3 migration guide
 - [NAVIGATION_GUIDE.md](NAVIGATION_GUIDE.md) - Navigation patterns and best practices

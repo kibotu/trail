@@ -10,24 +10,17 @@ class Config
 {
     public static function load(string $path): array
     {
-        if (!file_exists($path)) {
-            throw new \RuntimeException("Configuration file not found: {$path}");
+        // Always use secrets.yml
+        $secretsPath = dirname($path) . '/secrets.yml';
+        
+        if (!file_exists($secretsPath)) {
+            throw new \RuntimeException(
+                "Configuration file not found: {$secretsPath}\n" .
+                "Please create secrets.yml from config.yml.example"
+            );
         }
 
-        $content = file_get_contents($path);
-        
-        // Replace environment variables
-        $content = preg_replace_callback('/\$\{([A-Z_]+)\}/', function ($matches) {
-            $envVar = $matches[1];
-            $value = getenv($envVar);
-            
-            if ($value === false) {
-                throw new \RuntimeException("Environment variable {$envVar} is not set");
-            }
-            
-            return $value;
-        }, $content);
-
+        $content = file_get_contents($secretsPath);
         return Yaml::parse($content);
     }
 }

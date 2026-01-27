@@ -196,16 +196,14 @@ gradle-app.setting
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,visualstudiocode,intellij+all,gradle
 
-.env
-config.yml
-backend/config.yml
-.secrets/
-
-# Allow symlink to .env in backend/
-!backend/.env
+# Backend secrets file (contains production credentials)
+backend/secrets.yml
 
 # PHP dependencies (built during deployment)
 backend/vendor/
+
+# PHP cache directories
+backend/cache/
 
 **/*/__pycache__/
 

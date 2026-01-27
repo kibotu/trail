@@ -14,12 +14,6 @@ require_once __DIR__ . '/../helpers/session.php';
 use Trail\Config\Config;
 use Trail\Database\Database;
 
-// Load environment variables (optional - Docker sets them via env_file)
-$envPath = __DIR__ . '/../..';
-if (file_exists($envPath . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable($envPath);
-    $dotenv->safeLoad();
-}
 
 // Security headers
 header('X-Frame-Options: DENY');

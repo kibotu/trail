@@ -12,13 +12,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Trail\Config\Config;
 
-// Load environment variables
-$envPath = __DIR__ . '/..';
-if (file_exists($envPath . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable($envPath);
-    $dotenv->safeLoad();
-}
-
+// Load configuration (uses secrets.yml)
 $config = Config::load(__DIR__ . '/../config.yml');
 $isDev = ($config['app']['environment'] ?? 'production') === 'development';
 
