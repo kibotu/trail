@@ -18,7 +18,7 @@ class AuthController
     public static function googleAuth(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = json_decode((string) $request->getBody(), true);
-        $googleToken = $data['google_token'] ?? '';
+        $googleToken = $data['id_token'] ?? $data['google_token'] ?? '';
 
         if (empty($googleToken)) {
             $response->getBody()->write(json_encode(['error' => 'Google token required']));
@@ -65,7 +65,7 @@ class AuthController
 
         // Return response
         $responseData = [
-            'jwt' => $jwt,
+            'token' => $jwt,
             'user' => [
                 'id' => $userId,
                 'email' => $userData['email'],
@@ -137,7 +137,7 @@ class AuthController
 
         // Return response
         $responseData = [
-            'jwt' => $jwt,
+            'token' => $jwt,
             'user' => [
                 'id' => $userId,
                 'email' => $email,
