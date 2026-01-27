@@ -10,7 +10,7 @@ data class Entry(
     @SerialName("user_id") val userId: Int,
     @SerialName("user_name") val userName: String,
     @SerialName("gravatar_hash") val gravatarHash: String,
-    @SerialName("gravatar_url") val gravatarUrl: String,
+    @SerialName("avatar_url") val avatarUrl: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String? = null
 )

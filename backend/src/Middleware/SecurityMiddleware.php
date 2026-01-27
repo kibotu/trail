@@ -33,9 +33,9 @@ class SecurityMiddleware implements MiddlewareInterface
 
         // Allow public endpoints without restrictions
         $path = $request->getUri()->getPath();
-        $publicPaths = ['/', '/api', '/api/health'];
+        $publicPaths = ['/', '/api', '/api/health', '/api/entries'];
         
-        // Allow RSS feeds (starts with /api/rss)
+        // Allow RSS feeds (starts with /api/rss) and public entries
         if (in_array($path, $publicPaths) || str_starts_with($path, '/api/rss')) {
             return $handler->handle($request);
         }

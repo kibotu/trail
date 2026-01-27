@@ -26,7 +26,7 @@ ob_start();
                 <?php foreach ($users as $user): ?>
                     <tr>
                         <td>
-                            <img src="<?= htmlspecialchars($user['gravatar_url']) ?>" 
+                            <img src="<?= $user['avatar_url'] ?>" 
                                  alt="<?= htmlspecialchars($user['name']) ?>" 
                                  class="avatar" 
                                  width="50" 

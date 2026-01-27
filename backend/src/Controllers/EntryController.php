@@ -68,6 +68,38 @@ class EntryController
         return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
     }
 
+    public static function listPublic(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $queryParams = $request->getQueryParams();
+        
+        $page = max(1, (int) ($queryParams['page'] ?? 1));
+        $limit = min(50, max(1, (int) ($queryParams['limit'] ?? 20)));
+        $offset = ($page - 1) * $limit;
+
+        $config = Config::load(__DIR__ . '/../../config.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $entries = $entryModel->getAll($limit, $offset);
+        $total = $entryModel->count();
+        $pages = ceil($total / $limit);
+
+        // Add avatar URLs with Google photo fallback to Gravatar
+        foreach ($entries as &$entry) {
+            $entry['avatar_url'] = self::getAvatarUrl($entry);
+        }
+
+        $response->getBody()->write(json_encode([
+            'entries' => $entries,
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'limit' => $limit,
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     public static function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $userId = $request->getAttribute('user_id');
@@ -85,9 +117,9 @@ class EntryController
         $total = $entryModel->countByUser($userId);
         $pages = ceil($total / $limit);
 
-        // Add Gravatar URLs
+        // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
-            $entry['gravatar_url'] = \Trail\Services\GravatarService::generateUrl($entry['gravatar_hash']);
+            $entry['avatar_url'] = self::getAvatarUrl($entry);
         }
 
         $response->getBody()->write(json_encode([
@@ -182,5 +214,35 @@ class EntryController
 
         $response->getBody()->write(json_encode(['success' => $success]));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get user avatar URL with Google photo fallback to Gravatar.
+     * 
+     * @param array $user User data with photo_url, gravatar_hash, and email
+     * @param int $size Avatar size in pixels
+     * @return string Avatar URL (already HTML-escaped for JSON output)
+     */
+    private static function getAvatarUrl(array $user, int $size = 96): string
+    {
+        // Use Google photo if available
+        if (!empty($user['photo_url'])) {
+            return $user['photo_url'];
+        }
+
+        // Fallback to Gravatar using hash if available
+        if (!empty($user['gravatar_hash'])) {
+            return "https://www.gravatar.com/avatar/{$user['gravatar_hash']}?s={$size}&d=mp";
+        }
+
+        // Fallback to Gravatar using email
+        if (!empty($user['email']) || !empty($user['user_email'])) {
+            $email = $user['email'] ?? $user['user_email'];
+            $gravatarHash = md5(strtolower(trim($email)));
+            return "https://www.gravatar.com/avatar/{$gravatarHash}?s={$size}&d=mp";
+        }
+
+        // Ultimate fallback
+        return "https://www.gravatar.com/avatar/00000000000000000000000000000000?s={$size}&d=mp";
     }
 }

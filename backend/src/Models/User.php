@@ -34,26 +34,26 @@ class User
         return $user ?: null;
     }
 
-    public function create(string $googleId, string $email, string $name, string $gravatarHash): int
+    public function create(string $googleId, string $email, string $name, string $gravatarHash, ?string $photoUrl = null): int
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO {$this->table} (google_id, email, name, gravatar_hash) 
-             VALUES (?, ?, ?, ?)"
+            "INSERT INTO {$this->table} (google_id, email, name, gravatar_hash, photo_url) 
+             VALUES (?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$googleId, $email, $name, $gravatarHash]);
+        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl]);
         
         return (int) $this->db->lastInsertId();
     }
 
-    public function update(int $id, string $email, string $name, string $gravatarHash): bool
+    public function update(int $id, string $email, string $name, string $gravatarHash, ?string $photoUrl = null): bool
     {
         $stmt = $this->db->prepare(
             "UPDATE {$this->table} 
-             SET email = ?, name = ?, gravatar_hash = ?, updated_at = CURRENT_TIMESTAMP 
+             SET email = ?, name = ?, gravatar_hash = ?, photo_url = ?, updated_at = CURRENT_TIMESTAMP 
              WHERE id = ?"
         );
         
-        return $stmt->execute([$email, $name, $gravatarHash, $id]);
+        return $stmt->execute([$email, $name, $gravatarHash, $photoUrl, $id]);
     }
 
     public function delete(int $id): bool

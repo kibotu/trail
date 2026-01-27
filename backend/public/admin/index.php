@@ -38,7 +38,7 @@ try {
 
     // Get recent entries
     $stmt = $db->prepare("
-        SELECT e.*, u.email, u.name, u.gravatar_hash
+        SELECT e.*, u.email, u.name, u.gravatar_hash, u.photo_url
         FROM trail_entries e
         JOIN trail_users u ON e.user_id = u.id
         ORDER BY e.created_at DESC
@@ -307,11 +307,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <?php else: ?>
                 <?php foreach ($recentEntries as $entry): ?>
                     <?php
-                        $gravatarUrl = "https://www.gravatar.com/avatar/" . $entry['gravatar_hash'] . "?s=80&d=mp";
+                        $entryAvatarUrl = getUserAvatarFromData($entry, 80);
                         $createdAt = new DateTime($entry['created_at']);
                     ?>
                     <div class="entry-item">
-                        <img src="<?= $gravatarUrl ?>" alt="Avatar" class="entry-avatar">
+                        <img src="<?= $entryAvatarUrl ?>" alt="Avatar" class="entry-avatar">
                         <div class="entry-content">
                             <?php
                                 $text = $entry['text'] ?? '';

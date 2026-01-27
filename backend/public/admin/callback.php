@@ -57,20 +57,20 @@ try {
         // Update existing user
         $stmt = $db->prepare("
             UPDATE trail_users 
-            SET email = ?, name = ?, updated_at = CURRENT_TIMESTAMP 
+            SET email = ?, name = ?, photo_url = ?, updated_at = CURRENT_TIMESTAMP 
             WHERE google_id = ?
         ");
-        $stmt->execute([$email, $name, $googleId]);
+        $stmt->execute([$email, $name, $photoUrl, $googleId]);
         $userId = $user['id'];
         $isAdmin = (bool) $user['is_admin'];
     } else {
         // Create new user
         $stmt = $db->prepare("
-            INSERT INTO trail_users (google_id, email, name, gravatar_hash) 
-            VALUES (?, ?, ?, ?)
+            INSERT INTO trail_users (google_id, email, name, gravatar_hash, photo_url) 
+            VALUES (?, ?, ?, ?, ?)
         ");
         $gravatarHash = md5(strtolower(trim($email)));
-        $stmt->execute([$googleId, $email, $name, $gravatarHash]);
+        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl]);
         $userId = (int) $db->lastInsertId();
         $isAdmin = false;
     }

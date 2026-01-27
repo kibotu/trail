@@ -84,6 +84,25 @@ fun TrailApp(viewModel: TrailViewModel) {
                 CircularProgressIndicator()
             }
         }
+        is UiState.PublicEntries -> {
+            EntriesScreen(
+                entries = state.entries,
+                isLoading = state.isLoading,
+                userName = null,
+                currentUserId = null,
+                isAdmin = false,
+                onSubmitEntry = null,
+                onUpdateEntry = { _, _ -> },
+                onDeleteEntry = { },
+                onRefresh = {
+                    viewModel.loadPublicEntries()
+                },
+                onLogout = null,
+                onLogin = {
+                    viewModel.navigateToLogin()
+                }
+            )
+        }
         is UiState.Login -> {
             LoginScreen(
                 onLoginSuccess = { idToken ->
@@ -113,7 +132,8 @@ fun TrailApp(viewModel: TrailViewModel) {
                 },
                 onLogout = {
                     viewModel.logout()
-                }
+                },
+                onLogin = null
             )
         }
         is UiState.Error -> {

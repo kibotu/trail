@@ -66,13 +66,13 @@ $app->get('/api/health', function ($request, $response) {
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth']);
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development only
 
-// Entry routes (authenticated)
-$app->group('/api/entries', function ($group) {
-    $group->post('', [EntryController::class, 'create']);
-    $group->get('', [EntryController::class, 'list']);
-    $group->put('/{id}', [EntryController::class, 'update']);
-    $group->delete('/{id}', [EntryController::class, 'delete']);
-})->add(new AuthMiddleware($config));
+// Authenticated entry routes (create, update, delete)
+$app->post('/api/entries', [EntryController::class, 'create'])->add(new AuthMiddleware($config));
+$app->put('/api/entries/{id}', [EntryController::class, 'update'])->add(new AuthMiddleware($config));
+$app->delete('/api/entries/{id}', [EntryController::class, 'delete'])->add(new AuthMiddleware($config));
+
+// Public entry routes (must be after authenticated routes to avoid conflicts)
+$app->get('/api/entries', [EntryController::class, 'listPublic']);
 
 // Admin routes (authenticated + admin)
 $app->group('/api/admin', function ($group) {

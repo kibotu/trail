@@ -29,27 +29,43 @@ import java.util.*
 fun EntriesScreen(
     entries: List<Entry>,
     isLoading: Boolean,
-    userName: String,
-    currentUserId: Int,
+    userName: String?,
+    currentUserId: Int?,
     isAdmin: Boolean,
-    onSubmitEntry: (String) -> Unit,
+    onSubmitEntry: ((String) -> Unit)?,
     onUpdateEntry: (Int, String) -> Unit,
     onDeleteEntry: (Int) -> Unit,
     onRefresh: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: (() -> Unit)?,
+    onLogin: (() -> Unit)?
 ) {
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 280
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Entry?>(null) }
+    
+    val isPublicMode = userName == null
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Trail") },
                 actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("Logout")
+                    if (isPublicMode) {
+                        onLogin?.let { loginAction ->
+                            Button(
+                                onClick = loginAction,
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text("Login")
+                            }
+                        }
+                    } else {
+                        onLogout?.let { logoutAction ->
+                            TextButton(onClick = logoutAction) {
+                                Text("Logout")
+                            }
+                        }
                     }
                 }
             )
@@ -60,63 +76,65 @@ fun EntriesScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Submit form at the top (like old Twitter)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
+            // Submit form at the top (only for authenticated users)
+            if (!isPublicMode && onSubmitEntry != null) {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Text(
-                        text = "What's on your mind, $userName?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    OutlinedTextField(
-                        value = entryText,
-                        onValueChange = { 
-                            if (it.length <= maxCharacters) {
-                                entryText = it
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Share something...") },
-                        minLines = 3,
-                        maxLines = 5,
-                        supportingText = {
-                            Text(
-                                text = "${entryText.length}/$maxCharacters",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
-                        isError = entryText.length > maxCharacters
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Button(
-                        onClick = {
-                            if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
-                                onSubmitEntry(entryText)
-                                entryText = ""
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                        enabled = entryText.isNotBlank() && entryText.length <= maxCharacters
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
-                        Text("Post")
+                        Text(
+                            text = "What's on your mind, $userName?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = entryText,
+                            onValueChange = { 
+                                if (it.length <= maxCharacters) {
+                                    entryText = it
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Share something...") },
+                            minLines = 3,
+                            maxLines = 5,
+                            supportingText = {
+                                Text(
+                                    text = "${entryText.length}/$maxCharacters",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            },
+                            isError = entryText.length > maxCharacters
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Button(
+                            onClick = {
+                                if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
+                                    onSubmitEntry(entryText)
+                                    entryText = ""
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.End),
+                            enabled = entryText.isNotBlank() && entryText.length <= maxCharacters
+                        ) {
+                            Text("Post")
+                        }
                     }
                 }
-            }
 
-            HorizontalDivider()
+                HorizontalDivider()
+            }
 
             // Entries list
             if (isLoading && entries.isEmpty()) {
@@ -146,7 +164,7 @@ fun EntriesScreen(
                     items(entries) { entry ->
                         EntryItem(
                             entry = entry,
-                            canModify = isAdmin || entry.userId == currentUserId,
+                            canModify = !isPublicMode && (isAdmin || entry.userId == currentUserId),
                             onEdit = { editingEntry = entry },
                             onDelete = { showDeleteDialog = entry }
                         )
@@ -201,7 +219,7 @@ fun EntryItem(
         ) {
             // Avatar
             AsyncImage(
-                model = entry.gravatarUrl,
+                model = entry.avatarUrl,
                 contentDescription = "Avatar",
                 modifier = Modifier
                     .size(48.dp)

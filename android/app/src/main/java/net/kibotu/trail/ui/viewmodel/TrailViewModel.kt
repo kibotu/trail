@@ -16,6 +16,10 @@ import net.kibotu.trail.data.storage.TokenManager
 sealed class UiState {
     object Loading : UiState()
     object Login : UiState()
+    data class PublicEntries(
+        val entries: List<Entry> = emptyList(),
+        val isLoading: Boolean = false
+    ) : UiState()
     data class Entries(
         val entries: List<Entry> = emptyList(),
         val userName: String = "",
@@ -60,13 +64,53 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         pendingSharedText = null
                     }
                 } else {
-                    _uiState.value = UiState.Login
+                    // Start with public entries view
+                    _uiState.value = UiState.PublicEntries()
+                    loadPublicEntries()
                 }
             } catch (e: Exception) {
                 Log.e("TrailViewModel", "Error checking auth status", e)
-                _uiState.value = UiState.Login
+                _uiState.value = UiState.PublicEntries()
+                loadPublicEntries()
             }
         }
+    }
+
+    fun loadPublicEntries() {
+        viewModelScope.launch {
+            try {
+                val currentState = _uiState.value
+                if (currentState is UiState.PublicEntries) {
+                    _uiState.value = currentState.copy(isLoading = true)
+                }
+                
+                val result = ApiClient.api.getEntries()
+                
+                result.onSuccess { entriesResponse ->
+                    if (currentState is UiState.PublicEntries) {
+                        _uiState.value = currentState.copy(
+                            entries = entriesResponse.entries,
+                            isLoading = false
+                        )
+                    }
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to load public entries", e)
+                    if (currentState is UiState.PublicEntries) {
+                        _uiState.value = currentState.copy(isLoading = false)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading public entries", e)
+                val currentState = _uiState.value
+                if (currentState is UiState.PublicEntries) {
+                    _uiState.value = currentState.copy(isLoading = false)
+                }
+            }
+        }
+    }
+
+    fun navigateToLogin() {
+        _uiState.value = UiState.Login
     }
 
     fun handleGoogleSignIn(idToken: String) {
@@ -171,7 +215,8 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             tokenManager.clearAuthToken()
             ApiClient.setAuthToken(null)
-            _uiState.value = UiState.Login
+            _uiState.value = UiState.PublicEntries()
+            loadPublicEntries()
         }
     }
 

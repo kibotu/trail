@@ -30,7 +30,7 @@ class Entry
     public function findById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash 
+            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
              FROM {$this->table} e 
              JOIN trail_users u ON e.user_id = u.id 
              WHERE e.id = ?"
@@ -44,7 +44,7 @@ class Entry
     public function getByUser(int $userId, int $limit = 20, int $offset = 0): array
     {
         $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash 
+            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
              FROM {$this->table} e 
              JOIN trail_users u ON e.user_id = u.id 
              WHERE e.user_id = ? 
@@ -59,7 +59,7 @@ class Entry
     public function getAll(int $limit = 50, int $offset = 0): array
     {
         $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash 
+            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
              FROM {$this->table} e 
              JOIN trail_users u ON e.user_id = u.id 
              ORDER BY e.created_at DESC 

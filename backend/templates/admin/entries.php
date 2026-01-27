@@ -13,7 +13,7 @@ ob_start();
     <?php foreach ($entries as $entry): ?>
         <article class="entry-card">
             <header>
-                <img src="<?= htmlspecialchars($entry['gravatar_url']) ?>" 
+                <img src="<?= $entry['avatar_url'] ?>" 
                      alt="<?= htmlspecialchars($entry['user_name']) ?>" 
                      class="avatar" 
                      width="40" 

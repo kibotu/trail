@@ -57,7 +57,7 @@ class AuthController
         
         if ($user) {
             // Update existing user
-            $userModel->update($user['id'], $userData['email'], $userData['name'], $gravatarHash);
+            $userModel->update($user['id'], $userData['email'], $userData['name'], $gravatarHash, $userData['picture'] ?? null);
             $userId = $user['id'];
             $isAdmin = (bool) $user['is_admin'];
         } else {
@@ -66,7 +66,8 @@ class AuthController
                 $userData['google_id'],
                 $userData['email'],
                 $userData['name'],
-                $gravatarHash
+                $gravatarHash,
+                $userData['picture'] ?? null
             );
             $isAdmin = false;
         }

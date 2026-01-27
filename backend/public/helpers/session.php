@@ -197,13 +197,48 @@ function buildGoogleAuthUrl(array $googleOAuth): string
 
 /**
  * Get user avatar URL with fallback to Gravatar.
+ * 
+ * @param string|null $photoUrl Google profile photo URL
+ * @param string $email User email for Gravatar fallback
+ * @param int $size Avatar size in pixels
+ * @return string Avatar URL (already HTML-escaped)
  */
 function getUserAvatarUrl(?string $photoUrl, string $email, int $size = 96): string
 {
+    // Use Google photo if available
     if ($photoUrl !== null && $photoUrl !== '') {
         return htmlspecialchars($photoUrl);
     }
 
+    // Fallback to Gravatar
     $gravatarHash = md5(strtolower(trim($email)));
     return "https://www.gravatar.com/avatar/{$gravatarHash}?s={$size}&d=mp";
+}
+
+/**
+ * Get user avatar URL from user data with fallback.
+ * 
+ * @param array $user User data array with photo_url, gravatar_hash, and email
+ * @param int $size Avatar size in pixels
+ * @return string Avatar URL (already HTML-escaped)
+ */
+function getUserAvatarFromData(array $user, int $size = 96): string
+{
+    // Use Google photo if available
+    if (!empty($user['photo_url'])) {
+        return htmlspecialchars($user['photo_url']);
+    }
+
+    // Fallback to Gravatar using hash if available, otherwise email
+    if (!empty($user['gravatar_hash'])) {
+        return "https://www.gravatar.com/avatar/{$user['gravatar_hash']}?s={$size}&d=mp";
+    }
+
+    if (!empty($user['email'])) {
+        $gravatarHash = md5(strtolower(trim($user['email'])));
+        return "https://www.gravatar.com/avatar/{$gravatarHash}?s={$size}&d=mp";
+    }
+
+    // Ultimate fallback
+    return "https://www.gravatar.com/avatar/00000000000000000000000000000000?s={$size}&d=mp";
 }

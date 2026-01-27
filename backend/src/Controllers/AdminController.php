@@ -42,9 +42,9 @@ class AdminController
 
         $entries = $entryModel->getAll(100, 0);
 
-        // Add Gravatar URLs
+        // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
-            $entry['gravatar_url'] = \Trail\Services\GravatarService::generateUrl($entry['gravatar_hash']);
+            $entry['avatar_url'] = self::getAvatarUrl($entry);
         }
 
         $html = self::renderTemplate('entries', ['entries' => $entries]);
@@ -118,9 +118,9 @@ class AdminController
 
         $users = $userModel->getAll(100, 0);
 
-        // Add Gravatar URLs
+        // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($users as &$user) {
-            $user['gravatar_url'] = \Trail\Services\GravatarService::generateUrl($user['gravatar_hash'], 200);
+            $user['avatar_url'] = self::getAvatarUrl($user, 200);
         }
 
         $html = self::renderTemplate('users', ['users' => $users]);
@@ -155,5 +155,35 @@ class AdminController
         ob_start();
         include $templatePath;
         return ob_get_clean();
+    }
+
+    /**
+     * Get user avatar URL with Google photo fallback to Gravatar.
+     * 
+     * @param array $user User data with photo_url, gravatar_hash, and email
+     * @param int $size Avatar size in pixels
+     * @return string Avatar URL (already HTML-escaped)
+     */
+    private static function getAvatarUrl(array $user, int $size = 96): string
+    {
+        // Use Google photo if available
+        if (!empty($user['photo_url'])) {
+            return htmlspecialchars($user['photo_url'], ENT_QUOTES, 'UTF-8');
+        }
+
+        // Fallback to Gravatar using hash if available
+        if (!empty($user['gravatar_hash'])) {
+            return "https://www.gravatar.com/avatar/{$user['gravatar_hash']}?s={$size}&d=mp";
+        }
+
+        // Fallback to Gravatar using email
+        if (!empty($user['email']) || !empty($user['user_email'])) {
+            $email = $user['email'] ?? $user['user_email'];
+            $gravatarHash = md5(strtolower(trim($email)));
+            return "https://www.gravatar.com/avatar/{$gravatarHash}?s={$size}&d=mp";
+        }
+
+        // Ultimate fallback
+        return "https://www.gravatar.com/avatar/00000000000000000000000000000000?s={$size}&d=mp";
     }
 }
