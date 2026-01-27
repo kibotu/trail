@@ -75,7 +75,7 @@ class Entry
         if ($before !== null) {
             // Cursor-based pagination: get entries created before the cursor timestamp
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  WHERE e.created_at < ? 
@@ -86,7 +86,7 @@ class Entry
         } else {
             // Initial load: get most recent entries
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  ORDER BY e.created_at DESC 

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Trail - Public Entries</title>
     <style>
         * {
@@ -239,6 +242,82 @@
             gap: 0.5rem;
         }
 
+        .entry-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-button {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: none;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .action-button:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .action-button.delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .edit-form {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .edit-textarea {
+            width: 100%;
+            min-height: 80px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-family: inherit;
+            line-height: 1.6;
+            resize: vertical;
+            margin-bottom: 0.75rem;
+        }
+
+        .edit-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .save-button {
+            background: var(--accent);
+            color: white;
+        }
+
+        .save-button:hover {
+            background: var(--accent-hover);
+        }
+
+        .cancel-button {
+            background: var(--bg-tertiary);
+        }
+
         .loading {
             text-align: center;
             padding: 2rem;
@@ -411,6 +490,12 @@
         const loadingElement = document.getElementById('loading');
         const endMessage = document.getElementById('endMessage');
 
+        // User session info (from PHP)
+        const isLoggedIn = <?= json_encode($isLoggedIn ?? false) ?>;
+        const userEmail = <?= json_encode($userName ?? null) ?>;
+        const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
+        const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+
         // Format timestamp
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
@@ -445,13 +530,23 @@
             return div.innerHTML;
         }
 
+        // Check if current user can modify this entry
+        function canModifyEntry(entry) {
+            if (!isLoggedIn) return false;
+            if (isAdmin) return true;
+            return entry.user_email === userEmail;
+        }
+
         // Create entry card HTML
         function createEntryCard(entry) {
             const card = document.createElement('div');
             card.className = 'entry-card';
+            card.dataset.entryId = entry.id;
             
             const escapedText = escapeHtml(entry.text);
             const linkedText = linkifyText(escapedText);
+            
+            const canModify = canModifyEntry(entry);
             
             card.innerHTML = `
                 <div class="entry-header">
@@ -460,7 +555,9 @@
                         <div class="user-name">${escapeHtml(entry.user_name)}</div>
                     </div>
                 </div>
-                <div class="entry-text">${linkedText}</div>
+                <div class="entry-content">
+                    <div class="entry-text">${linkedText}</div>
+                </div>
                 <div class="entry-footer">
                     <div class="timestamp">
                         <span>📅</span>
@@ -471,6 +568,18 @@
                             <span>✏️</span>
                             <span>edited ${formatTimestamp(entry.updated_at)}</span>
                         </div>` : ''}
+                    ${canModify ? `
+                        <div class="entry-actions">
+                            <button class="action-button edit" onclick="editEntry(${entry.id})">
+                                <span>✏️</span>
+                                <span>Edit</span>
+                            </button>
+                            <button class="action-button delete" onclick="deleteEntry(${entry.id})">
+                                <span>🗑️</span>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -548,6 +657,160 @@
         // Initialize
         window.addEventListener('scroll', handleScroll);
         window.addEventListener('resize', handleScroll);
+
+        // Get JWT token from session
+        function getAuthToken() {
+            return jwtToken;
+        }
+
+        // Edit entry
+        async function editEntry(entryId) {
+            const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+            if (!card) return;
+
+            const contentDiv = card.querySelector('.entry-content');
+            const textDiv = card.querySelector('.entry-text');
+            const currentText = textDiv.textContent;
+
+            // Create edit form
+            contentDiv.innerHTML = `
+                <div class="edit-form">
+                    <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
+                    <div class="edit-actions">
+                        <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}')">
+                            <span>❌</span>
+                            <span>Cancel</span>
+                        </button>
+                        <button class="action-button save-button" onclick="saveEdit(${entryId})">
+                            <span>💾</span>
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Focus textarea
+            const textarea = document.getElementById(`edit-text-${entryId}`);
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        // Cancel edit
+        function cancelEdit(entryId, originalText) {
+            const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+            if (!card) return;
+
+            const contentDiv = card.querySelector('.entry-content');
+            const linkedText = linkifyText(originalText);
+            contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>`;
+        }
+
+        // Save edit
+        async function saveEdit(entryId) {
+            const textarea = document.getElementById(`edit-text-${entryId}`);
+            const newText = textarea.value.trim();
+
+            if (!newText) {
+                alert('Entry text cannot be empty');
+                return;
+            }
+
+            const token = getAuthToken();
+            if (!token) {
+                alert('You must be logged in to edit entries');
+                window.location.href = '/admin/login.php';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/entries/${entryId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text: newText })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update entry');
+                }
+
+                const data = await response.json();
+
+                // Update the card with new text
+                const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+                const contentDiv = card.querySelector('.entry-content');
+                const escapedText = escapeHtml(newText);
+                const linkedText = linkifyText(escapedText);
+                contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>`;
+
+                // Update the timestamp
+                const timestampDiv = card.querySelector('.entry-footer');
+                const existingTimestamp = timestampDiv.querySelector('.timestamp');
+                const editedTimestamp = document.createElement('div');
+                editedTimestamp.className = 'timestamp';
+                editedTimestamp.innerHTML = `
+                    <span>✏️</span>
+                    <span>edited ${formatTimestamp(data.updated_at)}</span>
+                `;
+                
+                // Remove old edited timestamp if exists
+                const oldEditedTimestamp = timestampDiv.querySelectorAll('.timestamp')[1];
+                if (oldEditedTimestamp) {
+                    oldEditedTimestamp.remove();
+                }
+                
+                // Insert new edited timestamp after the created timestamp
+                existingTimestamp.after(editedTimestamp);
+
+            } catch (error) {
+                console.error('Error updating entry:', error);
+                alert(`Failed to update entry: ${error.message}`);
+            }
+        }
+
+        // Delete entry
+        async function deleteEntry(entryId) {
+            if (!confirm('Are you sure you want to delete this entry?')) {
+                return;
+            }
+
+            const token = getAuthToken();
+            if (!token) {
+                alert('You must be logged in to delete entries');
+                window.location.href = '/admin/login.php';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/entries/${entryId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete entry');
+                }
+
+                // Remove the card from the DOM
+                const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(-20px)';
+                    setTimeout(() => card.remove(), 300);
+                }
+
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+                alert(`Failed to delete entry: ${error.message}`);
+            }
+        }
 
         // Load initial entries
         loadEntries();

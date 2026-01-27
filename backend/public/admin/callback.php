@@ -13,6 +13,7 @@ require_once __DIR__ . '/../helpers/session.php';
 
 use Trail\Config\Config;
 use Trail\Database\Database;
+use Trail\Services\JwtService;
 
 
 // Security headers
@@ -48,6 +49,10 @@ try {
         throw new Exception("Invalid email address");
     }
 
+    // Check if user is admin based on email in config
+    $adminEmail = $config['production']['admin_email'] ?? null;
+    $isAdminUser = ($adminEmail !== null && strtolower($email) === strtolower($adminEmail));
+
     // Find or create user in database
     $stmt = $db->prepare("SELECT id, is_admin FROM trail_users WHERE google_id = ?");
     $stmt->execute([$googleId]);
@@ -62,24 +67,36 @@ try {
         ");
         $stmt->execute([$email, $name, $photoUrl, $googleId]);
         $userId = $user['id'];
-        $isAdmin = (bool) $user['is_admin'];
+        
+        // Update admin status if needed
+        if ($isAdminUser && !$user['is_admin']) {
+            $stmt = $db->prepare("UPDATE trail_users SET is_admin = 1 WHERE id = ?");
+            $stmt->execute([$userId]);
+            $isAdmin = true;
+        } else {
+            $isAdmin = (bool) $user['is_admin'];
+        }
     } else {
         // Create new user
         $stmt = $db->prepare("
-            INSERT INTO trail_users (google_id, email, name, gravatar_hash, photo_url) 
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO trail_users (google_id, email, name, gravatar_hash, photo_url, is_admin) 
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         $gravatarHash = md5(strtolower(trim($email)));
-        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl]);
+        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl, $isAdminUser ? 1 : 0]);
         $userId = (int) $db->lastInsertId();
-        $isAdmin = false;
+        $isAdmin = $isAdminUser;
     }
 
-    // Create new session
+    // Generate JWT token for API access
+    $jwtService = new JwtService($config);
+    $jwtToken = $jwtService->generate($userId, $email, $isAdmin);
+
+    // Create new session with JWT token
     $sessionId = generateSessionId();
     $expiresAt = (new DateTime())->modify('+24 hours');
 
-    createSession($db, $sessionId, $userId, $email, $photoUrl, $isAdmin, $expiresAt);
+    createSession($db, $sessionId, $userId, $email, $photoUrl, $isAdmin, $expiresAt, $jwtToken);
 
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());

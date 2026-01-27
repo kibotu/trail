@@ -93,4 +93,15 @@ class User
         
         return (int) $result['count'];
     }
+
+    public function setAdminStatus(int $id, bool $isAdmin): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET is_admin = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$isAdmin ? 1 : 0, $id]);
+    }
 }

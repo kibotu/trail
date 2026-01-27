@@ -76,16 +76,18 @@ function createSession(
     string $email,
     ?string $photoUrl,
     bool $isAdmin,
-    DateTime $expiresAt
+    DateTime $expiresAt,
+    ?string $jwtToken = null
 ): void {
     $stmt = $db->prepare("
-        INSERT INTO trail_sessions (session_id, user_id, email, photo_url, is_admin, expires_at) 
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO trail_sessions (session_id, user_id, email, photo_url, is_admin, jwt_token, expires_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
             user_id = VALUES(user_id),
             email = VALUES(email),
             photo_url = VALUES(photo_url),
             is_admin = VALUES(is_admin),
+            jwt_token = VALUES(jwt_token),
             expires_at = VALUES(expires_at)
     ");
     $stmt->execute([
@@ -94,6 +96,7 @@ function createSession(
         $email,
         $photoUrl,
         $isAdmin ? 1 : 0,
+        $jwtToken,
         $expiresAt->format('Y-m-d H:i:s')
     ]);
 }
@@ -103,13 +106,32 @@ function createSession(
  */
 function validateUserSession(PDO $db, string $sessionId): ?array
 {
-    $stmt = $db->prepare("
-        SELECT user_id, email, photo_url, is_admin, expires_at 
-        FROM trail_sessions 
-        WHERE session_id = ? AND expires_at > NOW()
-    ");
-    $stmt->execute([$sessionId]);
-    return $stmt->fetch() ?: null;
+    // Check if jwt_token column exists
+    try {
+        $stmt = $db->prepare("
+            SELECT user_id, email, photo_url, is_admin, jwt_token, expires_at 
+            FROM trail_sessions 
+            WHERE session_id = ? AND expires_at > NOW()
+        ");
+        $stmt->execute([$sessionId]);
+        return $stmt->fetch() ?: null;
+    } catch (PDOException $e) {
+        // Fallback if jwt_token column doesn't exist yet
+        if (strpos($e->getMessage(), 'jwt_token') !== false) {
+            $stmt = $db->prepare("
+                SELECT user_id, email, photo_url, is_admin, expires_at 
+                FROM trail_sessions 
+                WHERE session_id = ? AND expires_at > NOW()
+            ");
+            $stmt->execute([$sessionId]);
+            $result = $stmt->fetch();
+            if ($result) {
+                $result['jwt_token'] = null;
+            }
+            return $result ?: null;
+        }
+        throw $e;
+    }
 }
 
 /**

@@ -52,6 +52,10 @@ class AuthController
         // Generate Gravatar hash
         $gravatarHash = GravatarService::generateHash($userData['email']);
         
+        // Check if user is admin based on email in config
+        $adminEmail = $config['production']['admin_email'] ?? null;
+        $isAdminUser = ($adminEmail !== null && strtolower($userData['email']) === strtolower($adminEmail));
+        
         // Find or create user
         $user = $userModel->findByGoogleId($userData['google_id']);
         
@@ -59,7 +63,14 @@ class AuthController
             // Update existing user
             $userModel->update($user['id'], $userData['email'], $userData['name'], $gravatarHash, $userData['picture'] ?? null);
             $userId = $user['id'];
-            $isAdmin = (bool) $user['is_admin'];
+            
+            // Update admin status if needed
+            if ($isAdminUser && !$user['is_admin']) {
+                $userModel->setAdminStatus($userId, true);
+                $isAdmin = true;
+            } else {
+                $isAdmin = (bool) $user['is_admin'];
+            }
         } else {
             // Create new user
             $userId = $userModel->create(
@@ -69,7 +80,14 @@ class AuthController
                 $gravatarHash,
                 $userData['picture'] ?? null
             );
-            $isAdmin = false;
+            
+            // Set admin status for new user if they match admin email
+            if ($isAdminUser) {
+                $userModel->setAdminStatus($userId, true);
+                $isAdmin = true;
+            } else {
+                $isAdmin = false;
+            }
         }
 
         // Generate JWT

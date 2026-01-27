@@ -47,6 +47,7 @@ $app->get('/', function ($request, $response) use ($config) {
         $userName = $session['email'] ?? null;
         $userPhotoUrl = $session['photo_url'] ?? null;
         $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
         
         // Build Google OAuth URL for the login button (only if not logged in)
         $googleOAuth = $config['google_oauth'] ?? null;
@@ -60,7 +61,13 @@ $app->get('/', function ($request, $response) use ($config) {
         include $landingPage;
         $html = ob_get_clean();
         $response->getBody()->write($html);
-        return $response->withHeader('Content-Type', 'text/html');
+        
+        // Add cache control headers to prevent caching of session-dependent content
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
     }
     
     $response->getBody()->write('Landing page not found');
