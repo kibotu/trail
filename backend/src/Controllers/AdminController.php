@@ -40,17 +40,27 @@ class AdminController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAll(100, null);
+        // Get pagination parameters
+        $queryParams = $request->getQueryParams();
+        $page = isset($queryParams['page']) ? max(0, (int)$queryParams['page']) : 0;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
+        $offset = $page * $limit;
+
+        $entries = $entryModel->getAll($limit, null, $offset);
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
         }
 
-        $html = self::renderTemplate('entries', ['entries' => $entries]);
+        $response->getBody()->write(json_encode([
+            'entries' => $entries,
+            'page' => $page,
+            'limit' => $limit,
+            'count' => count($entries)
+        ]));
         
-        $response->getBody()->write($html);
-        return $response->withHeader('Content-Type', 'text/html');
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public static function updateEntry(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface

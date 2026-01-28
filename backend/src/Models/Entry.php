@@ -86,9 +86,19 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null): array
     {
-        if ($before !== null) {
+        if ($offset !== null) {
+            // Offset-based pagination for admin
+            $stmt = $this->db->prepare(
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                 FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 ORDER BY e.created_at DESC 
+                 LIMIT ? OFFSET ?"
+            );
+            $stmt->execute([$limit, $offset]);
+        } elseif ($before !== null) {
             // Cursor-based pagination: get entries created before the cursor timestamp
             $stmt = $this->db->prepare(
                 "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 

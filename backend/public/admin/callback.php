@@ -101,8 +101,12 @@ try {
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());
 
-    // Redirect to admin dashboard
-    header('Location: /admin/');
+    // Redirect based on user role
+    if ($isAdmin) {
+        header('Location: /admin/');
+    } else {
+        header('Location: /');
+    }
     exit;
 
 } catch (Exception $e) {
