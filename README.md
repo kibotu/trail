@@ -206,6 +206,17 @@ The script automatically:
 - Installs production dependencies
 - Uploads only necessary files
 - Excludes development/test files
+- **Runs database migrations** from `migrations/` directory
+
+### Database Migrations
+
+The sync script automatically detects and runs pending SQL migrations:
+
+1. Add new `.sql` files to `migrations/` directory (e.g., `007_add_feature.sql`)
+2. Run `./sync.sh`
+3. Migrations are executed in order and tracked in the database
+
+See [MIGRATIONS.md](MIGRATIONS.md) for complete migration guide.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guide.
 
@@ -242,15 +253,23 @@ See [SECURITY.md](SECURITY.md) for complete security documentation.
 
 ## Documentation
 
+### Backend & Deployment
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide
+- [MIGRATIONS.md](MIGRATIONS.md) - Database migration guide
 - [SECURITY.md](SECURITY.md) - Security guide and best practices
 - [TEST_SECURITY_GUIDE.md](TEST_SECURITY_GUIDE.md) - Production security testing guide
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide
+
+### Architecture & Navigation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture overview and patterns
 - [NAVIGATION_3_MIGRATION.md](NAVIGATION_3_MIGRATION.md) - Navigation 3 migration guide
 - [NAVIGATION_GUIDE.md](NAVIGATION_GUIDE.md) - Navigation patterns and best practices
+
+### Features
 - [PREVIEW_CARD_IMPROVEMENTS.md](PREVIEW_CARD_IMPROVEMENTS.md) - URL preview card implementation
 - [MEDIUM_PREVIEW_IMPROVEMENTS.md](MEDIUM_PREVIEW_IMPROVEMENTS.md) - Medium article preview support
 - [QUICK_START_MEDIUM_PREVIEWS.md](QUICK_START_MEDIUM_PREVIEWS.md) - Quick start guide for Medium previews
+
+### Other
 - [CHANGES.md](CHANGES.md) - Detailed changelog
 
 ## Code Style

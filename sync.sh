@@ -286,21 +286,51 @@ try {
         
         $sql = file_get_contents($file);
         
+        // Remove comment lines first
+        $lines = explode("\n", $sql);
+        $cleanedLines = array_filter($lines, function($line) {
+            $trimmed = trim($line);
+            return !empty($trimmed) && !preg_match('/^--/', $trimmed);
+        });
+        $cleanedSql = implode("\n", $cleanedLines);
+        
         // Split by semicolon and execute each statement
         $statements = array_filter(
-            array_map('trim', explode(';', $sql)),
+            array_map('trim', explode(';', $cleanedSql)),
             function($stmt) {
-                return !empty($stmt) && !preg_match('/^--/', $stmt);
+                return !empty($stmt);
             }
         );
         
-        foreach ($statements as $statement) {
-            if (!empty($statement)) {
-                $db->exec($statement);
+        $db->beginTransaction();
+        try {
+            $stmtCount = 0;
+            foreach ($statements as $statement) {
+                if (!empty($statement)) {
+                    try {
+                        $db->exec($statement);
+                        $stmtCount++;
+                    } catch (PDOException $e) {
+                        echo "      ✗ SQL Error: " . $e->getMessage() . "\n";
+                        echo "      Statement: " . substr($statement, 0, 100) . "...\n";
+                        throw $e;
+                    }
+                }
             }
+            
+            echo "      Executed $stmtCount SQL statement(s)\n";
+            
+            // Record migration as applied
+            $stmt = $db->prepare("INSERT INTO trail_migrations (migration_name) VALUES (?)");
+            $stmt->execute([$filename]);
+            
+            $db->commit();
+            echo "    ✓ Applied: $filename\n";
+        } catch (Exception $e) {
+            $db->rollBack();
+            echo "    ✗ Failed: " . $e->getMessage() . "\n";
+            throw $e;
         }
-        
-        echo "    ✓ Applied: $filename\n";
     }
     
     echo "\n✓ All migrations completed successfully\n";
