@@ -76,7 +76,7 @@ class UrlEmbedService
      * Fetch preview metadata for a specific URL
      * 
      * @param string $url The URL to fetch metadata for
-     * @return array|null Preview data with keys: url, title, description, image, site_name
+     * @return array|null Preview data with keys: url, title, description, image, site_name, json, source
      */
     public function fetchPreview(string $url): ?array
     {
@@ -192,6 +192,8 @@ class UrlEmbedService
                 'description' => $this->sanitizeText($meta['description'] ?? null),
                 'image' => $image ? $this->sanitizeUrl($image) : null,
                 'site_name' => $this->sanitizeText($meta['site'] ?? $meta['author'] ?? null),
+                'json' => json_encode($data), // Store full Iframely JSON response
+                'source' => 'iframely',
             ];
             
             // Validate preview data quality
@@ -230,6 +232,8 @@ class UrlEmbedService
                 'description' => $this->sanitizeText($info->description),
                 'image' => $this->sanitizeUrl($info->image),
                 'site_name' => $this->sanitizeText($info->authorName ?? $info->providerName ?? null),
+                'json' => null, // No JSON for embed library
+                'source' => 'embed',
             ];
 
             // Validate preview data quality
@@ -581,6 +585,8 @@ class UrlEmbedService
                         'description' => $description ? $this->sanitizeText($description) : null,
                         'image' => $image ? $this->sanitizeUrl($image) : null,
                         'site_name' => $this->sanitizeText($author),
+                        'json' => null, // No JSON for Medium RSS
+                        'source' => 'medium',
                     ];
                     
                     // Validate the preview data

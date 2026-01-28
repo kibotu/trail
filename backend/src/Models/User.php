@@ -34,6 +34,15 @@ class User
         return $user ?: null;
     }
 
+    public function findByNickname(string $nickname): ?array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE nickname = ?");
+        $stmt->execute([$nickname]);
+        $user = $stmt->fetch();
+        
+        return $user ?: null;
+    }
+
     public function create(string $googleId, string $email, string $name, string $gravatarHash, ?string $photoUrl = null): int
     {
         $stmt = $this->db->prepare(
@@ -103,5 +112,76 @@ class User
         );
         
         return $stmt->execute([$isAdmin ? 1 : 0, $id]);
+    }
+
+    public function updateNickname(int $id, string $nickname): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET nickname = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$nickname, $id]);
+    }
+
+    /**
+     * Generate a unique nickname hash for a user
+     * Uses google_id + salt for uniqueness
+     */
+    public function generateNicknameHash(string $googleId, string $salt): string
+    {
+        // Create a hash of google_id + salt
+        $hash = hash('sha256', $googleId . $salt);
+        // Take first 8 characters for a short, readable nickname
+        return 'user_' . substr($hash, 0, 8);
+    }
+
+    /**
+     * Get or generate nickname for a user
+     * If user doesn't have a nickname, generate one and save it
+     */
+    public function getOrGenerateNickname(int $userId, string $googleId, string $salt): string
+    {
+        $user = $this->findById($userId);
+        
+        if ($user && !empty($user['nickname'])) {
+            return $user['nickname'];
+        }
+        
+        // Generate a unique nickname
+        $nickname = $this->generateNicknameHash($googleId, $salt);
+        
+        // Ensure uniqueness by appending a counter if needed
+        $counter = 1;
+        $originalNickname = $nickname;
+        while ($this->findByNickname($nickname) !== null) {
+            $nickname = $originalNickname . $counter;
+            $counter++;
+        }
+        
+        // Save the generated nickname
+        $this->updateNickname($userId, $nickname);
+        
+        return $nickname;
+    }
+
+    /**
+     * Check if a nickname is available (not taken by another user)
+     */
+    public function isNicknameAvailable(string $nickname, ?int $excludeUserId = null): bool
+    {
+        $user = $this->findByNickname($nickname);
+        
+        if ($user === null) {
+            return true;
+        }
+        
+        // If excluding a user ID (for updates), check if the nickname belongs to that user
+        if ($excludeUserId !== null && $user['id'] === $excludeUserId) {
+            return true;
+        }
+        
+        return false;
     }
 }

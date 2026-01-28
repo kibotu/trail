@@ -49,6 +49,7 @@ app:
   rss_title: "Trail - Link Journal"
   rss_description: "Public link journal feed"
   environment: ${APP_ENV}
+  nickname_salt: ${NICKNAME_SALT}  # Random salt for generating nickname hashes
 
 # Development settings (only used when environment=development)
 development:

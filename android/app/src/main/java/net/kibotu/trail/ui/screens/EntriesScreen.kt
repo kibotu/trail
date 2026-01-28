@@ -254,7 +254,7 @@ fun EntryItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = entry.userName,
+                        text = entry.displayName,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )

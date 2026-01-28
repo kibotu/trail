@@ -377,43 +377,132 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+            padding: 1rem 1.5rem;
+            transition: background 0.2s, opacity 0.3s;
+            cursor: pointer;
         }
 
         .entry-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            background: rgba(30, 41, 59, 0.8);
         }
 
         .entry-header {
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
         }
 
         .avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            border: 2px solid var(--border);
             object-fit: cover;
+            flex-shrink: 0;
         }
 
-        .user-info-entry {
+        .entry-header-content {
             flex: 1;
+            min-width: 0;
+        }
+
+        .entry-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
         }
 
         .user-name {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 1rem;
+            font-size: 0.9375rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .entry-meta {
+        .entry-menu {
+            position: relative;
+        }
+
+        .menu-button {
+            background: transparent;
+            border: none;
             color: var(--text-muted);
-            font-size: 0.875rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .menu-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            min-width: 160px;
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+
+        .menu-dropdown.active {
+            display: block;
+        }
+
+        .menu-item {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .menu-item.delete {
+            color: #ef4444;
+        }
+
+        .menu-item.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .entry-body {
+            margin-left: 56px;
         }
 
         .entry-content {
@@ -497,52 +586,48 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             color: var(--accent);
         }
 
+        /* Preview source badge styling */
+        .link-preview-wrapper {
+            position: relative;
+            margin-top: 0.75rem;
+        }
+
+        .preview-source-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        .preview-source-badge span:first-child {
+            font-size: 0.875rem;
+        }
+
         .entry-footer {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 1.5rem;
             color: var(--text-muted);
-            font-size: 0.875rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+            font-size: 0.8125rem;
+            padding-top: 0.75rem;
         }
 
         .timestamp {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-        }
-
-        .entry-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .action-button {
-            background: var(--bg-tertiary);
-            color: var(--text-secondary);
-            border: none;
-            padding: 0.375rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
             gap: 0.375rem;
         }
 
-        .action-button:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            transform: translateY(-1px);
-        }
-
-        .action-button.delete:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
-        }
 
         .edit-form {
             margin-top: 1rem;
@@ -776,6 +861,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         </div>
     </div>
 
+    <script src="/js/card-template.js"></script>
     <script>
         // Store JWT token from session
         const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
@@ -842,116 +928,40 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             const container = document.getElementById('entries-container');
             
             entries.forEach(entry => {
-                const card = createEntryCard(entry);
+                // Use shared card template with admin options
+                const card = createEntryCard(entry, {
+                    showSourceBadge: true,  // Show source badges in admin
+                    canModify: true,        // Admin can modify all entries
+                    isAdmin: true           // Admin context
+                });
                 container.appendChild(card);
             });
         }
-
-        function createEntryCard(entry) {
-            const card = document.createElement('div');
-            card.className = 'entry-card';
-            card.id = `entry-${entry.id}`;
-            card.dataset.entryId = entry.id;
+        
+        // Toggle menu dropdown (same as landing page)
+        function toggleMenu(event, entryId) {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu-${entryId}`);
+            const allMenus = document.querySelectorAll('.menu-dropdown');
             
-            const avatarUrl = entry.photo_url || `https://www.gravatar.com/avatar/${entry.gravatar_hash || '00000000000000000000000000000000'}?s=96&d=mp`;
-            const userName = entry.user_name || entry.user_email || 'Unknown';
-            const escapedText = escapeHtml(entry.text);
-            const linkedText = linkifyText(escapedText);
-            const previewCard = createLinkPreviewCard(entry);
-            
-            card.innerHTML = `
-                <div class="entry-header">
-                    <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(userName)}" class="avatar" loading="lazy">
-                    <div class="user-info">
-                        <div class="user-name">${escapeHtml(userName)}</div>
-                    </div>
-                </div>
-                <div class="entry-content" id="content-${entry.id}">
-                    <div class="entry-text">${linkedText}</div>
-                    ${previewCard}
-                </div>
-                <div class="entry-footer">
-                    <div class="timestamp">
-                        <span>📅</span>
-                        <span>${formatTimestamp(entry.created_at)}</span>
-                    </div>
-                    ${entry.updated_at && entry.updated_at !== entry.created_at ? 
-                        `<div class="timestamp">
-                            <span>✏️</span>
-                            <span>edited ${formatTimestamp(entry.updated_at)}</span>
-                        </div>` : ''}
-                    <div class="entry-actions">
-                        <button class="action-button edit" onclick="editEntry(${entry.id})">
-                            <span>✏️</span>
-                            <span>Edit</span>
-                        </button>
-                        <button class="action-button delete" onclick="deleteEntry(${entry.id})">
-                            <span>🗑️</span>
-                            <span>Delete</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            return card;
-        }
-
-        function linkifyText(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, (url) => {
-                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) {
+                    m.classList.remove('active');
+                }
             });
+            
+            // Toggle current menu
+            menu.classList.toggle('active');
         }
 
-        function createLinkPreviewCard(entry) {
-            if (!entry.preview_url) {
-                return '';
+        // Close menus when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.entry-menu')) {
+                const allMenus = document.querySelectorAll('.menu-dropdown');
+                allMenus.forEach(m => m.classList.remove('active'));
             }
-
-            const domain = extractDomain(entry.preview_url);
-            
-            return `
-                <a href="${escapeHtml(entry.preview_url)}" target="_blank" rel="noopener noreferrer" class="link-preview-card">
-                    ${entry.preview_image ? `<img src="${escapeHtml(entry.preview_image)}" alt="${escapeHtml(entry.preview_title || '')}" class="link-preview-image" loading="lazy">` : ''}
-                    <div class="link-preview-content">
-                        ${entry.preview_title ? `<div class="link-preview-title">${escapeHtml(entry.preview_title)}</div>` : ''}
-                        ${entry.preview_description ? `<div class="link-preview-description">${escapeHtml(entry.preview_description)}</div>` : ''}
-                        <div class="link-preview-url">
-                            <span>🔗</span>
-                            <span>${escapeHtml(domain)}</span>
-                        </div>
-                    </div>
-                </a>
-            `;
-        }
-
-        function extractDomain(url) {
-            try {
-                const urlObj = new URL(url);
-                return urlObj.hostname.replace('www.', '');
-            } catch {
-                return url;
-            }
-        }
-
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
-            
-            if (diffInSeconds < 60) return 'just now';
-            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-            if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-            
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        });
 
         function editEntry(entryId) {
             const card = document.querySelector(`[data-entry-id="${entryId}"]`);

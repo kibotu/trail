@@ -95,35 +95,65 @@
         header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border);
-            padding: 1.5rem 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
             backdrop-filter: blur(10px);
         }
 
+        .header-banner {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(236, 72, 153, 0.3) 50%, rgba(168, 85, 247, 0.3) 100%);
+            position: relative;
+        }
+
         .header-content {
             max-width: 800px;
             margin: 0 auto;
+            position: relative;
+            padding: 0 2rem;
+        }
+
+        .header-profile-section {
+            position: relative;
+            margin-top: -64px;
             display: flex;
-            align-items: center;
-            gap: 1rem;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 1rem;
         }
 
         .header-left {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             gap: 1rem;
-            flex: 1;
+        }
+
+        .header-avatar {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            border: 4px solid var(--bg-secondary);
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+
+        .header-info {
+            padding-bottom: 0.5rem;
         }
 
         .logo {
             font-size: 2rem;
+            margin-right: 0.5rem;
         }
 
         h1 {
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .subtitle {
@@ -164,20 +194,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-            object-fit: cover;
+            padding-bottom: 0.5rem;
         }
 
         .nav-link {
@@ -351,38 +368,148 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 1rem 1.5rem;
+            transition: background 0.2s;
+            cursor: pointer;
         }
 
         .entry-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            background: rgba(30, 41, 59, 0.8);
         }
 
         .entry-header {
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
         }
 
         .avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            border: 2px solid var(--border);
             object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .entry-header-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .entry-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
         }
 
         .user-info {
-            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
         }
 
         .user-name {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 1rem;
+            font-size: 0.9375rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-name-link {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .user-name-link:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        .entry-menu {
+            position: relative;
+        }
+
+        .menu-button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .menu-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            min-width: 160px;
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+
+        .menu-dropdown.active {
+            display: block;
+        }
+
+        .menu-item {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .menu-item.delete {
+            color: #ef4444;
+        }
+
+        .menu-item.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .entry-body {
+            margin-left: 56px;
         }
 
         .entry-text {
@@ -463,51 +590,89 @@
             color: var(--accent);
         }
 
+        /* Preview source badge styling (admin only, but included for consistency) */
+        .link-preview-wrapper {
+            position: relative;
+            margin-top: 0.75rem;
+        }
+
+        .preview-source-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        .preview-source-badge span:first-child {
+            font-size: 0.875rem;
+        }
+
         .entry-footer {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 1.5rem;
             color: var(--text-muted);
-            font-size: 0.875rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+            font-size: 0.8125rem;
+            padding-top: 0.75rem;
         }
 
         .timestamp {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.375rem;
         }
 
-        .entry-actions {
+        .entry-stats {
             display: flex;
-            gap: 0.5rem;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .stat-button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            transition: color 0.2s;
+        }
+
+        .stat-button:hover {
+            color: var(--accent);
         }
 
         .action-button {
             background: var(--bg-tertiary);
             color: var(--text-secondary);
             border: none;
-            padding: 0.375rem 0.75rem;
+            padding: 0.5rem 1rem;
             border-radius: 6px;
-            font-size: 0.8125rem;
+            font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 0.375rem;
+            gap: 0.5rem;
         }
 
         .action-button:hover {
             background: var(--bg-secondary);
             color: var(--text-primary);
-            transform: translateY(-1px);
-        }
-
-        .action-button.delete:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
         }
 
         .edit-form {
@@ -604,12 +769,40 @@
         }
 
         @media (max-width: 768px) {
-            header {
-                padding: 1rem;
+            .header-banner {
+                height: 120px;
             }
 
             .header-content {
-                flex-wrap: wrap;
+                padding: 0 1rem;
+            }
+
+            .header-profile-section {
+                margin-top: -48px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .header-avatar {
+                width: 96px;
+                height: 96px;
+                border-width: 3px;
+            }
+
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            .header-info {
+                padding-bottom: 0;
+            }
+
+            h1 {
+                font-size: 1.25rem;
             }
 
             .header-actions {
@@ -625,11 +818,6 @@
 
             .nav-link {
                 font-size: 0.875rem;
-            }
-
-            .user-avatar {
-                width: 36px;
-                height: 36px;
             }
 
             main {
@@ -655,12 +843,30 @@
             }
 
             .entry-card {
-                padding: 1rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .entry-header {
+                gap: 0.5rem;
             }
 
             .avatar {
                 width: 40px;
                 height: 40px;
+            }
+
+            .user-name {
+                font-size: 0.875rem;
+            }
+
+            .entry-body {
+                margin-left: 48px;
+            }
+
+            .menu-button {
+                width: 28px;
+                height: 28px;
+                font-size: 1.125rem;
             }
         }
     </style>
@@ -670,53 +876,62 @@
     <div class="orb orb-2"></div>
 
     <header>
+        <div class="header-banner"></div>
         <div class="header-content">
-            <div class="header-left">
-                <span class="logo">🔗</span>
-                <div>
-                    <h1>Trail</h1>
-                    <p class="subtitle">Public Entries from All Users</p>
-                </div>
-            </div>
-            
-            <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
-                <div class="header-actions">
-                    <a href="/api" class="nav-link">
-                        <span>📚</span>
-                        <span>API</span>
-                    </a>
-                    <?php if (isset($isAdmin) && $isAdmin): ?>
-                        <a href="/admin" class="nav-link">
-                            <span>⚙️</span>
-                            <span>Admin</span>
-                        </a>
+            <div class="header-profile-section">
+                <div class="header-left">
+                    <?php if (isset($isLoggedIn) && $isLoggedIn && isset($userPhotoUrl) && $userPhotoUrl): ?>
+                        <img src="<?= htmlspecialchars($userPhotoUrl) ?>" alt="User" class="header-avatar">
+                    <?php else: ?>
+                        <div class="header-avatar" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: var(--bg-tertiary);">🔗</div>
                     <?php endif; ?>
-                    <div class="user-menu">
-                        <?php if (isset($userPhotoUrl) && $userPhotoUrl): ?>
-                            <img src="<?= htmlspecialchars($userPhotoUrl) ?>" alt="User" class="user-avatar">
+                    <div class="header-info">
+                        <h1>
+                            <span class="logo">🔗</span>
+                            Trail
+                        </h1>
+                        <p class="subtitle">Public Entries from All Users</p>
+                    </div>
+                </div>
+                
+                <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+                    <div class="header-actions">
+                        <a href="/api" class="nav-link">
+                            <span>📚</span>
+                            <span>API</span>
+                        </a>
+                        <?php if (isset($isAdmin) && $isAdmin): ?>
+                            <a href="/admin" class="nav-link">
+                                <span>⚙️</span>
+                                <span>Admin</span>
+                            </a>
                         <?php endif; ?>
+                        <a href="/profile" class="nav-link">
+                            <span>👤</span>
+                            <span>Profile</span>
+                        </a>
                         <a href="/admin/logout.php" class="logout-button">
                             <span>🚪</span>
                             <span>Logout</span>
                         </a>
                     </div>
-                </div>
-            <?php elseif (isset($googleAuthUrl) && $googleAuthUrl): ?>
-                <a href="<?= htmlspecialchars($googleAuthUrl) ?>" class="login-button">
-                    <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    <span>Sign in with Google</span>
-                </a>
-            <?php else: ?>
-                <a href="/admin/login.php" class="login-button">
-                    <span>🔐</span>
-                    <span>Login</span>
-                </a>
-            <?php endif; ?>
+                <?php elseif (isset($googleAuthUrl) && $googleAuthUrl): ?>
+                    <a href="<?= htmlspecialchars($googleAuthUrl) ?>" class="login-button">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                        <span>Sign in with Google</span>
+                    </a>
+                <?php else: ?>
+                    <a href="/admin/login.php" class="login-button">
+                        <span>🔐</span>
+                        <span>Login</span>
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
     </header>
 
@@ -765,6 +980,7 @@
         </div>
     </main>
 
+    <script src="/js/card-template.js"></script>
     <script>
         let nextCursor = null;
         let isLoading = false;
@@ -874,40 +1090,6 @@
             }
         }
 
-        // Format timestamp
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-            
-            return date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-            });
-        }
-
-        // Convert URLs in text to clickable links
-        function linkifyText(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        }
-
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         // Check if current user can modify this entry
         function canModifyEntry(entry) {
             if (!isLoggedIn) return false;
@@ -915,125 +1097,30 @@
             return entry.user_email === userEmail;
         }
 
-        // Extract domain from URL
-        function extractDomain(url) {
-            try {
-                return url
-                    .replace(/^https?:\/\//, '')
-                    .replace(/^www\./, '')
-                    .split('/')[0];
-            } catch (e) {
-                return url;
-            }
+        // Toggle menu dropdown
+        function toggleMenu(event, entryId) {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu-${entryId}`);
+            const allMenus = document.querySelectorAll('.menu-dropdown');
+            
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) {
+                    m.classList.remove('active');
+                }
+            });
+            
+            // Toggle current menu
+            menu.classList.toggle('active');
         }
 
-        // Create link preview card HTML
-        function createLinkPreviewCard(entry) {
-            if (!entry.preview_url) return '';
-            
-            // Check if we have meaningful preview data (not just "Just a moment..." or similar)
-            const hasValidTitle = entry.preview_title && 
-                                 entry.preview_title.length > 3 && 
-                                 !entry.preview_title.toLowerCase().includes('just a moment') &&
-                                 !entry.preview_title.toLowerCase().includes('please wait');
-            const hasValidDescription = entry.preview_description && 
-                                       entry.preview_description.length > 10;
-            
-            // Show card if we have at least title, description, OR image
-            if (!hasValidTitle && !hasValidDescription && !entry.preview_image) {
-                return '';
+        // Close menus when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.entry-menu')) {
+                const allMenus = document.querySelectorAll('.menu-dropdown');
+                allMenus.forEach(m => m.classList.remove('active'));
             }
-            
-            let previewHtml = `<a href="${escapeHtml(entry.preview_url)}" class="link-preview-card" target="_blank" rel="noopener noreferrer">`;
-            
-            // Preview image
-            if (entry.preview_image) {
-                previewHtml += `
-                    <img src="${escapeHtml(entry.preview_image)}" 
-                         alt="Preview" 
-                         class="link-preview-image" 
-                         loading="lazy"
-                         onerror="this.style.display='none'">
-                `;
-            }
-            
-            // Preview content
-            previewHtml += '<div class="link-preview-content">';
-            
-            // Title
-            if (hasValidTitle) {
-                previewHtml += `<div class="link-preview-title">${escapeHtml(entry.preview_title)}</div>`;
-            }
-            
-            // Description
-            if (hasValidDescription) {
-                previewHtml += `<div class="link-preview-description">${escapeHtml(entry.preview_description)}</div>`;
-            }
-            
-            // Site name / URL
-            const siteName = entry.preview_site_name || extractDomain(entry.preview_url);
-            previewHtml += `
-                <div class="link-preview-url">
-                    <span>🔗</span>
-                    <span>${escapeHtml(siteName)}</span>
-                </div>
-            `;
-            
-            previewHtml += '</div></a>';
-            
-            return previewHtml;
-        }
-
-        // Create entry card HTML
-        function createEntryCard(entry) {
-            const card = document.createElement('div');
-            card.className = 'entry-card';
-            card.dataset.entryId = entry.id;
-            
-            const escapedText = escapeHtml(entry.text);
-            const linkedText = linkifyText(escapedText);
-            const previewCard = createLinkPreviewCard(entry);
-            
-            const canModify = canModifyEntry(entry);
-            
-            card.innerHTML = `
-                <div class="entry-header">
-                    <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(entry.user_name)}" class="avatar" loading="lazy">
-                    <div class="user-info">
-                        <div class="user-name">${escapeHtml(entry.user_name)}</div>
-                    </div>
-                </div>
-                <div class="entry-content">
-                    <div class="entry-text">${linkedText}</div>
-                    ${previewCard}
-                </div>
-                <div class="entry-footer">
-                    <div class="timestamp">
-                        <span>📅</span>
-                        <span>${formatTimestamp(entry.created_at)}</span>
-                    </div>
-                    ${entry.updated_at && entry.updated_at !== entry.created_at ? 
-                        `<div class="timestamp">
-                            <span>✏️</span>
-                            <span>edited ${formatTimestamp(entry.updated_at)}</span>
-                        </div>` : ''}
-                    ${canModify ? `
-                        <div class="entry-actions">
-                            <button class="action-button edit" onclick="editEntry(${entry.id})">
-                                <span>✏️</span>
-                                <span>Edit</span>
-                            </button>
-                            <button class="action-button delete" onclick="deleteEntry(${entry.id})">
-                                <span>🗑️</span>
-                                <span>Delete</span>
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            return card;
-        }
+        });
 
         // Load entries from API
         async function loadEntries() {
@@ -1058,7 +1145,12 @@
 
                 if (data.entries && data.entries.length > 0) {
                     data.entries.forEach(entry => {
-                        const card = createEntryCard(entry);
+                        // Use shared card template with landing page options
+                        const card = createEntryCard(entry, {
+                            showSourceBadge: false,              // No source badges on public page
+                            canModify: canModifyEntry(entry),    // User-specific permissions
+                            isAdmin: false                       // Not admin context
+                        });
                         entriesContainer.appendChild(card);
                     });
 
@@ -1114,6 +1206,10 @@
 
         // Edit entry
         async function editEntry(entryId) {
+            // Close the menu
+            const menu = document.getElementById(`menu-${entryId}`);
+            if (menu) menu.classList.remove('active');
+
             const card = document.querySelector(`[data-entry-id="${entryId}"]`);
             if (!card) return;
 
@@ -1121,12 +1217,16 @@
             const textDiv = card.querySelector('.entry-text');
             const currentText = textDiv.textContent;
 
+            // Store the preview card HTML to restore it later
+            const previewCard = contentDiv.querySelector('.iframely-embed, .link-preview-card');
+            const previewHtml = previewCard ? previewCard.outerHTML : '';
+
             // Create edit form
             contentDiv.innerHTML = `
                 <div class="edit-form">
                     <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
                     <div class="edit-actions">
-                        <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}')">
+                        <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}', \`${previewHtml.replace(/`/g, '\\`')}\`)">
                             <span>❌</span>
                             <span>Cancel</span>
                         </button>
@@ -1145,13 +1245,13 @@
         }
 
         // Cancel edit
-        function cancelEdit(entryId, originalText) {
+        function cancelEdit(entryId, originalText, previewHtml = '') {
             const card = document.querySelector(`[data-entry-id="${entryId}"]`);
             if (!card) return;
 
             const contentDiv = card.querySelector('.entry-content');
             const linkedText = linkifyText(originalText);
-            contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>`;
+            contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>${previewHtml}`;
         }
 
         // Save edit
@@ -1195,24 +1295,14 @@
                 const linkedText = linkifyText(escapedText);
                 contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>`;
 
-                // Update the timestamp
-                const timestampDiv = card.querySelector('.entry-footer');
-                const existingTimestamp = timestampDiv.querySelector('.timestamp');
-                const editedTimestamp = document.createElement('div');
-                editedTimestamp.className = 'timestamp';
-                editedTimestamp.innerHTML = `
-                    <span>✏️</span>
-                    <span>edited ${formatTimestamp(data.updated_at)}</span>
+                // Update the footer to show edited timestamp
+                const footerDiv = card.querySelector('.entry-footer');
+                footerDiv.innerHTML = `
+                    <div class="timestamp">
+                        <span>✏️</span>
+                        <span>edited ${formatTimestamp(data.updated_at)}</span>
+                    </div>
                 `;
-                
-                // Remove old edited timestamp if exists
-                const oldEditedTimestamp = timestampDiv.querySelectorAll('.timestamp')[1];
-                if (oldEditedTimestamp) {
-                    oldEditedTimestamp.remove();
-                }
-                
-                // Insert new edited timestamp after the created timestamp
-                existingTimestamp.after(editedTimestamp);
 
             } catch (error) {
                 console.error('Error updating entry:', error);
@@ -1222,6 +1312,10 @@
 
         // Delete entry
         async function deleteEntry(entryId) {
+            // Close the menu
+            const menu = document.getElementById(`menu-${entryId}`);
+            if (menu) menu.classList.remove('active');
+
             if (!confirm('Are you sure you want to delete this entry?')) {
                 return;
             }

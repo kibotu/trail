@@ -9,6 +9,7 @@ data class Entry(
     val text: String,
     @SerialName("user_id") val userId: Int,
     @SerialName("user_name") val userName: String,
+    @SerialName("user_nickname") val userNickname: String? = null,
     @SerialName("gravatar_hash") val gravatarHash: String,
     @SerialName("avatar_url") val avatarUrl: String,
     @SerialName("created_at") val createdAt: String,
@@ -19,7 +20,11 @@ data class Entry(
     @SerialName("preview_description") val previewDescription: String? = null,
     @SerialName("preview_image") val previewImage: String? = null,
     @SerialName("preview_site_name") val previewSiteName: String? = null
-)
+) {
+    // Helper property to get display name (nickname or fallback to userName)
+    val displayName: String
+        get() = userNickname ?: userName
+}
 
 @Serializable
 data class EntriesResponse(

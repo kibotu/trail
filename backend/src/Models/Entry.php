@@ -20,8 +20,8 @@ class Entry
     {
         if ($preview !== null) {
             $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([
                 $userId,
@@ -31,6 +31,8 @@ class Entry
                 $preview['description'] ?? null,
                 $preview['image'] ?? null,
                 $preview['site_name'] ?? null,
+                $preview['json'] ?? null,
+                $preview['source'] ?? null,
             ]);
         } else {
             $stmt = $this->db->prepare(
@@ -46,7 +48,7 @@ class Entry
     public function findById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+            "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url 
              FROM {$this->table} e 
              JOIN trail_users u ON e.user_id = u.id 
              WHERE e.id = ?"
@@ -62,7 +64,7 @@ class Entry
         if ($before !== null) {
             // Cursor-based pagination: get entries created before the cursor timestamp
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  WHERE e.user_id = ? AND e.created_at < ? 
@@ -73,7 +75,7 @@ class Entry
         } else {
             // Initial load: get most recent entries
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  WHERE e.user_id = ? 
@@ -91,7 +93,7 @@ class Entry
         if ($offset !== null) {
             // Offset-based pagination for admin
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  ORDER BY e.created_at DESC 
@@ -101,7 +103,7 @@ class Entry
         } elseif ($before !== null) {
             // Cursor-based pagination: get entries created before the cursor timestamp
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  WHERE e.created_at < ? 
@@ -112,7 +114,7 @@ class Entry
         } else {
             // Initial load: get most recent entries
             $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.gravatar_hash, u.photo_url 
+                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
                  FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
                  ORDER BY e.created_at DESC 
@@ -129,7 +131,7 @@ class Entry
         if ($preview !== null) {
             $stmt = $this->db->prepare(
                 "UPDATE {$this->table} 
-                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, updated_at = CURRENT_TIMESTAMP 
+                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, preview_json = ?, preview_source = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?"
             );
             
@@ -140,12 +142,14 @@ class Entry
                 $preview['description'] ?? null,
                 $preview['image'] ?? null,
                 $preview['site_name'] ?? null,
+                $preview['json'] ?? null,
+                $preview['source'] ?? null,
                 $id
             ]);
         } else {
             $stmt = $this->db->prepare(
                 "UPDATE {$this->table} 
-                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, updated_at = CURRENT_TIMESTAMP 
+                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, preview_json = NULL, preview_source = NULL, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?"
             );
             

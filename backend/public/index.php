@@ -12,6 +12,7 @@ use Trail\Controllers\AuthController;
 use Trail\Controllers\EntryController;
 use Trail\Controllers\AdminController;
 use Trail\Controllers\RssController;
+use Trail\Controllers\ProfileController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -74,6 +75,87 @@ $app->get('/', function ($request, $response) use ($config) {
     return $response->withStatus(404);
 });
 
+// Profile page - Show current user's profile
+$app->get('/profile', function ($request, $response) use ($config) {
+    $profilePage = __DIR__ . '/../templates/public/profile.php';
+    if (file_exists($profilePage)) {
+        require_once __DIR__ . '/helpers/session.php';
+        
+        // Check if user is logged in
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+        
+        if (!$isLoggedIn) {
+            // Redirect to home if not logged in
+            return $response
+                ->withHeader('Location', '/')
+                ->withStatus(302);
+        }
+        
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
+        
+        ob_start();
+        include $profilePage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
+    }
+    
+    $response->getBody()->write('Profile page not found');
+    return $response->withStatus(404);
+});
+
+// User page - Show entries by nickname
+$app->get('/@{nickname}', function ($request, $response, array $args) use ($config) {
+    $userPage = __DIR__ . '/../templates/public/user.php';
+    if (file_exists($userPage)) {
+        require_once __DIR__ . '/helpers/session.php';
+        
+        // Check if user is logged in
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
+        
+        // Get the nickname from the route
+        $nickname = $args['nickname'] ?? null;
+        
+        // Build Google OAuth URL for the login button (only if not logged in)
+        $googleOAuth = $config['google_oauth'] ?? null;
+        $googleAuthUrl = null;
+        
+        if ($googleOAuth !== null && !$isLoggedIn) {
+            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
+        }
+        
+        ob_start();
+        include $userPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
+    }
+    
+    $response->getBody()->write('User page not found');
+    return $response->withStatus(404);
+});
+
 // API Documentation endpoint - serve static file
 $app->get('/api', function ($request, $response) {
     $docsFile = __DIR__ . '/api-docs.php';
@@ -99,6 +181,13 @@ $app->get('/api/health', function ($request, $response) {
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth']);
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development only
 
+// Profile routes (authenticated)
+$app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
+$app->put('/api/profile', [ProfileController::class, 'updateProfile'])->add(new AuthMiddleware($config));
+
+// Public profile route
+$app->get('/api/users/{nickname}', [ProfileController::class, 'getPublicProfile']);
+
 // Authenticated entry routes (create, update, delete)
 $app->post('/api/entries', [EntryController::class, 'create'])->add(new AuthMiddleware($config));
 $app->put('/api/entries/{id}', [EntryController::class, 'update'])->add(new AuthMiddleware($config));
@@ -106,6 +195,9 @@ $app->delete('/api/entries/{id}', [EntryController::class, 'delete'])->add(new A
 
 // Public entry routes (must be after authenticated routes to avoid conflicts)
 $app->get('/api/entries', [EntryController::class, 'listPublic']);
+
+// User entries by nickname
+$app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
 
 // Admin routes (authenticated + admin)
 $app->group('/api/admin', function ($group) {

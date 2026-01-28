@@ -101,9 +101,21 @@ class EntryController
         $entries = $entryModel->getAll($limit, $before);
         $hasMore = count($entries) === $limit;
 
-        // Add avatar URLs with Google photo fallback to Gravatar
+        // Add avatar URLs and ensure nicknames
+        $userModel = new \Trail\Models\User($db);
+        $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+        
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
+            
+            // Generate nickname if not set
+            if (empty($entry['user_nickname']) && !empty($entry['google_id'])) {
+                $entry['user_nickname'] = $userModel->getOrGenerateNickname(
+                    (int) $entry['user_id'],
+                    $entry['google_id'],
+                    $salt
+                );
+            }
         }
 
         // Get the cursor for the next page (created_at of the last entry)
@@ -257,6 +269,67 @@ class EntryController
         $success = $entryModel->delete($entryId);
 
         $response->getBody()->write(json_encode(['success' => $success]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get entries by user nickname
+     */
+    public static function listByNickname(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $nickname = $args['nickname'] ?? null;
+
+        if (empty($nickname)) {
+            $response->getBody()->write(json_encode(['error' => 'Nickname is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        
+        // Find user by nickname
+        $userModel = new \Trail\Models\User($db);
+        $user = $userModel->findByNickname($nickname);
+
+        if (!$user) {
+            $response->getBody()->write(json_encode(['error' => 'User not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Get entries for this user
+        $queryParams = $request->getQueryParams();
+        $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
+        $before = $queryParams['before'] ?? null;
+
+        $entryModel = new Entry($db);
+        $entries = $entryModel->getByUser($user['id'], $limit, $before);
+        $hasMore = count($entries) === $limit;
+
+        // Add avatar URLs
+        foreach ($entries as &$entry) {
+            $entry['avatar_url'] = self::getAvatarUrl($entry);
+        }
+
+        // Get the cursor for the next page
+        $nextCursor = null;
+        if ($hasMore && !empty($entries)) {
+            $lastEntry = end($entries);
+            $nextCursor = $lastEntry['created_at'];
+        }
+
+        $response->getBody()->write(json_encode([
+            'entries' => $entries,
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
+            'limit' => $limit,
+            'user' => [
+                'id' => $user['id'],
+                'nickname' => $user['nickname'],
+                'photo_url' => $user['photo_url'],
+                'gravatar_hash' => $user['gravatar_hash']
+            ]
+        ]));
+        
         return $response->withHeader('Content-Type', 'application/json');
     }
 
