@@ -411,6 +411,36 @@
             text-decoration: underline;
         }
 
+        .entry-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .entry-image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+        }
+
+        .entry-image {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .entry-image:hover {
+            transform: scale(1.02);
+        }
+
         .entry-footer {
             margin-top: 0.5rem;
             display: flex;
@@ -459,27 +489,58 @@
             font-weight: 600;
             font-size: 0.9375rem;
             color: var(--text-primary);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.375rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
             line-height: 1.4;
         }
 
         .link-preview-description {
             font-size: 0.875rem;
             color: var(--text-secondary);
-            line-height: 1.5;
             margin-bottom: 0.5rem;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            line-height: 1.5;
         }
 
         .link-preview-url {
             display: flex;
             align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            color: var(--accent);
+        }
+
+        /* Preview source badge styling (admin only, but included for consistency) */
+        .link-preview-wrapper {
+            position: relative;
+            margin-top: 0.75rem;
+        }
+
+        .preview-source-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
             gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
             font-size: 0.75rem;
-            color: var(--text-muted);
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        .preview-source-badge span:first-child {
+            font-size: 0.875rem;
         }
 
         /* Edit Form Styles */
