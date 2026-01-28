@@ -32,6 +32,64 @@
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(59, 130, 246, 0.4);
+            top: -100px;
+            left: -100px;
+            animation: float-1 25s infinite ease-in-out;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(236, 72, 153, 0.3);
+            bottom: -100px;
+            right: -100px;
+            animation: float-2 30s infinite ease-in-out;
+        }
+
+        @keyframes float-1 {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1) rotate(0deg); 
+            }
+            25% { 
+                transform: translate(120px, -80px) scale(1.15) rotate(5deg); 
+            }
+            50% { 
+                transform: translate(200px, 50px) scale(1.25) rotate(-3deg); 
+            }
+            75% { 
+                transform: translate(80px, -120px) scale(0.9) rotate(8deg); 
+            }
+        }
+
+        @keyframes float-2 {
+            0%, 100% { 
+                transform: translate(0, 0) scale(1) rotate(0deg); 
+            }
+            25% { 
+                transform: translate(-100px, 120px) scale(0.85) rotate(-6deg); 
+            }
+            50% { 
+                transform: translate(-180px, -60px) scale(0.75) rotate(4deg); 
+            }
+            75% { 
+                transform: translate(-60px, 140px) scale(1.1) rotate(-7deg); 
+            }
         }
 
         header {
@@ -608,6 +666,9 @@
     </style>
 </head>
 <body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
     <header>
         <div class="header-content">
             <div class="header-left">
