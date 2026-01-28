@@ -11,6 +11,7 @@ use Trail\Models\Entry;
 use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
 use Trail\Services\UrlEmbedService;
+use Trail\Services\IframelyUsageTracker;
 
 class EntryController
 {
@@ -61,7 +62,11 @@ class EntryController
         // Extract and fetch URL preview if text contains a URL
         $preview = null;
         try {
-            $embedService = new UrlEmbedService();
+            // Create usage tracker for iframe.ly API
+            $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+            $usageTracker = new IframelyUsageTracker($db, $adminEmail);
+            
+            $embedService = new UrlEmbedService($config, $usageTracker);
             if ($embedService->hasUrl($sanitizedText)) {
                 $preview = $embedService->extractAndFetchPreview($sanitizedText);
             }
@@ -204,7 +209,11 @@ class EntryController
         // Extract and fetch URL preview if text contains a URL
         $preview = null;
         try {
-            $embedService = new UrlEmbedService();
+            // Create usage tracker for iframe.ly API
+            $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+            $usageTracker = new IframelyUsageTracker($db, $adminEmail);
+            
+            $embedService = new UrlEmbedService($config, $usageTracker);
             if ($embedService->hasUrl($sanitizedText)) {
                 $preview = $embedService->extractAndFetchPreview($sanitizedText);
             }

@@ -5,22 +5,40 @@ declare(strict_types=1);
 namespace Trail\Services;
 
 use Embed\Embed;
+use Trail\Config\Config;
 
 /**
  * UrlEmbedService - Extracts and fetches URL metadata for preview cards
  * 
- * This service uses the embed/embed library to fetch Open Graph, Twitter Card,
- * oEmbed, and other metadata from URLs to generate rich preview cards.
+ * This service uses iframe.ly API as the primary method to fetch Open Graph, 
+ * Twitter Card, oEmbed, and other metadata from URLs to generate rich preview cards.
+ * Falls back to the embed/embed library if iframe.ly fails or monthly limit is reached.
  */
 class UrlEmbedService
 {
     private Embed $embed;
+    private ?string $iframelyApiKey;
+    private ?string $iframelyApiUrl;
+    private ?IframelyUsageTracker $usageTracker;
 
-    public function __construct()
+    public function __construct(?array $config = null, ?IframelyUsageTracker $usageTracker = null)
     {
-        // Use default Embed configuration
-        // The library handles user-agent and other settings internally
+        // Use default Embed configuration for fallback
         $this->embed = new Embed();
+        
+        // Load iframe.ly configuration
+        if ($config === null) {
+            try {
+                $config = Config::load(__DIR__ . '/../../secrets.yml');
+            } catch (\Throwable $e) {
+                error_log("UrlEmbedService: Failed to load config: " . $e->getMessage());
+                $config = [];
+            }
+        }
+        
+        $this->iframelyApiKey = $config['iframely']['api_key'] ?? null;
+        $this->iframelyApiUrl = $config['iframely']['api_url'] ?? 'https://iframe.ly/api/iframely';
+        $this->usageTracker = $usageTracker;
     }
 
     /**
@@ -68,7 +86,16 @@ class UrlEmbedService
                 return null;
             }
 
-            // Try Medium-specific handling first
+            // Try iframe.ly first if API key is configured and we're under the monthly limit
+            if ($this->iframelyApiKey && $this->canUseIframely()) {
+                $preview = $this->fetchFromIframely($url);
+                if ($preview !== null) {
+                    return $preview;
+                }
+                // Fall through to other methods if iframe.ly fails
+            }
+
+            // Try Medium-specific handling
             if ($this->isMediumUrl($url)) {
                 $preview = $this->fetchMediumPreview($url);
                 if ($preview !== null) {
@@ -77,6 +104,123 @@ class UrlEmbedService
                 // Fall through to standard embed if Medium-specific fails
             }
 
+            // Fallback to embed library
+            $preview = $this->fetchFromEmbedLibrary($url);
+            if ($preview !== null) {
+                return $preview;
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            // Log error if needed, but don't fail the entry creation
+            error_log("UrlEmbedService::fetchPreview: Failed to fetch preview for {$url}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Check if we can use iframe.ly API (under monthly limit)
+     * 
+     * @return bool True if we can use iframe.ly, false if limit reached
+     */
+    private function canUseIframely(): bool
+    {
+        if ($this->usageTracker === null) {
+            // No tracker configured, allow usage
+            return true;
+        }
+
+        return $this->usageTracker->canUseApi();
+    }
+
+    /**
+     * Fetch preview metadata using iframe.ly API
+     * 
+     * @param string $url The URL to fetch metadata for
+     * @return array|null Preview data or null if fetch failed
+     */
+    private function fetchFromIframely(string $url): ?array
+    {
+        try {
+            $apiUrl = $this->iframelyApiUrl . '?url=' . urlencode($url) . '&key=' . urlencode($this->iframelyApiKey);
+            
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrailBot/1.0; +https://trail.app)',
+                CURLOPT_HTTPHEADER => [
+                    'Accept: application/json',
+                ],
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if ($httpCode !== 200 || !$response) {
+                error_log("UrlEmbedService::fetchFromIframely: HTTP {$httpCode} for {$url}");
+                return null;
+            }
+            
+            $data = json_decode($response, true);
+            
+            if (!$data || !is_array($data)) {
+                error_log("UrlEmbedService::fetchFromIframely: Invalid JSON response for {$url}");
+                return null;
+            }
+            
+            // Extract metadata from iframe.ly response
+            // iframe.ly returns: meta (title, description, author, site), links (thumbnail, icon)
+            $meta = $data['meta'] ?? [];
+            $links = $data['links'] ?? [];
+            
+            // Find the best thumbnail image
+            $image = null;
+            if (!empty($links['thumbnail'])) {
+                // Get the first thumbnail
+                $thumbnails = is_array($links['thumbnail']) ? $links['thumbnail'] : [$links['thumbnail']];
+                if (!empty($thumbnails[0]['href'])) {
+                    $image = $thumbnails[0]['href'];
+                }
+            }
+            
+            // Build preview data
+            $preview = [
+                'url' => $this->sanitizeUrl($url),
+                'title' => $this->sanitizeText($meta['title'] ?? null),
+                'description' => $this->sanitizeText($meta['description'] ?? null),
+                'image' => $image ? $this->sanitizeUrl($image) : null,
+                'site_name' => $this->sanitizeText($meta['site'] ?? $meta['author'] ?? null),
+            ];
+            
+            // Validate preview data quality
+            if (!$this->isValidPreviewData($preview)) {
+                error_log("UrlEmbedService::fetchFromIframely: Invalid preview data for {$url}");
+                return null;
+            }
+            
+            // Increment usage counter (successful API call)
+            if ($this->usageTracker !== null) {
+                $this->usageTracker->incrementUsage();
+            }
+            
+            return $preview;
+        } catch (\Throwable $e) {
+            error_log("UrlEmbedService::fetchFromIframely: Failed for {$url}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Fetch preview metadata using embed library (fallback)
+     * 
+     * @param string $url The URL to fetch metadata for
+     * @return array|null Preview data or null if fetch failed
+     */
+    private function fetchFromEmbedLibrary(string $url): ?array
+    {
+        try {
             $info = $this->embed->get($url);
 
             // Extract metadata
@@ -95,8 +239,7 @@ class UrlEmbedService
 
             return $preview;
         } catch (\Throwable $e) {
-            // Log error if needed, but don't fail the entry creation
-            error_log("UrlEmbedService::fetchPreview: Failed to fetch preview for {$url}: " . $e->getMessage());
+            error_log("UrlEmbedService::fetchFromEmbedLibrary: Failed for {$url}: " . $e->getMessage());
             return null;
         }
     }
@@ -284,7 +427,6 @@ class UrlEmbedService
             
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             
             if ($httpCode === 200 && $response) {
                 $data = json_decode($response, true);
@@ -370,7 +512,6 @@ class UrlEmbedService
             
             $rssContent = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             
             if ($httpCode !== 200 || !$rssContent) {
                 return null;

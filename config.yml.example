@@ -29,6 +29,11 @@ jwt:
   secret: ${JWT_SECRET}  # 256-bit minimum
   expiry_hours: 168  # 7 days
 
+# Iframely API Configuration (for URL preview cards)
+iframely:
+  api_key: ${IFRAMELY_API_KEY}
+  api_url: https://iframe.ly/api/iframely
+
 security:
   rate_limit:
     enabled: true

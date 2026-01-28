@@ -6,7 +6,7 @@ A modern Android app built with Jetpack Compose for sharing and managing links.
 
 - 🔐 Google Sign-In authentication
 - 📝 Share links with text (max 280 characters)
-- 🔗 Rich URL preview cards (including Medium articles via oEmbed + RSS!)
+- 🔗 Rich URL preview cards powered by iframe.ly API (with embed library fallback)
 - 📱 Beautiful Material 3 UI
 - 🚀 Modern architecture with unidirectional data flow
 - 🧭 Type-safe navigation with Navigation 3

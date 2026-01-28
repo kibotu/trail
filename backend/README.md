@@ -7,7 +7,7 @@ A lightweight, secure PHP backend for the Trail link journal app.
 - 🔐 **Google OAuth Authentication** - Secure user authentication
 - 🔑 **JWT Token Management** - Stateless session handling
 - 📝 **Entry Management** - Create, read, update, delete entries
-- 🔗 **URL Preview Cards** - Automatic metadata extraction for shared links
+- 🔗 **URL Preview Cards** - Powered by iframe.ly API with embed library fallback
 - 🛡️ **Security Hardening** - XSS prevention, rate limiting, input sanitization
 - 📊 **RSS Feed** - Public feed of all entries
 - 👤 **Gravatar Integration** - User avatars with Google photo fallback
@@ -19,7 +19,8 @@ A lightweight, secure PHP backend for the Trail link journal app.
 - **Slim Framework 4** - Lightweight PSR-7 framework
 - **MySQL/MariaDB** - Relational database
 - **JWT** - Token-based authentication
-- **embed/embed** - URL metadata extraction
+- **iframe.ly API** - Primary URL metadata extraction
+- **embed/embed** - Fallback URL metadata extraction
 
 ## Quick Start
 
@@ -59,7 +60,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for details.
 
 ## URL Preview Feature
 
-When users post URLs, the backend automatically fetches metadata:
+When users post URLs, the backend automatically fetches metadata using **iframe.ly API** (with embed library fallback):
 
 ```php
 POST /api/entries
@@ -79,21 +80,31 @@ POST /api/entries
 }
 ```
 
-Supports:
-- Open Graph protocol
-- Twitter Cards
-- oEmbed
-- JSON-LD
-- HTML meta tags
+**Preview Strategy:**
+1. **iframe.ly API** (Primary) - Fast, reliable metadata extraction (2000/month limit)
+2. **Medium-specific handling** - Custom oEmbed + RSS for Medium articles
+3. **embed/embed library** (Fallback) - Open Graph, Twitter Cards, oEmbed, JSON-LD
 
-See [URL_PREVIEW_FEATURE.md](../URL_PREVIEW_FEATURE.md) for details.
+**Usage Tracking:**
+- Monthly limit: 2000 iframe.ly API requests
+- Automatic fallback when limit reached
+- Email notification to admin
+- Counter resets each month
+
+See [IFRAMELY_INTEGRATION.md](../IFRAMELY_INTEGRATION.md) and [USAGE_TRACKING.md](../USAGE_TRACKING.md) for details.
 
 ## Testing
 
 ### Quick Test
 
+Test iframe.ly integration:
 ```bash
-php test-url-embed.php
+php test_iframely.php
+```
+
+Test usage tracking:
+```bash
+php test_usage_tracker.php
 ```
 
 ### Unit Tests

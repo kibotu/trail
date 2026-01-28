@@ -14,6 +14,7 @@ require_once __DIR__ . '/../helpers/session.php';
 use Trail\Config\Config;
 use Trail\Database\Database;
 use Trail\Services\JwtService;
+use Trail\Services\IframelyUsageTracker;
 
 // Security headers
 header('X-Frame-Options: DENY');
@@ -55,6 +56,14 @@ try {
 
     $stmt = $db->query("SELECT COUNT(*) as count FROM trail_users");
     $totalUsers = $stmt->fetch()['count'];
+
+    // Get iframe.ly usage stats
+    $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+    $usageTracker = new IframelyUsageTracker($db, $adminEmail);
+    $iframelyUsage = $usageTracker->getCurrentMonthUsage();
+    $iframelyLimit = IframelyUsageTracker::getMonthlyLimit();
+    $iframelyRemaining = $usageTracker->getRemainingCalls();
+    $iframelyPercentage = ($iframelyUsage / $iframelyLimit) * 100;
 
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
@@ -284,6 +293,66 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             font-size: 2rem;
             font-weight: 700;
             color: var(--accent);
+        }
+
+        .stat-card.iframely {
+            grid-column: span 2;
+        }
+
+        .usage-bar-container {
+            margin-top: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .usage-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent));
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .usage-bar.warning {
+            background: linear-gradient(90deg, var(--warning), #fbbf24);
+        }
+
+        .usage-bar.danger {
+            background: linear-gradient(90deg, var(--error), #fca5a5);
+        }
+
+        .usage-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .usage-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .usage-status.ok {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .usage-status.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .usage-status.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
         }
 
         .section-header {
@@ -608,6 +677,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 grid-template-columns: 1fr;
             }
 
+            .stat-card.iframely {
+                grid-column: span 1;
+            }
+
             .user-email {
                 display: none;
             }
@@ -654,6 +727,33 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="stat-card">
                 <div class="stat-label">Your Role</div>
                 <div class="stat-value" style="font-size: 1.5rem;">👑 Admin</div>
+            </div>
+            <div class="stat-card iframely">
+                <div class="stat-label">🔗 iframe.ly API Usage (<?= date('F Y') ?>)</div>
+                <div class="stat-value">
+                    <?= number_format($iframelyUsage) ?> <span style="font-size: 1rem; color: var(--text-secondary);">/ <?= number_format($iframelyLimit) ?></span>
+                </div>
+                <div class="usage-bar-container">
+                    <div class="usage-bar <?= $iframelyPercentage >= 90 ? 'danger' : ($iframelyPercentage >= 75 ? 'warning' : '') ?>" 
+                         style="width: <?= min(100, $iframelyPercentage) ?>%"></div>
+                </div>
+                <div class="usage-details">
+                    <span><?= number_format($iframelyRemaining) ?> remaining</span>
+                    <span><?= number_format($iframelyPercentage, 1) ?>% used</span>
+                </div>
+                <?php if ($iframelyPercentage >= 90): ?>
+                    <div class="usage-status danger">
+                        ⚠️ Limit almost reached
+                    </div>
+                <?php elseif ($iframelyPercentage >= 75): ?>
+                    <div class="usage-status warning">
+                        ⚡ High usage
+                    </div>
+                <?php else: ?>
+                    <div class="usage-status ok">
+                        ✓ Healthy
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
