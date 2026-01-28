@@ -13,6 +13,7 @@ use Trail\Controllers\EntryController;
 use Trail\Controllers\AdminController;
 use Trail\Controllers\RssController;
 use Trail\Controllers\ProfileController;
+use Trail\Controllers\ImageUploadController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -199,6 +200,15 @@ $app->get('/api/entries', [EntryController::class, 'listPublic']);
 // User entries by nickname
 $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
 
+// Image upload routes (authenticated)
+$app->post('/api/images/upload/init', [ImageUploadController::class, 'initUpload'])->add(new AuthMiddleware($config));
+$app->post('/api/images/upload/chunk', [ImageUploadController::class, 'uploadChunk'])->add(new AuthMiddleware($config));
+$app->post('/api/images/upload/complete', [ImageUploadController::class, 'completeUpload'])->add(new AuthMiddleware($config));
+$app->delete('/api/images/{id}', [ImageUploadController::class, 'deleteImage'])->add(new AuthMiddleware($config));
+
+// Public image serving
+$app->get('/api/images/{id}', [ImageUploadController::class, 'serveImage']);
+
 // Admin routes (authenticated + admin)
 $app->group('/api/admin', function ($group) {
     $group->get('/entries', [AdminController::class, 'entries']);
@@ -206,6 +216,7 @@ $app->group('/api/admin', function ($group) {
     $group->delete('/entries/{id}', [AdminController::class, 'deleteEntry']);
     $group->get('/users', [AdminController::class, 'users']);
     $group->delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    $group->post('/cache/clear', [AdminController::class, 'clearCache']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes

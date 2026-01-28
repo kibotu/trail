@@ -50,6 +50,35 @@ function formatTimestamp(timestamp) {
 }
 
 /**
+ * Create entry images HTML
+ * @param {Object} entry - Entry object with images array
+ * @returns {string} HTML string for the images
+ */
+function createEntryImagesHtml(entry) {
+    if (!entry.images || !Array.isArray(entry.images) || entry.images.length === 0) {
+        return '';
+    }
+    
+    let imagesHtml = '<div class="entry-images">';
+    
+    entry.images.forEach(image => {
+        imagesHtml += `
+            <div class="entry-image-wrapper">
+                <img src="${escapeHtml(image.url)}" 
+                     alt="Post image" 
+                     class="entry-image"
+                     loading="lazy"
+                     onerror="this.parentElement.style.display='none'">
+            </div>
+        `;
+    });
+    
+    imagesHtml += '</div>';
+    
+    return imagesHtml;
+}
+
+/**
  * Create link preview card HTML
  * @param {Object} entry - Entry object with preview data
  * @param {Object} options - Options for rendering
@@ -220,6 +249,7 @@ function createEntryCard(entry, options = {}) {
         <div class="entry-body">
             <div class="entry-content" ${isAdmin ? `id="content-${entry.id}"` : ''}>
                 <div class="entry-text">${linkedText}</div>
+                ${createEntryImagesHtml(entry)}
                 ${previewCard}
             </div>
             <div class="entry-footer">
@@ -242,6 +272,7 @@ if (typeof module !== 'undefined' && module.exports) {
         linkifyText,
         extractDomain,
         formatTimestamp,
+        createEntryImagesHtml,
         createLinkPreviewCard,
         createEntryCard
     };

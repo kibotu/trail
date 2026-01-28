@@ -28,7 +28,7 @@ class ProfileController
         $db = Database::getInstance($config);
         $userModel = new User($db);
         
-        $user = $userModel->findById($userId);
+        $user = $userModel->findByIdWithImages($userId);
         
         if (!$user) {
             $response->getBody()->write(json_encode(['error' => 'User not found']));
@@ -49,6 +49,10 @@ class ProfileController
             'nickname' => $nickname,
             'photo_url' => $user['photo_url'],
             'gravatar_hash' => $user['gravatar_hash'],
+            'profile_image_id' => $user['profile_image_id'],
+            'profile_image_url' => $user['profile_image_url'] ?? null,
+            'header_image_id' => $user['header_image_id'],
+            'header_image_url' => $user['header_image_url'] ?? null,
             'is_admin' => (bool) $user['is_admin'],
             'created_at' => $user['created_at'],
             'updated_at' => $user['updated_at']
@@ -59,7 +63,7 @@ class ProfileController
     }
 
     /**
-     * Update current user's profile (nickname)
+     * Update current user's profile (nickname and images)
      */
     public static function updateProfile(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
@@ -72,6 +76,8 @@ class ProfileController
 
         $data = json_decode((string) $request->getBody(), true);
         $nickname = $data['nickname'] ?? null;
+        $profileImageId = isset($data['profile_image_id']) ? (int) $data['profile_image_id'] : null;
+        $headerImageId = isset($data['header_image_id']) ? (int) $data['header_image_id'] : null;
 
         if (empty($nickname)) {
             $response->getBody()->write(json_encode(['error' => 'Nickname is required']));
@@ -104,8 +110,18 @@ class ProfileController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
+        // Update profile image if provided
+        if ($profileImageId !== null) {
+            $userModel->updateProfileImage($userId, $profileImageId);
+        }
+
+        // Update header image if provided
+        if ($headerImageId !== null) {
+            $userModel->updateHeaderImage($userId, $headerImageId);
+        }
+
         // Return updated profile
-        $user = $userModel->findById($userId);
+        $user = $userModel->findByIdWithImages($userId);
         $profileData = [
             'id' => $user['id'],
             'email' => $user['email'],
@@ -113,6 +129,10 @@ class ProfileController
             'nickname' => $user['nickname'],
             'photo_url' => $user['photo_url'],
             'gravatar_hash' => $user['gravatar_hash'],
+            'profile_image_id' => $user['profile_image_id'],
+            'profile_image_url' => $user['profile_image_url'] ?? null,
+            'header_image_id' => $user['header_image_id'],
+            'header_image_url' => $user['header_image_url'] ?? null,
             'is_admin' => (bool) $user['is_admin'],
             'created_at' => $user['created_at'],
             'updated_at' => $user['updated_at']

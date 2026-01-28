@@ -184,4 +184,70 @@ class User
         
         return false;
     }
+    
+    /**
+     * Update user's profile image
+     */
+    public function updateProfileImage(int $userId, int $imageId): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET profile_image_id = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$imageId, $userId]);
+    }
+    
+    /**
+     * Update user's header image
+     */
+    public function updateHeaderImage(int $userId, int $imageId): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET header_image_id = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$imageId, $userId]);
+    }
+    
+    /**
+     * Get user with image URLs
+     */
+    public function findByIdWithImages(int $id): ?array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*,
+                       pi.filename as profile_image_filename,
+                       hi.filename as header_image_filename
+                FROM {$this->table} u
+                LEFT JOIN trail_images pi ON u.profile_image_id = pi.id
+                LEFT JOIN trail_images hi ON u.header_image_id = hi.id
+                WHERE u.id = ?
+            ");
+            $stmt->execute([$id]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                return null;
+            }
+            
+            // Add image URLs
+            if (!empty($user['profile_image_filename'])) {
+                $user['profile_image_url'] = '/uploads/images/' . $user['id'] . '/' . $user['profile_image_filename'];
+            }
+            if (!empty($user['header_image_filename'])) {
+                $user['header_image_url'] = '/uploads/images/' . $user['id'] . '/' . $user['header_image_filename'];
+            }
+            
+            return $user;
+        } catch (\PDOException $e) {
+            // Fallback if trail_images table doesn't exist yet
+            error_log("findByIdWithImages error (table may not exist): " . $e->getMessage());
+            return $this->findById($id);
+        }
+    }
 }

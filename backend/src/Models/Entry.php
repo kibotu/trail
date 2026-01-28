@@ -16,12 +16,14 @@ class Entry
         $this->db = $db;
     }
 
-    public function create(int $userId, string $text, ?array $preview = null): int
+    public function create(int $userId, string $text, ?array $preview = null, ?array $imageIds = null): int
     {
+        $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
+        
         if ($preview !== null) {
             $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([
                 $userId,
@@ -33,13 +35,14 @@ class Entry
                 $preview['site_name'] ?? null,
                 $preview['json'] ?? null,
                 $preview['source'] ?? null,
+                $imageIdsJson
             ]);
         } else {
             $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (user_id, text) 
-                 VALUES (?, ?)"
+                "INSERT INTO {$this->table} (user_id, text, image_ids) 
+                 VALUES (?, ?, ?)"
             );
-            $stmt->execute([$userId, $text]);
+            $stmt->execute([$userId, $text, $imageIdsJson]);
         }
         
         return (int) $this->db->lastInsertId();
@@ -126,12 +129,14 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function update(int $id, string $text, ?array $preview = null): bool
+    public function update(int $id, string $text, ?array $preview = null, ?array $imageIds = null): bool
     {
+        $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
+        
         if ($preview !== null) {
             $stmt = $this->db->prepare(
                 "UPDATE {$this->table} 
-                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, preview_json = ?, preview_source = ?, updated_at = CURRENT_TIMESTAMP 
+                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, preview_json = ?, preview_source = ?, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?"
             );
             
@@ -144,16 +149,17 @@ class Entry
                 $preview['site_name'] ?? null,
                 $preview['json'] ?? null,
                 $preview['source'] ?? null,
+                $imageIdsJson,
                 $id
             ]);
         } else {
             $stmt = $this->db->prepare(
                 "UPDATE {$this->table} 
-                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, preview_json = NULL, preview_source = NULL, updated_at = CURRENT_TIMESTAMP 
+                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, preview_json = NULL, preview_source = NULL, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?"
             );
             
-            return $stmt->execute([$text, $id]);
+            return $stmt->execute([$text, $imageIdsJson, $id]);
         }
     }
 
@@ -198,5 +204,83 @@ class Entry
         }
 
         return (int) $entry['user_id'] === $userId;
+    }
+    
+    /**
+     * Get entry with image URLs
+     */
+    public function findByIdWithImages(int $id): ?array
+    {
+        $entry = $this->findById($id);
+        if (!$entry) {
+            return null;
+        }
+        
+        return $this->attachImageUrls($entry);
+    }
+    
+    /**
+     * Attach image URLs to entry
+     */
+    private function attachImageUrls(array $entry): array
+    {
+        try {
+            // Debug: Log if image_ids exists
+            if (isset($entry['image_ids'])) {
+                error_log("Entry {$entry['id']} has image_ids: " . $entry['image_ids']);
+            }
+            
+            if (!empty($entry['image_ids'])) {
+                $imageIds = json_decode($entry['image_ids'], true);
+                error_log("Decoded image_ids for entry {$entry['id']}: " . json_encode($imageIds));
+                
+                if (is_array($imageIds) && !empty($imageIds)) {
+                    $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
+                    $stmt = $this->db->prepare("
+                        SELECT id, filename, user_id, width, height, file_size
+                        FROM trail_images 
+                        WHERE id IN ($placeholders)
+                        ORDER BY FIELD(id, $placeholders)
+                    ");
+                    $stmt->execute(array_merge($imageIds, $imageIds));
+                    $images = $stmt->fetchAll();
+                    
+                    error_log("Found " . count($images) . " images for entry {$entry['id']}");
+                    
+                    $entry['images'] = array_map(function($img) {
+                        return [
+                            'id' => $img['id'],
+                            'url' => '/uploads/images/' . $img['user_id'] . '/' . $img['filename'],
+                            'width' => $img['width'],
+                            'height' => $img['height'],
+                            'file_size' => $img['file_size']
+                        ];
+                    }, $images);
+                }
+            }
+        } catch (\PDOException $e) {
+            // Fallback if trail_images table doesn't exist yet
+            error_log("attachImageUrls error (table may not exist): " . $e->getMessage());
+        }
+        
+        return $entry;
+    }
+    
+    /**
+     * Get all entries with image URLs attached
+     */
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null): array
+    {
+        $entries = $this->getAll($limit, $before, $offset);
+        return array_map([$this, 'attachImageUrls'], $entries);
+    }
+    
+    /**
+     * Get user entries with image URLs attached
+     */
+    public function getByUserWithImages(int $userId, int $limit = 20, ?string $before = null): array
+    {
+        $entries = $this->getByUser($userId, $limit, $before);
+        return array_map([$this, 'attachImageUrls'], $entries);
     }
 }

@@ -387,6 +387,18 @@
                         <p class="form-hint">3-50 characters. Letters, numbers, underscore, and hyphen only.</p>
                     </div>
 
+                    <div class="form-group">
+                        <label>Profile Image</label>
+                        <div id="profile-image-upload"></div>
+                        <p class="form-hint">Max 20MB. Formats: JPEG, PNG, GIF, WebP, SVG, AVIF</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Header Image</label>
+                        <div id="header-image-upload"></div>
+                        <p class="form-hint">Max 20MB. Recommended: 1920x400px</p>
+                    </div>
+
                     <div class="form-group" id="profile-link-group" style="display: none;">
                         <label>Your Profile URL</label>
                         <a id="profile-url" class="profile-link" href="#" target="_blank">
@@ -410,6 +422,7 @@
 
     <script>
         const API_BASE = '/api';
+        const jwtToken = '<?= htmlspecialchars($jwtToken ?? '', ENT_QUOTES, 'UTF-8') ?>';
         let currentProfile = null;
 
         // Load profile data
@@ -519,6 +532,74 @@
 
         // Load profile on page load
         loadProfile();
+    </script>
+    
+    <!-- Image Upload Script -->
+    <script src="/js/image-upload.js"></script>
+    <script>
+        // Initialize image uploaders after page load
+        let profileImageUploader, headerImageUploader;
+        let profileImageId = null;
+        let headerImageId = null;
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            // Profile image uploader
+            profileImageUploader = createImageUploadUI(
+                'profile',
+                'profile-image-upload',
+                (result) => {
+                    console.log('Profile image uploaded:', result);
+                    profileImageId = result.image_id;
+                    // Auto-save profile with new image
+                    updateProfileWithImage('profile', result.image_id);
+                }
+            );
+            
+            // Header image uploader
+            headerImageUploader = createImageUploadUI(
+                'header',
+                'header-image-upload',
+                (result) => {
+                    console.log('Header image uploaded:', result);
+                    headerImageId = result.image_id;
+                    // Auto-save profile with new image
+                    updateProfileWithImage('header', result.image_id);
+                }
+            );
+        });
+        
+        async function updateProfileWithImage(imageType, imageId) {
+            try {
+                const payload = {
+                    nickname: document.getElementById('nickname').value
+                };
+                
+                if (imageType === 'profile') {
+                    payload.profile_image_id = imageId;
+                } else if (imageType === 'header') {
+                    payload.header_image_id = imageId;
+                }
+                
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer <?= htmlspecialchars($jwtToken ?? '') ?>`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to update profile');
+                }
+                
+                showAlert(`${imageType === 'profile' ? 'Profile' : 'Header'} image updated successfully!`, 'success');
+            } catch (error) {
+                console.error('Error updating profile image:', error);
+                showAlert(error.message || 'Failed to update image. Please try again.', 'error');
+            }
+        }
     </script>
 </body>
 </html>

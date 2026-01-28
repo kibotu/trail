@@ -11,6 +11,7 @@ use Trail\Models\Entry;
 use Trail\Models\User;
 use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
+use Trail\Services\StorageService;
 
 class AdminController
 {
@@ -46,7 +47,7 @@ class AdminController
         $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
         $offset = $page * $limit;
 
-        $entries = $entryModel->getAll($limit, null, $offset);
+        $entries = $entryModel->getAllWithImages($limit, null, $offset);
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {
@@ -195,5 +196,40 @@ class AdminController
 
         // Ultimate fallback
         return "https://www.gravatar.com/avatar/00000000000000000000000000000000?s={$size}&d=mp";
+    }
+    
+    /**
+     * Clear temporary cache files
+     */
+    public static function clearCache(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            $db = Database::getInstance($config);
+            
+            $uploadBasePath = __DIR__ . '/../../public/uploads/images';
+            $tempBasePath = __DIR__ . '/../../storage/temp';
+            
+            $storageService = new StorageService($db, $uploadBasePath, $tempBasePath);
+            $cleaned = $storageService->clearTempFiles(3600); // Clear files older than 1 hour
+            
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'cleaned' => $cleaned,
+                'message' => "Cleared {$cleaned} temporary upload directories"
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Cache clear error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
     }
 }

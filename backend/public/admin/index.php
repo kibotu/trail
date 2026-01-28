@@ -15,6 +15,7 @@ use Trail\Config\Config;
 use Trail\Database\Database;
 use Trail\Services\JwtService;
 use Trail\Services\IframelyUsageTracker;
+use Trail\Services\StorageService;
 
 // Security headers
 header('X-Frame-Options: DENY');
@@ -64,6 +65,32 @@ try {
     $iframelyLimit = IframelyUsageTracker::getMonthlyLimit();
     $iframelyRemaining = $usageTracker->getRemainingCalls();
     $iframelyPercentage = ($iframelyUsage / $iframelyLimit) * 100;
+
+    // Get storage stats (with fallback if trail_images table doesn't exist)
+    $totalImages = 0;
+    $totalImageSize = 0;
+    $totalImageSizeFormatted = '0 B';
+    $totalDiskSize = 0;
+    $totalDiskSizeFormatted = '0 B';
+    $tempSize = 0;
+    $tempSizeFormatted = '0 B';
+    
+    try {
+        $uploadBasePath = __DIR__ . '/../uploads/images';
+        $tempBasePath = __DIR__ . '/../../storage/temp';
+        $storageService = new StorageService($db, $uploadBasePath, $tempBasePath);
+        $storageSummary = $storageService->getStorageSummary();
+        $totalImages = $storageSummary['total_images'];
+        $totalImageSize = $storageSummary['total_image_size'];
+        $totalImageSizeFormatted = $storageSummary['total_image_size_formatted'];
+        $totalDiskSize = $storageSummary['total_disk_size'];
+        $totalDiskSizeFormatted = $storageSummary['total_disk_size_formatted'];
+        $tempSize = $storageSummary['temp_size'];
+        $tempSizeFormatted = $storageSummary['temp_size_formatted'];
+    } catch (Exception $e) {
+        // Silently handle if trail_images table doesn't exist yet
+        error_log("Storage stats error (table may not exist): " . $e->getMessage());
+    }
 
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
@@ -526,6 +553,36 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             text-decoration: underline;
         }
 
+        .entry-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .entry-image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+        }
+
+        .entry-image {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .entry-image:hover {
+            transform: scale(1.02);
+        }
+
         .link-preview-card {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
@@ -810,8 +867,17 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <div class="stat-value"><?= number_format($totalUsers) ?></div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Your Role</div>
-                <div class="stat-value" style="font-size: 1.5rem;">👑 Admin</div>
+                <div class="stat-label">Total Images</div>
+                <div class="stat-value"><?= number_format($totalImages) ?></div>
+                <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">DB Size: <?= $totalImageSizeFormatted ?></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Storage Size</div>
+                <div class="stat-value" style="font-size: 1.5rem;"><?= $totalDiskSizeFormatted ?></div>
+                <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">Temp: <?= $tempSizeFormatted ?></div>
+                <?php if ($tempSize > 0): ?>
+                <button onclick="clearCache()" class="btn-clear-cache" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp Files</button>
+                <?php endif; ?>
             </div>
             <div class="stat-card iframely">
                 <div class="stat-label">🔗 iframe.ly API Usage (<?= date('F Y') ?>)</div>
@@ -1112,6 +1178,41 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             } catch (error) {
                 console.error('Error deleting entry:', error);
                 alert('Error: ' + error.message);
+            }
+        }
+        
+        // Clear cache function
+        async function clearCache() {
+            const token = '<?= htmlspecialchars($jwtToken ?? '', ENT_QUOTES, 'UTF-8') ?>';
+            
+            if (!token) {
+                alert('Authentication token not found. Please refresh the page and log in again.');
+                return;
+            }
+            
+            if (!confirm('Clear all temporary upload cache files older than 1 hour?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/cache/clear', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Failed to clear cache: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error clearing cache:', error);
+                alert('Failed to clear cache: ' + error.message);
             }
         }
     </script>

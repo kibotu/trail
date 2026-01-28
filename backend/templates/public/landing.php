@@ -530,6 +530,36 @@
             text-decoration: underline;
         }
 
+        .entry-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .entry-image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+        }
+
+        .entry-image {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .entry-image:hover {
+            transform: scale(1.02);
+        }
+
         .link-preview-card {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
@@ -883,11 +913,10 @@
                     <?php if (isset($isLoggedIn) && $isLoggedIn && isset($userPhotoUrl) && $userPhotoUrl): ?>
                         <img src="<?= htmlspecialchars($userPhotoUrl) ?>" alt="User" class="header-avatar">
                     <?php else: ?>
-                        <div class="header-avatar" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: var(--bg-tertiary);">🔗</div>
+                        <img src="/images/app-icon.webp" alt="Trail" class="header-avatar">
                     <?php endif; ?>
                     <div class="header-info">
                         <h1>
-                            <span class="logo">🔗</span>
                             Trail
                         </h1>
                         <p class="subtitle">Public Entries from All Users</p>
@@ -952,10 +981,11 @@
                 <textarea 
                     id="postText" 
                     class="post-textarea" 
-                    placeholder="Share a link, thought, or update... (max 280 characters)"
+                    placeholder="Share a link, thought, or update... (optional, max 280 characters)"
                     maxlength="280"
                     rows="3"
                 ></textarea>
+                <div id="post-image-upload" style="margin: 1rem 0;"></div>
                 <div class="post-form-footer">
                     <span class="char-counter" id="charCounter">0 / 280</span>
                     <button type="submit" class="submit-button" id="submitButton">
@@ -1004,9 +1034,11 @@
             const createPostForm = document.getElementById('createPostForm');
             const postMessage = document.getElementById('postMessage');
 
-            // Update character counter
-            postText.addEventListener('input', function() {
-                const length = this.value.length;
+            // Update character counter and submit button state
+            function updateSubmitButton() {
+                const length = postText.value.length;
+                const hasImages = window.postImageIds && window.postImageIds.length > 0;
+                
                 charCounter.textContent = `${length} / 280`;
                 
                 // Update counter color
@@ -1017,16 +1049,28 @@
                     charCounter.classList.add('warning');
                 }
                 
-                // Disable submit if empty or too long
-                submitButton.disabled = length === 0 || length > 280;
-            });
+                // Enable submit if has text OR images (but text can't be too long)
+                submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+            }
+            
+            postText.addEventListener('input', updateSubmitButton);
 
             // Handle form submission
             createPostForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const text = postText.value.trim();
-                if (!text || text.length > 280) {
+                const hasImages = window.postImageIds && window.postImageIds.length > 0;
+                
+                // Require either text or images
+                if (!text && !hasImages) {
+                    showMessage('Please add text or upload an image', 'error');
+                    return;
+                }
+                
+                // Check text length if provided
+                if (text && text.length > 280) {
+                    showMessage('Text must be 280 characters or less', 'error');
                     return;
                 }
 
@@ -1041,13 +1085,19 @@
                 submitButton.innerHTML = '<span>⏳</span><span>Posting...</span>';
 
                 try {
+                    // Include image IDs if any were uploaded
+                    const payload = { text };
+                    if (window.postImageIds && window.postImageIds.length > 0) {
+                        payload.image_ids = window.postImageIds;
+                    }
+                    
                     const response = await fetch('/api/entries', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${jwtToken}`
                         },
-                        body: JSON.stringify({ text })
+                        body: JSON.stringify(payload)
                     });
 
                     if (!response.ok) {
@@ -1060,6 +1110,7 @@
                     // Clear form
                     postText.value = '';
                     charCounter.textContent = '0 / 280';
+                    window.postImageIds = [];
                     
                     // Show success message
                     showMessage('✓ Post created successfully!', 'success');
@@ -1357,6 +1408,35 @@
 
         // Load initial entries
         loadEntries();
+    </script>
+    
+    <!-- Image Upload Script -->
+    <script src="/js/image-upload.js"></script>
+    <script>
+        // Initialize post image uploader
+        window.postImageIds = [];
+        
+        if (isLoggedIn) {
+            window.addEventListener('DOMContentLoaded', () => {
+                const postImageUploader = createImageUploadUI(
+                    'post',
+                    'post-image-upload',
+                    (result) => {
+                        console.log('Post image uploaded:', result);
+                        // Store image ID for submission
+                        if (!window.postImageIds) {
+                            window.postImageIds = [];
+                        }
+                        window.postImageIds.push(result.image_id);
+                        
+                        // Update submit button state to enable it if we have an image
+                        if (typeof updateSubmitButton === 'function') {
+                            updateSubmitButton();
+                        }
+                    }
+                );
+            });
+        }
     </script>
 </body>
 </html>

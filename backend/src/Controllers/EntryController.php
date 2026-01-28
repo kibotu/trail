@@ -21,38 +21,44 @@ class EntryController
         $data = json_decode((string) $request->getBody(), true);
         
         $text = $data['text'] ?? '';
+        $imageIds = $data['image_ids'] ?? null;
 
-        // Validation: Check if text is provided
-        if (empty($text)) {
-            $response->getBody()->write(json_encode(['error' => 'Text is required']));
+        // Validation: Either text or images must be provided
+        if (empty($text) && (empty($imageIds) || !is_array($imageIds) || count($imageIds) === 0)) {
+            $response->getBody()->write(json_encode(['error' => 'Either text or images are required']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        // Validation: Check UTF-8 encoding (for emoji support)
-        if (!TextSanitizer::isValidUtf8($text)) {
-            $response->getBody()->write(json_encode(['error' => 'Invalid text encoding']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-        }
+        $sanitizedText = '';
+        
+        // Only validate and sanitize text if provided
+        if (!empty($text)) {
+            // Validation: Check UTF-8 encoding (for emoji support)
+            if (!TextSanitizer::isValidUtf8($text)) {
+                $response->getBody()->write(json_encode(['error' => 'Invalid text encoding']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
 
-        // Validation: Check length before sanitization
-        if (mb_strlen($text) > 280) {
-            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-        }
+            // Validation: Check length before sanitization
+            if (mb_strlen($text) > 280) {
+                $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
 
-        // Security: Check for dangerous patterns before sanitization
-        if (!TextSanitizer::isSafe($text)) {
-            $response->getBody()->write(json_encode(['error' => 'Text contains potentially dangerous content']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-        }
+            // Security: Check for dangerous patterns before sanitization
+            if (!TextSanitizer::isSafe($text)) {
+                $response->getBody()->write(json_encode(['error' => 'Text contains potentially dangerous content']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
 
-        // Security: Sanitize text to remove scripts while preserving URLs and emojis
-        $sanitizedText = TextSanitizer::sanitize($text);
+            // Security: Sanitize text to remove scripts while preserving URLs and emojis
+            $sanitizedText = TextSanitizer::sanitize($text);
 
-        // Double-check length after sanitization
-        if (mb_strlen($sanitizedText) > 280) {
-            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
-            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            // Double-check length after sanitization
+            if (mb_strlen($sanitizedText) > 280) {
+                $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
         }
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
@@ -76,7 +82,7 @@ class EntryController
             $preview = null;
         }
 
-        $entryId = $entryModel->create($userId, $sanitizedText, $preview);
+        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds);
         $entry = $entryModel->findById($entryId);
 
         $response->getBody()->write(json_encode([
@@ -98,7 +104,7 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAll($limit, $before);
+        $entries = $entryModel->getAllWithImages($limit, $before);
         $hasMore = count($entries) === $limit;
 
         // Add avatar URLs and ensure nicknames
@@ -147,7 +153,7 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getByUser($userId, $limit, $before);
+        $entries = $entryModel->getByUserWithImages($userId, $limit, $before);
         $hasMore = count($entries) === $limit;
 
         // Add avatar URLs with Google photo fallback to Gravatar
@@ -180,6 +186,7 @@ class EntryController
         $data = json_decode((string) $request->getBody(), true);
 
         $text = $data['text'] ?? '';
+        $imageIds = $data['image_ids'] ?? null;
 
         // Validation: Check if text is provided
         if (empty($text)) {
@@ -235,7 +242,7 @@ class EntryController
             $preview = null;
         }
 
-        $success = $entryModel->update($entryId, $sanitizedText, $preview);
+        $success = $entryModel->update($entryId, $sanitizedText, $preview, $imageIds);
 
         if ($success) {
             $entry = $entryModel->findById($entryId);
@@ -302,7 +309,7 @@ class EntryController
         $before = $queryParams['before'] ?? null;
 
         $entryModel = new Entry($db);
-        $entries = $entryModel->getByUser($user['id'], $limit, $before);
+        $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before);
         $hasMore = count($entries) === $limit;
 
         // Add avatar URLs

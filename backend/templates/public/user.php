@@ -166,6 +166,7 @@
             height: 80px;
             border-radius: 50%;
             border: 3px solid var(--accent);
+            object-fit: cover;
         }
 
         .user-info h1 {
