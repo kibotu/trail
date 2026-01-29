@@ -799,8 +799,13 @@
                     .edit-form .entry-images,
                     .edit-form .link-preview-card,
                     .edit-form .link-preview-wrapper {
-                        pointer-events: none;
                         opacity: 0.7;
+                        margin-top: 0.75rem;
+                    }
+                    .edit-form .entry-images img,
+                    .edit-form .link-preview-card,
+                    .edit-form .link-preview-wrapper {
+                        pointer-events: none;
                     }
                 `;
                 document.head.appendChild(style);
@@ -886,13 +891,29 @@
                 // Use the numeric entry ID from currentEntry, or fall back to entryId parameter
                 const apiEntryId = currentEntry ? currentEntry.id : entryId;
                 
+                // Preserve existing image_ids from currentEntry
+                const payload = { text: newText };
+                if (currentEntry && currentEntry.image_ids) {
+                    try {
+                        // Parse image_ids if it's a JSON string, or use as-is if it's already an array
+                        const imageIds = typeof currentEntry.image_ids === 'string' 
+                            ? JSON.parse(currentEntry.image_ids) 
+                            : currentEntry.image_ids;
+                        if (Array.isArray(imageIds) && imageIds.length > 0) {
+                            payload.image_ids = imageIds;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse image_ids:', e);
+                    }
+                }
+                
                 const response = await fetch(`/api/entries/${apiEntryId}`, {
                     method: 'PUT',
                     credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text: newText })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {

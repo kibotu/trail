@@ -249,6 +249,12 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+            
+            .upload-preview-item {
+                position: relative;
+                display: inline-block;
             }
             
             .upload-preview img {
@@ -256,6 +262,30 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
                 max-height: 200px;
                 border-radius: 8px;
                 border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+                display: block;
+            }
+            
+            .upload-preview-remove {
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 0.75rem;
+                transition: all 0.2s;
+            }
+            
+            .upload-preview-remove:hover {
+                background: #ef4444;
+                transform: scale(1.1);
             }
             
             .upload-progress {
@@ -295,9 +325,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
             <button type="button" id="${containerId}-button" class="upload-button" title="Upload image">
                 <i class="fa-solid fa-image"></i>
             </button>
-            <div id="${containerId}-preview" class="upload-preview" style="display: none;">
-                <img id="${containerId}-preview-img" src="" alt="Preview">
-            </div>
+            <div id="${containerId}-preview" class="upload-preview" style="display: none;"></div>
             <div id="${containerId}-progress" class="upload-progress" style="display: none;">
                 <div class="progress-bar-container">
                     <div id="${containerId}-progress-bar" class="progress-bar"></div>
@@ -314,11 +342,48 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
     const input = document.getElementById(`${containerId}-input`);
     const button = document.getElementById(`${containerId}-button`);
     const preview = document.getElementById(`${containerId}-preview`);
-    const previewImg = document.getElementById(`${containerId}-preview-img`);
     const progressContainer = document.getElementById(`${containerId}-progress`);
     const progressBar = document.getElementById(`${containerId}-progress-bar`);
     const progressText = document.getElementById(`${containerId}-progress-text`);
     const errorContainer = document.getElementById(`${containerId}-error`);
+    
+    // Store uploaded images
+    const uploadedImages = [];
+    
+    // Function to add image preview
+    function addImagePreview(imageUrl, imageId) {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'upload-preview-item';
+        previewItem.dataset.imageId = imageId;
+        
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = 'Preview';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'upload-preview-remove';
+        removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        removeBtn.title = 'Remove image';
+        removeBtn.onclick = () => {
+            previewItem.remove();
+            const index = uploadedImages.findIndex(img => img.id === imageId);
+            if (index > -1) {
+                uploadedImages.splice(index, 1);
+            }
+            if (preview.children.length === 0) {
+                preview.style.display = 'none';
+            }
+            // Notify about removal
+            if (onUploadComplete) {
+                onUploadComplete({ removed: true, image_id: imageId, all_images: uploadedImages });
+            }
+        };
+        
+        previewItem.appendChild(img);
+        previewItem.appendChild(removeBtn);
+        preview.appendChild(previewItem);
+        preview.style.display = 'flex';
+    }
     
     // Create uploader instance
     const uploader = new ImageUploader(
@@ -332,9 +397,11 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
             button.disabled = false;
             button.innerHTML = '<i class="fa-solid fa-image"></i>';
             
-            // Show preview of uploaded image
-            previewImg.src = result.url;
-            preview.style.display = 'flex';
+            // Add to uploaded images array
+            uploadedImages.push({ id: result.image_id, url: result.url });
+            
+            // Add preview of uploaded image
+            addImagePreview(result.url, result.image_id);
             
             if (onUploadComplete) {
                 onUploadComplete(result);
@@ -386,11 +453,16 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
     
     return {
         uploader,
+        uploadedImages,
+        clearPreviews: () => {
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+            uploadedImages.length = 0;
+        },
         elements: {
             input,
             button,
             preview,
-            previewImg,
             progressContainer,
             progressBar,
             progressText,

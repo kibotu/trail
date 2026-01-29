@@ -1340,6 +1340,11 @@
                     charCounter.textContent = '0 / 280';
                     window.postImageIds = [];
                     
+                    // Clear image previews
+                    if (window.postImageUploader && typeof window.postImageUploader.clearPreviews === 'function') {
+                        window.postImageUploader.clearPreviews();
+                    }
+                    
                     // CELEBRATE! 🎉
                     celebratePost();
                     
@@ -1742,16 +1747,26 @@
         
         if (isLoggedIn) {
             window.addEventListener('DOMContentLoaded', () => {
-                const postImageUploader = createImageUploadUI(
+                window.postImageUploader = createImageUploadUI(
                     'post',
                     'post-image-upload',
                     (result) => {
                         console.log('Post image uploaded:', result);
-                        // Store image ID for submission
-                        if (!window.postImageIds) {
-                            window.postImageIds = [];
+                        
+                        // Handle image removal
+                        if (result.removed) {
+                            // Remove from postImageIds array
+                            const index = window.postImageIds.indexOf(result.image_id);
+                            if (index > -1) {
+                                window.postImageIds.splice(index, 1);
+                            }
+                        } else {
+                            // Store image ID for submission
+                            if (!window.postImageIds) {
+                                window.postImageIds = [];
+                            }
+                            window.postImageIds.push(result.image_id);
                         }
-                        window.postImageIds.push(result.image_id);
                         
                         // Update submit button state to enable it if we have an image
                         if (typeof updateSubmitButton === 'function') {
