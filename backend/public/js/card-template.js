@@ -242,7 +242,12 @@ function createEntryCard(entry, options = {}) {
     // Use the same structure for both pages
     card.innerHTML = `
         <div class="entry-header">
-            <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" loading="lazy">
+            ${userProfileLink ? 
+                `<a href="${userProfileLink}" data-no-navigate>
+                    <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" loading="lazy">
+                </a>` :
+                `<img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" loading="lazy">`
+            }
             <div class="entry-header-content">
                 <div class="entry-header-top">
                     <div class="user-info">

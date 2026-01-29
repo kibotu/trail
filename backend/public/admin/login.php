@@ -36,12 +36,8 @@ try {
     // Check for existing valid session
     $session = getAuthenticatedUser($db);
     if ($session !== null) {
-        // Already logged in, redirect based on role
-        if ($session['is_admin']) {
-            header('Location: /admin/');
-        } else {
-            header('Location: /');
-        }
+        // Already logged in, redirect to landing page
+        header('Location: /');
         exit;
     }
 

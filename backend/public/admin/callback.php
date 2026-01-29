@@ -119,12 +119,8 @@ try {
         ]
     );
 
-    // Redirect based on user role
-    if ($isAdmin) {
-        header('Location: /admin/');
-    } else {
-        header('Location: /');
-    }
+    // Redirect to landing page for all users
+    header('Location: /');
     exit;
 
 } catch (Exception $e) {
