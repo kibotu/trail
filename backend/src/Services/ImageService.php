@@ -49,7 +49,7 @@ class ImageService
     }
     
     /**
-     * Validate uploaded image file
+     * Validate uploaded image file with magic byte verification
      */
     public function validateImage(string $filePath, int $maxSize = self::MAX_FILE_SIZE): array
     {
@@ -65,11 +65,14 @@ class ImageService
         // Check magic bytes for real MIME type
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $filePath);
-        finfo_close($finfo);
+        // Note: finfo_close() is deprecated in PHP 8.5+, objects are freed automatically
         
         if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
             throw new InvalidArgumentException('Invalid image type: ' . $mimeType);
         }
+        
+        // Verify magic bytes match the detected MIME type (security check)
+        $this->verifyImageMagicBytes($filePath, $mimeType);
         
         // Get image dimensions (except for SVG)
         $width = null;
@@ -91,6 +94,72 @@ class ImageService
     }
     
     /**
+     * Verify image magic bytes to prevent file type spoofing
+     */
+    private function verifyImageMagicBytes(string $filePath, string $mimeType): void
+    {
+        $handle = fopen($filePath, 'rb');
+        if ($handle === false) {
+            throw new InvalidArgumentException('Cannot read file');
+        }
+        
+        $header = fread($handle, 12);
+        fclose($handle);
+        
+        if ($header === false) {
+            throw new InvalidArgumentException('Cannot read file header');
+        }
+        
+        // Define magic byte signatures for each image type
+        $magicBytes = [
+            'image/jpeg' => [
+                ['offset' => 0, 'bytes' => "\xFF\xD8\xFF"], // JPEG
+            ],
+            'image/png' => [
+                ['offset' => 0, 'bytes' => "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"], // PNG
+            ],
+            'image/gif' => [
+                ['offset' => 0, 'bytes' => "GIF87a"], // GIF87a
+                ['offset' => 0, 'bytes' => "GIF89a"], // GIF89a
+            ],
+            'image/webp' => [
+                ['offset' => 0, 'bytes' => "RIFF"], // RIFF container
+                ['offset' => 8, 'bytes' => "WEBP"], // WEBP signature
+            ],
+            'image/svg+xml' => [
+                ['offset' => 0, 'bytes' => "<?xml"], // XML declaration
+                ['offset' => 0, 'bytes' => "<svg"], // SVG tag
+            ],
+            'image/avif' => [
+                ['offset' => 4, 'bytes' => "ftyp"], // ISO Base Media File Format
+            ],
+        ];
+        
+        if (!isset($magicBytes[$mimeType])) {
+            throw new InvalidArgumentException('Unsupported MIME type for validation');
+        }
+        
+        $valid = false;
+        foreach ($magicBytes[$mimeType] as $signature) {
+            $offset = $signature['offset'];
+            $bytes = $signature['bytes'];
+            $length = strlen($bytes);
+            
+            if (strlen($header) >= $offset + $length) {
+                $chunk = substr($header, $offset, $length);
+                if ($chunk === $bytes) {
+                    $valid = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!$valid) {
+            throw new InvalidArgumentException('File magic bytes do not match declared type. Possible file type spoofing.');
+        }
+    }
+    
+    /**
      * Optimize and convert image to WebP
      */
     public function optimizeAndConvert(
@@ -108,7 +177,7 @@ class ImageService
         // Get source image info
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $sourcePath);
-        finfo_close($finfo);
+        // Note: finfo_close() is deprecated in PHP 8.5+, objects are freed automatically
         
         // Handle SVG separately (no conversion needed)
         if ($mimeType === 'image/svg+xml') {
@@ -202,19 +271,59 @@ class ImageService
      */
     public function getUserImagePath(int $userId): string
     {
+        // Validate userId is positive integer
+        if ($userId <= 0) {
+            throw new InvalidArgumentException('Invalid user ID');
+        }
+        
         $userPath = $this->uploadBasePath . '/' . $userId;
+        
+        // Security: Verify the resolved path is within uploadBasePath
+        $realUploadBase = realpath($this->uploadBasePath);
+        if ($realUploadBase === false) {
+            throw new RuntimeException('Upload base path does not exist');
+        }
+        
         if (!is_dir($userPath)) {
             mkdir($userPath, 0755, true);
         }
+        
+        $realUserPath = realpath($userPath);
+        if ($realUserPath === false || strpos($realUserPath, $realUploadBase) !== 0) {
+            throw new RuntimeException('Path traversal attempt detected');
+        }
+        
         return $userPath;
     }
     
     /**
-     * Get full path for specific image file
+     * Get full path for specific image file with security validation
      */
     public function getImagePath(int $userId, string $filename): string
     {
-        return $this->getUserImagePath($userId) . '/' . $filename;
+        // Additional filename validation
+        if (empty($filename) || strpos($filename, '/') !== false || strpos($filename, '\\') !== false) {
+            throw new InvalidArgumentException('Invalid filename');
+        }
+        
+        $userPath = $this->getUserImagePath($userId);
+        $filePath = $userPath . '/' . $filename;
+        
+        // Security: Verify the resolved path is within user directory
+        $realUserPath = realpath($userPath);
+        if ($realUserPath === false) {
+            throw new RuntimeException('User path does not exist');
+        }
+        
+        // Check if file exists and validate its real path
+        if (file_exists($filePath)) {
+            $realFilePath = realpath($filePath);
+            if ($realFilePath === false || strpos($realFilePath, $realUserPath) !== 0) {
+                throw new RuntimeException('Path traversal attempt detected');
+            }
+        }
+        
+        return $filePath;
     }
     
     /**
@@ -241,15 +350,30 @@ class ImageService
     }
     
     /**
-     * Sanitize original filename
+     * Sanitize original filename with enhanced security
      */
     public function sanitizeFilename(string $filename): string
     {
+        // Remove any null bytes (security)
+        $filename = str_replace("\0", '', $filename);
+        
         // Remove path traversal attempts
         $filename = basename($filename);
+        $filename = str_replace(['../', '..\\', '../', '..'], '', $filename);
         
         // Remove special characters except dots, dashes, underscores
         $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
+        
+        // Prevent multiple dots (could hide extensions)
+        $filename = preg_replace('/\.{2,}/', '.', $filename);
+        
+        // Prevent leading dots (hidden files)
+        $filename = ltrim($filename, '.');
+        
+        // Ensure filename is not empty
+        if (empty($filename)) {
+            $filename = 'unnamed_file';
+        }
         
         // Limit length
         if (strlen($filename) > 255) {
@@ -257,6 +381,28 @@ class ImageService
         }
         
         return $filename;
+    }
+    
+    /**
+     * Secure uploaded file by removing execute permissions
+     */
+    public function secureUploadedFile(string $filePath): void
+    {
+        if (!file_exists($filePath)) {
+            throw new InvalidArgumentException('File does not exist');
+        }
+        
+        // Remove execute permissions (0644 = rw-r--r--)
+        // Owner: read+write, Group: read, Others: read
+        if (!chmod($filePath, 0644)) {
+            error_log("Warning: Failed to set secure permissions on: {$filePath}");
+        }
+        
+        // Additional security: Verify file is not a symlink
+        if (is_link($filePath)) {
+            unlink($filePath);
+            throw new RuntimeException('Symlinks are not allowed');
+        }
     }
     
     /**

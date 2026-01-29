@@ -117,6 +117,7 @@
             height: 200px;
             position: relative;
             overflow: hidden;
+            background: #000;
         }
 
         #shader-canvas {
@@ -126,6 +127,7 @@
             width: 100%;
             height: 100%;
             display: block;
+            background: #000;
         }
 
         .header-content {
@@ -1555,7 +1557,7 @@
                 float catenary(vec3 p) {
                     p.z -= 12.;
                     vec3 pp = p;
-                    p.x = mod(p.x,10.)-5.;
+                    p.x = mod(p.x,100.)-50.;
                     
                     // base
                     float d = box(p-vec3(0.,0.,0.), vec3(.0,3.,.0), .1);
@@ -1565,8 +1567,8 @@
                     
                     // lines
                     pp.z = abs(pp.z-0.)-2.;
-                    d = min(d, capsule(p-vec3(-5.,2.4-abs(cos(pp.x*.1*PI)),-1.),10000.,.02));
-                    d = min(d, capsule(p-vec3(-5.,2.9-abs(cos(pp.x*.1*PI)),-2.),10000.,.02));
+                    d = min(d, capsule(p-vec3(-50.,2.4-abs(cos(pp.x*.01*PI)),-1.),10000.,.02));
+                    d = min(d, capsule(p-vec3(-50.,2.9-abs(cos(pp.x*.01*PI)),-2.),10000.,.02));
                     
                     return d;
                 }
@@ -1588,7 +1590,8 @@
 
                 float map(vec3 p) {
                     float d = train(p);
-                    p.x -= mix(0.,time*15., saturate(time*.02));
+                    // Faster acceleration: starts at 30% speed, reaches full speed in ~5 seconds
+                    p.x -= mix(time*4.5, time*15., saturate(time*.2));
                     d = min(d, catenary(p));
                     d = min(d, city(p));
                     d = min(d, city(p+vec3(15.,0.,0.)));
@@ -1676,8 +1679,8 @@
                     float vignetting = pow(uv.x*uv.y*(1.-uv.x)*(1.-uv.y), .3)*2.5;
                     col *= vignetting;
                     
-                    // Fade in
-                    col *= smoothstep(0.,10.,u_time);
+                    // Fade in (instant - no fade)
+                    // col *= smoothstep(0.,10.,u_time);
                     
                     gl_FragColor = vec4(col, 1.0);
                 }

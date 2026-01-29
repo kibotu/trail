@@ -242,6 +242,9 @@ class ImageUploadController
                 $metadata['image_type']
             );
             
+            // Secure the uploaded file (remove execute permissions)
+            $imageService->secureUploadedFile($targetPath);
+            
             // Generate ETag
             $etag = $imageService->generateETag($targetPath);
             
@@ -336,10 +339,12 @@ class ImageUploadController
         $imageData = file_get_contents($filePath);
         $response->getBody()->write($imageData);
         
+        // Cache for 7 days but revalidate after 24 hours using must-revalidate
+        // max-age=86400 (24h) for initial cache, stale-while-revalidate=518400 (6 days) for background refresh
         return $response
             ->withHeader('Content-Type', $image['mime_type'])
             ->withHeader('Content-Length', (string) $image['file_size'])
-            ->withHeader('Cache-Control', 'public, max-age=604800') // 7 days
+            ->withHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=518400') // 24h cache, 7 days total
             ->withHeader('ETag', $image['etag'])
             ->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime($image['created_at'])) . ' GMT');
     }
@@ -370,6 +375,41 @@ class ImageUploadController
         if ((int) $image['user_id'] !== $userId) {
             $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+        
+        // Check if image is referenced by any entries
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as count 
+            FROM trail_entries 
+            WHERE image_ids IS NOT NULL 
+            AND JSON_CONTAINS(image_ids, ?)
+        ");
+        $stmt->execute([json_encode($imageId)]);
+        $result = $stmt->fetch();
+        
+        if ((int) $result['count'] > 0) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Cannot delete image: it is referenced by ' . $result['count'] . ' entry/entries',
+                'referenced_count' => (int) $result['count']
+            ]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        }
+        
+        // Check if image is used as profile or header image
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as count 
+            FROM trail_users 
+            WHERE profile_image_id = ? OR header_image_id = ?
+        ");
+        $stmt->execute([$imageId, $imageId]);
+        $result = $stmt->fetch();
+        
+        if ((int) $result['count'] > 0) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Cannot delete image: it is used as a profile or header image',
+                'in_use' => true
+            ]));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
         }
         
         // Delete file

@@ -132,6 +132,7 @@ lcd $BACKEND_DIR
 # --delete: remove files on remote that don't exist locally
 # --verbose: show progress
 # --exclude-glob: exclude development/test files
+# CRITICAL: Exclude user uploads directory to prevent data loss!
 mirror --reverse --delete --verbose \\
     --exclude-glob .git/ \\
     --exclude-glob .git \\
@@ -148,6 +149,11 @@ mirror --reverse --delete --verbose \\
     --exclude-glob docker \\
     --exclude-glob cache/ \\
     --exclude-glob cache \\
+    --exclude-glob storage/ \\
+    --exclude-glob storage \\
+    --exclude-glob public/uploads/images/ \\
+    --exclude-glob public/uploads/images \\
+    --exclude-glob 'public/uploads/images/*' \\
     --exclude-glob .env \\
     --exclude-glob .env.docker \\
     --exclude-glob docker-compose.yml \\

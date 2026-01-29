@@ -64,11 +64,13 @@ function createEntryImagesHtml(entry) {
     entry.images.forEach(image => {
         imagesHtml += `
             <div class="entry-image-wrapper">
-                <img src="${escapeHtml(image.url)}" 
-                     alt="Post image" 
-                     class="entry-image"
-                     loading="lazy"
-                     onerror="this.parentElement.style.display='none'">
+                <a href="${escapeHtml(image.url)}" target="_blank" rel="noopener noreferrer">
+                    <img src="${escapeHtml(image.url)}" 
+                         alt="Post image" 
+                         class="entry-image"
+                         loading="lazy"
+                         onerror="this.parentElement.parentElement.style.display='none'">
+                </a>
             </div>
         `;
     });
