@@ -121,13 +121,18 @@ usort($endpoints, function($a, $b) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail API Documentation</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #0f172a;
             color: #e2e8f0;
             line-height: 1.6;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         .header {
             background: #1e293b;
@@ -283,22 +288,22 @@ usort($endpoints, function($a, $b) {
 </head>
 <body>
     <div class="header">
-        <h1>🔗 Trail API</h1>
+        <h1><i class="fa-solid fa-link"></i> Trail API</h1>
         <p class="subtitle">Multi-user link journaling service<?php if ($isDev): ?> <span class="badge">Dev Mode</span><?php endif; ?></p>
     </div>
     
     <div class="container">
         <div class="quick-links">
             <a href="/" class="quick-link">
-                <div class="icon">🏠</div>
+                <div class="icon"><i class="fa-solid fa-house"></i></div>
                 <div class="label">Home</div>
             </a>
             <a href="/api/rss" class="quick-link">
-                <div class="icon">📡</div>
+                <div class="icon"><i class="fa-solid fa-rss"></i></div>
                 <div class="label">RSS Feed</div>
             </a>
             <a href="/api/health" class="quick-link">
-                <div class="icon">❤️</div>
+                <div class="icon"><i class="fa-solid fa-heart"></i></div>
                 <div class="label">Health Check</div>
             </a>
         </div>
@@ -313,7 +318,7 @@ usort($endpoints, function($a, $b) {
                         <span class="method <?= $methodClass ?>"><?= $endpoint['method'] ?></span>
                         <span class="path"><?= htmlspecialchars($endpoint['path']) ?></span>
                         <?php if ($endpoint['auth']): ?>
-                            <span class="auth-badge">🔒 AUTH REQUIRED</span>
+                            <span class="auth-badge"><i class="fa-solid fa-lock"></i> AUTH REQUIRED</span>
                         <?php endif; ?>
                     </div>
                     <div class="description"><?= htmlspecialchars($endpoint['description']) ?></div>

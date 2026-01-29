@@ -106,6 +106,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail - Admin Dashboard</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -129,13 +131,17 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -836,7 +842,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <header>
         <div class="header-content">
             <div class="header-left">
-                <div class="logo">🔗</div>
+                <div class="logo"><i class="fa-solid fa-link"></i></div>
                 <div>
                     <div class="header-title">Trail Admin</div>
                     <div class="header-subtitle">Manage entries and users</div>
@@ -844,7 +850,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             </div>
             <div class="header-right">
                 <button class="button secondary" onclick="window.location.href='/admin/users.php'">
-                    <span>👥</span>
+                    <i class="fa-solid fa-users"></i>
                     <span>Users</span>
                 </button>
                 <div class="user-info">
@@ -880,7 +886,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <?php endif; ?>
             </div>
             <div class="stat-card iframely">
-                <div class="stat-label">🔗 iframe.ly API Usage (<?= date('F Y') ?>)</div>
+                <div class="stat-label"><i class="fa-solid fa-link"></i> iframe.ly API Usage (<?= date('F Y') ?>)</div>
                 <div class="stat-value">
                     <?= number_format($iframelyUsage) ?> <span style="font-size: 1rem; color: var(--text-secondary);">/ <?= number_format($iframelyLimit) ?></span>
                 </div>
@@ -894,15 +900,15 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 </div>
                 <?php if ($iframelyPercentage >= 90): ?>
                     <div class="usage-status danger">
-                        ⚠️ Limit almost reached
+                        <i class="fa-solid fa-triangle-exclamation"></i> Limit almost reached
                     </div>
                 <?php elseif ($iframelyPercentage >= 75): ?>
                     <div class="usage-status warning">
-                        ⚡ High usage
+                        <i class="fa-solid fa-bolt"></i> High usage
                     </div>
                 <?php else: ?>
                     <div class="usage-status ok">
-                        ✓ Healthy
+                        <i class="fa-solid fa-check"></i> Healthy
                     </div>
                 <?php endif; ?>
             </div>
@@ -922,7 +928,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         </div>
 
         <div id="empty-state" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-icon"><i class="fa-solid fa-inbox"></i></div>
             <p>No entries yet. Start sharing links!</p>
         </div>
     </div>
@@ -1120,7 +1126,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 const editedTimestamp = document.createElement('div');
                 editedTimestamp.className = 'timestamp';
                 editedTimestamp.innerHTML = `
-                    <span>✏️</span>
+                    <i class="fa-solid fa-pen"></i>
                     <span>edited ${formatTimestamp(data.updated_at || new Date().toISOString())}</span>
                 `;
                 

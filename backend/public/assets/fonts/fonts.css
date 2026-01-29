@@ -1,0 +1,77 @@
+/**
+ * Self-hosted Google Fonts
+ * IBM Plex Sans - for headlines and headings
+ * Inter - for body text and UI elements
+ */
+
+/* IBM Plex Sans - Regular */
+@font-face {
+    font-family: 'IBM Plex Sans';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-sans/IBMPlexSans-Regular.woff2') format('woff2');
+}
+
+/* IBM Plex Sans - Medium */
+@font-face {
+    font-family: 'IBM Plex Sans';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-sans/IBMPlexSans-Medium.woff2') format('woff2');
+}
+
+/* IBM Plex Sans - SemiBold */
+@font-face {
+    font-family: 'IBM Plex Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-sans/IBMPlexSans-SemiBold.woff2') format('woff2');
+}
+
+/* IBM Plex Sans - Bold */
+@font-face {
+    font-family: 'IBM Plex Sans';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-sans/IBMPlexSans-Bold.woff2') format('woff2');
+}
+
+/* Inter - Regular */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/inter/Inter-Regular.woff2') format('woff2');
+}
+
+/* Inter - Medium */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/assets/fonts/inter/Inter-Medium.woff2') format('woff2');
+}
+
+/* Inter - SemiBold */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/assets/fonts/inter/Inter-SemiBold.woff2') format('woff2');
+}
+
+/* Inter - Bold */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/assets/fonts/inter/Inter-Bold.woff2') format('woff2');
+}

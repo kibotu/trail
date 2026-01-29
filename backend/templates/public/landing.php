@@ -7,6 +7,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Trail - Public Entries</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -27,13 +29,22 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+        }
+
+        /* IBM Plex Sans for all headings and prominent text */
+        h1, h2, h3, h4, h5, h6,
+        .logo,
+        .user-name,
+        .user-name-link,
+        .link-preview-title {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -926,21 +937,21 @@
                 <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
                     <div class="header-actions">
                         <a href="/api" class="nav-link">
-                            <span>📚</span>
+                            <i class="fa-solid fa-book"></i>
                             <span>API</span>
                         </a>
                         <?php if (isset($isAdmin) && $isAdmin): ?>
                             <a href="/admin" class="nav-link">
-                                <span>⚙️</span>
+                                <i class="fa-solid fa-gear"></i>
                                 <span>Admin</span>
                             </a>
                         <?php endif; ?>
                         <a href="/profile" class="nav-link">
-                            <span>👤</span>
+                            <i class="fa-solid fa-user"></i>
                             <span>Profile</span>
                         </a>
                         <a href="/admin/logout.php" class="logout-button">
-                            <span>🚪</span>
+                            <i class="fa-solid fa-right-from-bracket"></i>
                             <span>Logout</span>
                         </a>
                     </div>
@@ -956,7 +967,7 @@
                     </a>
                 <?php else: ?>
                     <a href="/admin/login.php" class="login-button">
-                        <span>🔐</span>
+                        <i class="fa-solid fa-lock"></i>
                         <span>Login</span>
                     </a>
                 <?php endif; ?>
@@ -974,7 +985,7 @@
         <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
         <div class="create-post-section">
             <div class="create-post-header">
-                <span style="font-size: 1.5rem;">✍️</span>
+                <i class="fa-solid fa-pen" style="font-size: 1.5rem;"></i>
                 <h2>Create a Post</h2>
             </div>
             <form class="post-form" id="createPostForm" onsubmit="return false;">
@@ -989,7 +1000,7 @@
                 <div class="post-form-footer">
                     <span class="char-counter" id="charCounter">0 / 280</span>
                     <button type="submit" class="submit-button" id="submitButton">
-                        <span>📝</span>
+                        <i class="fa-solid fa-paper-plane"></i>
                         <span>Post</span>
                     </button>
                 </div>
@@ -1006,7 +1017,7 @@
             <p>Loading entries...</p>
         </div>
         <div class="end-message" id="endMessage" style="display: none;">
-            <p>✨ You've reached the end</p>
+            <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
         </div>
     </main>
 
@@ -1082,7 +1093,7 @@
                 // Disable form during submission
                 submitButton.disabled = true;
                 postText.disabled = true;
-                submitButton.innerHTML = '<span>⏳</span><span>Posting...</span>';
+                submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Posting...</span>';
 
                 try {
                     // Include image IDs if any were uploaded
@@ -1113,7 +1124,7 @@
                     window.postImageIds = [];
                     
                     // Show success message
-                    showMessage('✓ Post created successfully!', 'success');
+                    showMessage('<i class="fa-solid fa-check"></i> Post created successfully!', 'success');
                     
                     // Reload entries to show new post
                     setTimeout(() => {
@@ -1126,7 +1137,7 @@
                 } finally {
                     submitButton.disabled = false;
                     postText.disabled = false;
-                    submitButton.innerHTML = '<span>📝</span><span>Post</span>';
+                    submitButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>Post</span>';
                 }
             });
 
@@ -1215,7 +1226,7 @@
                     // Show empty state only if no entries at all
                     entriesContainer.innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-state-icon">📝</div>
+                            <div class="empty-state-icon"><i class="fa-solid fa-file-lines"></i></div>
                             <h2>No entries yet</h2>
                             <p>Be the first to share something!</p>
                         </div>
@@ -1278,11 +1289,11 @@
                     <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
                     <div class="edit-actions">
                         <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}', \`${previewHtml.replace(/`/g, '\\`')}\`)">
-                            <span>❌</span>
+                            <i class="fa-solid fa-xmark"></i>
                             <span>Cancel</span>
                         </button>
                         <button class="action-button save-button" onclick="saveEdit(${entryId})">
-                            <span>💾</span>
+                            <i class="fa-solid fa-floppy-disk"></i>
                             <span>Save</span>
                         </button>
                     </div>
@@ -1350,7 +1361,7 @@
                 const footerDiv = card.querySelector('.entry-footer');
                 footerDiv.innerHTML = `
                     <div class="timestamp">
-                        <span>✏️</span>
+                        <i class="fa-solid fa-pen"></i>
                         <span>edited ${formatTimestamp(data.updated_at)}</span>
                     </div>
                 `;

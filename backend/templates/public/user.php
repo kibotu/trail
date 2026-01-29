@@ -7,6 +7,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>@<?= htmlspecialchars($nickname ?? 'user') ?> - Trail</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -27,13 +29,22 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+        }
+
+        /* IBM Plex Sans for all headings and prominent text */
+        h1, h2, h3, h4, h5, h6,
+        .logo,
+        .user-name,
+        .user-name-link,
+        .link-preview-title {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -639,27 +650,27 @@
     <header>
         <div class="header-content">
             <a href="/" class="logo">
-                <span>🔗</span>
+                <i class="fa-solid fa-link"></i>
                 <span>Trail</span>
             </a>
             <div class="header-actions">
                 <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
                     <a href="/api" class="nav-link">
-                        <span>📚</span>
+                        <i class="fa-solid fa-book"></i>
                         <span>API</span>
                     </a>
                     <?php if (isset($isAdmin) && $isAdmin): ?>
                         <a href="/admin" class="nav-link">
-                            <span>⚙️</span>
+                            <i class="fa-solid fa-gear"></i>
                             <span>Admin</span>
                         </a>
                     <?php endif; ?>
                     <a href="/profile" class="nav-link">
-                        <span>👤</span>
+                        <i class="fa-solid fa-user"></i>
                         <span>Profile</span>
                     </a>
                     <a href="/admin/logout.php" class="logout-button">
-                        <span>🚪</span>
+                        <i class="fa-solid fa-right-from-bracket"></i>
                         <span>Logout</span>
                     </a>
                 <?php elseif (isset($googleAuthUrl) && $googleAuthUrl): ?>
@@ -674,7 +685,7 @@
                     </a>
                 <?php else: ?>
                     <a href="/admin/login.php" class="login-button">
-                        <span>🔐</span>
+                        <i class="fa-solid fa-lock"></i>
                         <span>Login</span>
                     </a>
                 <?php endif; ?>
@@ -701,7 +712,7 @@
             <p>Loading entries...</p>
         </div>
         <div class="end-message" id="endMessage" style="display: none;">
-            <p>✨ You've reached the end</p>
+            <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
         </div>
     </main>
 
@@ -817,7 +828,7 @@
                 } else if (entriesContainer.children.length === 0) {
                     entriesContainer.innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-state-icon">📝</div>
+                            <div class="empty-state-icon"><i class="fa-solid fa-file-lines"></i></div>
                             <h2>No entries yet</h2>
                             <p>This user hasn't posted anything yet.</p>
                         </div>
@@ -879,11 +890,11 @@
                     <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
                     <div class="edit-actions">
                         <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}', \`${previewHtml.replace(/`/g, '\\`')}\`)">
-                            <span>❌</span>
+                            <i class="fa-solid fa-xmark"></i>
                             <span>Cancel</span>
                         </button>
                         <button class="action-button save-button" onclick="saveEdit(${entryId})">
-                            <span>💾</span>
+                            <i class="fa-solid fa-floppy-disk"></i>
                             <span>Save</span>
                         </button>
                     </div>
@@ -979,7 +990,7 @@
                 if (entriesContainer.children.length === 0) {
                     entriesContainer.innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-state-icon">📝</div>
+                            <div class="empty-state-icon"><i class="fa-solid fa-file-lines"></i></div>
                             <h2>No entries yet</h2>
                             <p>This user hasn't posted anything yet.</p>
                         </div>

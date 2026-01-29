@@ -216,21 +216,102 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
     
     // Create UI elements
     const html = `
+        <style>
+            .image-upload-container {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+            
+            .upload-button {
+                background: var(--bg-tertiary, #334155);
+                color: var(--text-secondary, #cbd5e1);
+                border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 1.125rem;
+                flex-shrink: 0;
+            }
+            
+            .upload-button:hover:not(:disabled) {
+                background: var(--accent, #3b82f6);
+                color: white;
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            }
+            
+            .upload-button:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            .upload-preview {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .upload-preview img {
+                max-width: 200px;
+                max-height: 200px;
+                border-radius: 8px;
+                border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+            }
+            
+            .upload-progress {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            
+            .progress-bar-container {
+                flex: 1;
+                height: 4px;
+                background: var(--bg-tertiary, #334155);
+                border-radius: 2px;
+                overflow: hidden;
+            }
+            
+            .progress-bar {
+                height: 100%;
+                background: var(--accent, #3b82f6);
+                transition: width 0.3s;
+            }
+            
+            .progress-text {
+                font-size: 0.875rem;
+                color: var(--text-muted, #94a3b8);
+                min-width: 40px;
+            }
+            
+            .upload-error {
+                color: #ef4444;
+                font-size: 0.875rem;
+            }
+        </style>
         <div class="image-upload-container">
             <input type="file" id="${containerId}-input" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" style="display: none;">
-            <button type="button" id="${containerId}-button" class="upload-button">
-                Choose Image
+            <button type="button" id="${containerId}-button" class="upload-button" title="Upload image">
+                <i class="fa-solid fa-image"></i>
             </button>
             <div id="${containerId}-preview" class="upload-preview" style="display: none;">
-                <img id="${containerId}-preview-img" src="" alt="Preview" style="max-width: 200px; max-height: 200px;">
+                <img id="${containerId}-preview-img" src="" alt="Preview">
             </div>
             <div id="${containerId}-progress" class="upload-progress" style="display: none;">
                 <div class="progress-bar-container">
-                    <div id="${containerId}-progress-bar" class="progress-bar" style="width: 0%; height: 4px; background: var(--accent, #3b82f6); transition: width 0.3s;"></div>
+                    <div id="${containerId}-progress-bar" class="progress-bar"></div>
                 </div>
                 <span id="${containerId}-progress-text" class="progress-text">0%</span>
             </div>
-            <div id="${containerId}-error" class="upload-error" style="display: none; color: #ef4444; margin-top: 8px;"></div>
+            <div id="${containerId}-error" class="upload-error" style="display: none;"></div>
         </div>
     `;
     
@@ -256,11 +337,11 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
         (result) => {
             progressContainer.style.display = 'none';
             button.disabled = false;
-            button.textContent = 'Choose Image';
+            button.innerHTML = '<i class="fa-solid fa-image"></i>';
             
             // Show preview of uploaded image
             previewImg.src = result.url;
-            preview.style.display = 'block';
+            preview.style.display = 'flex';
             
             if (onUploadComplete) {
                 onUploadComplete(result);
@@ -269,7 +350,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
         (error) => {
             progressContainer.style.display = 'none';
             button.disabled = false;
-            button.textContent = 'Choose Image';
+            button.innerHTML = '<i class="fa-solid fa-image"></i>';
             errorContainer.textContent = error;
             errorContainer.style.display = 'block';
         }
@@ -300,7 +381,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
         
         // Disable button during upload
         button.disabled = true;
-        button.textContent = 'Uploading...';
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         
         // Start upload
         try {

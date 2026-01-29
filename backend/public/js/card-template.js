@@ -107,14 +107,14 @@ function createLinkPreviewCard(entry, options = {}) {
     let sourceBadge = '';
     if (showSourceBadge && entry.preview_source) {
         const badgeConfig = {
-            'iframely': { emoji: '🔗', label: 'Iframely', color: '#3b82f6' },
-            'embed': { emoji: '📦', label: 'Fallback', color: '#f59e0b' },
-            'medium': { emoji: '📝', label: 'Medium', color: '#10b981' }
+            'iframely': { icon: 'fa-link', label: 'Iframely', color: '#3b82f6' },
+            'embed': { icon: 'fa-box', label: 'Fallback', color: '#f59e0b' },
+            'medium': { icon: 'fa-file-lines', label: 'Medium', color: '#10b981' }
         };
-        const config = badgeConfig[entry.preview_source] || { emoji: '❓', label: 'Unknown', color: '#6b7280' };
+        const config = badgeConfig[entry.preview_source] || { icon: 'fa-question', label: 'Unknown', color: '#6b7280' };
         sourceBadge = `
             <div class="preview-source-badge" style="background-color: ${config.color};">
-                <span>${config.emoji}</span>
+                <i class="fa-solid ${config.icon}"></i>
                 <span>${config.label}</span>
             </div>
         `;
@@ -157,7 +157,7 @@ function createLinkPreviewCard(entry, options = {}) {
     const siteName = entry.preview_site_name || extractDomain(entry.preview_url);
     previewHtml += `
         <div class="link-preview-url">
-            <span>🔗</span>
+            <i class="fa-solid fa-link"></i>
             <span>${escapeHtml(siteName)}</span>
         </div>
     `;
@@ -233,11 +233,11 @@ function createEntryCard(entry, options = {}) {
                             </button>
                             <div class="menu-dropdown" id="menu-${entry.id}">
                                 <button class="menu-item" onclick="editEntry(${entry.id})">
-                                    <span>✏️</span>
+                                    <i class="fa-solid fa-pen"></i>
                                     <span>Edit</span>
                                 </button>
                                 <button class="menu-item delete" onclick="deleteEntry(${entry.id})">
-                                    <span>🗑️</span>
+                                    <i class="fa-solid fa-trash"></i>
                                     <span>Delete</span>
                                 </button>
                             </div>
@@ -255,7 +255,7 @@ function createEntryCard(entry, options = {}) {
             <div class="entry-footer">
                 ${entry.updated_at && entry.updated_at !== entry.created_at ? 
                     `<div class="timestamp">
-                        <span>✏️</span>
+                        <i class="fa-solid fa-pen"></i>
                         <span>edited ${formatTimestamp(entry.updated_at)}</span>
                     </div>` : ''}
             </div>

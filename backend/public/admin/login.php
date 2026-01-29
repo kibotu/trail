@@ -78,6 +78,8 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail - Admin Login</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -97,7 +99,7 @@ try {
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             display: flex;
@@ -107,6 +109,10 @@ try {
             padding: 1rem;
             overflow: hidden;
             position: relative;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -342,7 +348,7 @@ try {
 
     <div class="login-container">
         <div class="login-card">
-            <div class="logo">🔗</div>
+            <div class="logo"><i class="fa-solid fa-link"></i></div>
             <h1>Trail</h1>
             <p class="subtitle">Link Journal Admin</p>
 

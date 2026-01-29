@@ -7,6 +7,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Profile - Trail</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -29,13 +31,22 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+        }
+
+        /* IBM Plex Sans for all headings and prominent text */
+        h1, h2, h3, h4, h5, h6,
+        .logo,
+        .user-name,
+        .user-name-link,
+        .link-preview-title {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -331,22 +342,22 @@
     <header>
         <div class="header-content">
             <a href="/" class="logo">
-                <span>🔗</span>
+                <i class="fa-solid fa-link"></i>
                 <span>Trail</span>
             </a>
             <div class="header-actions">
                 <a href="/api" class="nav-link">
-                    <span>📚</span>
+                    <i class="fa-solid fa-book"></i>
                     <span>API</span>
                 </a>
                 <?php if (isset($isAdmin) && $isAdmin): ?>
                     <a href="/admin" class="nav-link">
-                        <span>⚙️</span>
+                        <i class="fa-solid fa-gear"></i>
                         <span>Admin</span>
                     </a>
                 <?php endif; ?>
                 <a href="/admin/logout.php" class="logout-button">
-                    <span>🚪</span>
+                    <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Logout</span>
                 </a>
             </div>
@@ -402,7 +413,7 @@
                     <div class="form-group" id="profile-link-group" style="display: none;">
                         <label>Your Profile URL</label>
                         <a id="profile-url" class="profile-link" href="#" target="_blank">
-                            <span>🔗</span>
+                            <i class="fa-solid fa-link"></i>
                             <span id="profile-url-text"></span>
                         </a>
                     </div>

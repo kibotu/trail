@@ -85,6 +85,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail - Users Management</title>
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -108,13 +110,17 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         .orb {
@@ -539,7 +545,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <header>
         <div class="header-content">
             <div class="header-left">
-                <div class="logo">🔗</div>
+                <div class="logo"><i class="fa-solid fa-link"></i></div>
                 <div>
                     <div class="header-title">Users Management</div>
                     <div class="header-subtitle">Manage user accounts</div>
@@ -607,7 +613,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
 
         <?php if (empty($users)): ?>
             <div class="empty-state">
-                <div class="empty-state-icon">👥</div>
+                <div class="empty-state-icon"><i class="fa-solid fa-users"></i></div>
                 <p>No users found.</p>
             </div>
         <?php else: ?>
@@ -635,7 +641,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                                 <div class="meta-label">Role</div>
                                 <div class="meta-value">
                                     <?php if ($user['is_admin']): ?>
-                                        <span class="admin-badge">👑 Admin</span>
+                                        <span class="admin-badge"><i class="fa-solid fa-crown"></i> Admin</span>
                                     <?php else: ?>
                                         User
                                     <?php endif; ?>
@@ -649,14 +655,14 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
 
                         <div class="user-actions">
                             <button class="action-button delete" onclick="deleteUser(<?= $user['id'] ?>)">
-                                <span>🗑️</span>
+                                <i class="fa-solid fa-trash"></i>
                                 <span>Delete User</span>
                             </button>
                         </div>
 
                         <div class="debug-section">
                             <button class="debug-toggle" onclick="toggleDebug(<?= $user['id'] ?>)">
-                                <span id="debug-icon-<?= $user['id'] ?>">▶</span>
+                                <i id="debug-icon-<?= $user['id'] ?>" class="fa-solid fa-caret-right"></i>
                                 <span>Show Raw Data</span>
                             </button>
                             <div class="debug-content" id="debug-<?= $user['id'] ?>">
@@ -687,10 +693,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             
             if (debugContent.classList.contains('show')) {
                 debugContent.classList.remove('show');
-                debugIcon.textContent = '▶';
+                debugIcon.className = 'fa-solid fa-caret-right';
             } else {
                 debugContent.classList.add('show');
-                debugIcon.textContent = '▼';
+                debugIcon.className = 'fa-solid fa-caret-down';
             }
         }
 
