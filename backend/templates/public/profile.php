@@ -315,6 +315,117 @@
             border-color: var(--accent);
         }
 
+        .muted-users-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .muted-users-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .muted-users-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .muted-count {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .muted-users-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .muted-user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .muted-user-item:hover {
+            background: rgba(51, 65, 85, 0.7);
+        }
+
+        .muted-user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .muted-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .muted-user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .muted-user-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .muted-user-date {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .btn-unmute {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-unmute:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .empty-muted {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-muted i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 2rem 1rem;
@@ -427,6 +538,20 @@
                         </button>
                     </div>
                 </form>
+
+                <!-- Muted Users Section -->
+                <div class="muted-users-section">
+                    <div class="muted-users-header">
+                        <h3>Muted Users</h3>
+                        <span class="muted-count" id="muted-count">0</span>
+                    </div>
+                    <div id="muted-users-list" class="muted-users-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading muted users...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -543,7 +668,8 @@
         loadProfile();
     </script>
     
-    <!-- Image Upload Script -->
+    <!-- Snackbar and Image Upload Scripts -->
+    <script src="/js/snackbar.js"></script>
     <script src="/js/image-upload.js"></script>
     <script>
         // Initialize image uploaders after page load
@@ -609,6 +735,151 @@
                 showAlert(error.message || 'Failed to update image. Please try again.', 'error');
             }
         }
+
+        // Muted Users Management
+        let mutedUsersData = [];
+
+        async function loadMutedUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/filters`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load muted users');
+                }
+
+                const data = await response.json();
+                const mutedUserIds = data.muted_users || [];
+
+                // Update count
+                document.getElementById('muted-count').textContent = mutedUserIds.length;
+
+                if (mutedUserIds.length === 0) {
+                    displayEmptyMutedState();
+                    return;
+                }
+
+                // Fetch user details for each muted user
+                const userPromises = mutedUserIds.map(userId => 
+                    fetch(`${API_BASE}/users/${userId}/info`, { credentials: 'same-origin' })
+                        .then(r => r.ok ? r.json() : null)
+                        .catch(() => null)
+                );
+
+                const users = await Promise.all(userPromises);
+                mutedUsersData = users.filter(u => u !== null).map((user, index) => ({
+                    ...user,
+                    id: mutedUserIds[index]
+                }));
+
+                displayMutedUsers(mutedUsersData);
+            } catch (error) {
+                console.error('Error loading muted users:', error);
+                document.getElementById('muted-users-list').innerHTML = `
+                    <div class="empty-muted">
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                        <p>Failed to load muted users</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayEmptyMutedState() {
+            document.getElementById('muted-users-list').innerHTML = `
+                <div class="empty-muted">
+                    <i class="fa-solid fa-volume-xmark"></i>
+                    <p>No muted users</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">You haven't muted anyone yet.</p>
+                </div>
+            `;
+        }
+
+        function displayMutedUsers(users) {
+            const container = document.getElementById('muted-users-list');
+            
+            if (users.length === 0) {
+                displayEmptyMutedState();
+                return;
+            }
+
+            container.innerHTML = users.map(user => {
+                const avatarUrl = user.photo_url || user.avatar_url || 
+                    `https://www.gravatar.com/avatar/${user.gravatar_hash || '00000000000000000000000000000000'}?s=96&d=mp`;
+                const displayName = user.nickname || user.name || 'Unknown User';
+                
+                return `
+                    <div class="muted-user-item" data-user-id="${user.id}">
+                        <div class="muted-user-info">
+                            <img src="${avatarUrl}" alt="${displayName}" class="muted-user-avatar" loading="lazy">
+                            <div class="muted-user-details">
+                                <span class="muted-user-name">${escapeHtml(displayName)}</span>
+                                ${user.nickname ? `<span class="muted-user-date">@${escapeHtml(user.nickname)}</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn-unmute" onclick="unmuteUser(${user.id})" data-user-id="${user.id}">
+                            <i class="fa-solid fa-volume-high"></i>
+                            <span>Unmute</span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function unmuteUser(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}/mute`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to unmute user');
+                }
+
+                // Show success message
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar('User unmuted successfully', 'success');
+                }
+
+                // Remove from list with animation
+                const item = document.querySelector(`.muted-user-item[data-user-id="${userId}"]`);
+                if (item) {
+                    item.style.transition = 'opacity 0.3s, transform 0.3s';
+                    item.style.opacity = '0';
+                    item.style.transform = 'scale(0.95)';
+                    
+                    setTimeout(() => {
+                        item.remove();
+                        
+                        // Update data and count
+                        mutedUsersData = mutedUsersData.filter(u => u.id !== userId);
+                        document.getElementById('muted-count').textContent = mutedUsersData.length;
+                        
+                        // Show empty state if no more muted users
+                        if (mutedUsersData.length === 0) {
+                            displayEmptyMutedState();
+                        }
+                    }, 300);
+                }
+            } catch (error) {
+                console.error('Error unmuting user:', error);
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar('Failed to unmute user. Please try again.', 'error');
+                }
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load muted users when profile loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMutedUsers();
+        });
     </script>
 </body>
 </html>

@@ -91,40 +91,57 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = []): array
     {
+        // Build WHERE clause for filters
+        $whereConditions = [];
+        $params = [];
+        
+        if ($before !== null) {
+            $whereConditions[] = "e.created_at < ?";
+            $params[] = $before;
+        }
+        
+        // Exclude muted users
+        if ($excludeUserId !== null) {
+            $whereConditions[] = "e.user_id NOT IN (
+                SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?
+            )";
+            $params[] = $excludeUserId;
+        }
+        
+        // Exclude hidden entries
+        if (!empty($excludeEntryIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
+            $whereConditions[] = "e.id NOT IN ($placeholders)";
+            $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        
         if ($offset !== null) {
             // Offset-based pagination for admin
-            $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                 FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 ORDER BY e.created_at DESC 
-                 LIMIT ? OFFSET ?"
-            );
-            $stmt->execute([$limit, $offset]);
-        } elseif ($before !== null) {
-            // Cursor-based pagination: get entries created before the cursor timestamp
-            $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                 FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 WHERE e.created_at < ? 
-                 ORDER BY e.created_at DESC 
-                 LIMIT ?"
-            );
-            $stmt->execute([$before, $limit]);
+            $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
+                    FROM {$this->table} e 
+                    JOIN trail_users u ON e.user_id = u.id 
+                    $whereClause
+                    ORDER BY e.created_at DESC 
+                    LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
         } else {
-            // Initial load: get most recent entries
-            $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                 FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 ORDER BY e.created_at DESC 
-                 LIMIT ?"
-            );
-            $stmt->execute([$limit]);
+            // Cursor-based pagination
+            $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
+                    FROM {$this->table} e 
+                    JOIN trail_users u ON e.user_id = u.id 
+                    $whereClause
+                    ORDER BY e.created_at DESC 
+                    LIMIT ?";
+            $params[] = $limit;
         }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         
         return $stmt->fetchAll();
     }
@@ -269,9 +286,9 @@ class Entry
     /**
      * Get all entries with image URLs attached
      */
-    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null): array
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = []): array
     {
-        $entries = $this->getAll($limit, $before, $offset);
+        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds);
         return array_map([$this, 'attachImageUrls'], $entries);
     }
     

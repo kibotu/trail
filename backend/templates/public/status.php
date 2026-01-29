@@ -503,6 +503,7 @@
         </div>
     </main>
 
+    <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script>
         const hashId = <?php echo json_encode($hashId ?? ''); ?>;
@@ -562,7 +563,9 @@
                 container.innerHTML = '';
                 const card = createEntryCard(entry, {
                     canModify: canModify,
-                    enablePermalink: false
+                    enablePermalink: false,
+                    isLoggedIn: isLoggedIn,
+                    currentUserId: null
                 });
                 container.appendChild(card);
                 

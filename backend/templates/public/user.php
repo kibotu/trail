@@ -746,6 +746,7 @@
         </div>
     </main>
 
+    <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script>
         const nickname = <?= json_encode($nickname ?? '') ?>;
@@ -844,7 +845,9 @@
                         const card = createEntryCard(entry, {
                             showSourceBadge: false,
                             canModify: canModifyEntry(entry),
-                            isAdmin: false
+                            isAdmin: false,
+                            isLoggedIn: isLoggedIn,
+                            currentUserId: null
                         });
                         entriesContainer.appendChild(card);
                     });

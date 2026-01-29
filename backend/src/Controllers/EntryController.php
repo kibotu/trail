@@ -105,7 +105,19 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getAllWithImages($limit, $before);
+        // Try to detect authenticated user (optional - doesn't require auth)
+        $userId = self::getOptionalUserId($request, $config);
+        $excludeUserId = null;
+        $excludeEntryIds = [];
+        
+        if ($userId) {
+            // User is logged in - apply mute and hide filters
+            $reportModel = new \Trail\Models\Report($db);
+            $excludeUserId = $userId;
+            $excludeEntryIds = $reportModel->getHiddenEntryIds($userId);
+        }
+
+        $entries = $entryModel->getAllWithImages($limit, $before, null, $excludeUserId, $excludeEntryIds);
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
@@ -454,5 +466,53 @@ class EntryController
 
         // Ultimate fallback
         return "https://www.gravatar.com/avatar/00000000000000000000000000000000?s={$size}&d=mp";
+    }
+
+    /**
+     * Optionally get user ID from request without requiring authentication
+     * Used for public endpoints that want to apply user-specific filters if logged in
+     * 
+     * @param ServerRequestInterface $request
+     * @param array $config
+     * @return int|null User ID if authenticated, null otherwise
+     */
+    private static function getOptionalUserId(ServerRequestInterface $request, array $config): ?int
+    {
+        // Try to get JWT token from cookie
+        $cookies = $request->getCookieParams();
+        $token = $cookies['trail_jwt'] ?? null;
+
+        // If no JWT cookie, try session
+        if (!$token) {
+            try {
+                require_once __DIR__ . '/../../public/helpers/session.php';
+                $session = getAuthenticatedUser($db ?? \Trail\Database\Database::getInstance($config));
+                if ($session && !empty($session['jwt_token'])) {
+                    $token = $session['jwt_token'];
+                }
+            } catch (\Throwable $e) {
+                // Session check failed - user not logged in
+                return null;
+            }
+        }
+
+        if (!$token) {
+            return null;
+        }
+
+        // Verify JWT token
+        try {
+            $jwtService = new \Trail\Services\JwtService($config);
+            $payload = $jwtService->verify($token);
+            
+            if ($payload && isset($payload['user_id'])) {
+                return (int) $payload['user_id'];
+            }
+        } catch (\Throwable $e) {
+            // Token invalid or expired - treat as not logged in
+            return null;
+        }
+
+        return null;
     }
 }

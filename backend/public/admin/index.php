@@ -963,6 +963,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         </div>
     </div>
 
+    <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script>
         // JWT token for admin operations
@@ -1032,7 +1033,9 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 const card = createEntryCard(entry, {
                     showSourceBadge: true,  // Show source badges in admin
                     canModify: true,        // Admin can modify all entries
-                    isAdmin: true           // Admin context
+                    isAdmin: true,          // Admin context
+                    isLoggedIn: true,       // Admin is always logged in
+                    currentUserId: null     // Not needed for admin
                 });
                 container.appendChild(card);
             });

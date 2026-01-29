@@ -181,6 +181,8 @@ function createLinkPreviewCard(entry, options = {}) {
  * @param {boolean} options.canModify - Whether the current user can modify this entry
  * @param {boolean} options.isAdmin - Whether this is being rendered in admin context
  * @param {boolean} options.enablePermalink - Whether to make the card clickable (default: true)
+ * @param {boolean} options.isLoggedIn - Whether the current user is logged in
+ * @param {number} options.currentUserId - Current user's ID (for checking if they can mute)
  * @returns {HTMLElement} DOM element for the entry card
  */
 function createEntryCard(entry, options = {}) {
@@ -188,7 +190,9 @@ function createEntryCard(entry, options = {}) {
         showSourceBadge = false,
         canModify = false,
         isAdmin = false,
-        enablePermalink = true
+        enablePermalink = true,
+        isLoggedIn = false,
+        currentUserId = null
     } = options;
     
     // Ensure entry has a valid numeric ID
@@ -249,20 +253,32 @@ function createEntryCard(entry, options = {}) {
                         <span style="color: var(--text-muted);">·</span>
                         <span class="timestamp">${formatTimestamp(entry.created_at)}</span>
                     </div>
-                    ${canModify ? `
+                    ${canModify || isLoggedIn ? `
                         <div class="entry-menu">
                             <button class="menu-button" data-entry-id="${entry.id}" data-action="toggle-menu" data-no-navigate aria-label="More options">
                                 ⋯
                             </button>
                             <div class="menu-dropdown" id="menu-${entry.id}">
-                                <button class="menu-item" data-entry-id="${entry.id}" data-action="edit" data-no-navigate>
-                                    <i class="fa-solid fa-pen"></i>
-                                    <span>Edit</span>
-                                </button>
-                                <button class="menu-item delete" data-entry-id="${entry.id}" data-action="delete" data-no-navigate>
-                                    <i class="fa-solid fa-trash"></i>
-                                    <span>Delete</span>
-                                </button>
+                                ${canModify ? `
+                                    <button class="menu-item" data-entry-id="${entry.id}" data-action="edit" data-no-navigate>
+                                        <i class="fa-solid fa-pen"></i>
+                                        <span>Edit</span>
+                                    </button>
+                                    <button class="menu-item delete" data-entry-id="${entry.id}" data-action="delete" data-no-navigate>
+                                        <i class="fa-solid fa-trash"></i>
+                                        <span>Delete</span>
+                                    </button>
+                                ` : ''}
+                                ${isLoggedIn && !canModify ? `
+                                    <button class="menu-item" data-entry-id="${entry.id}" data-user-id="${entry.user_id}" data-action="report" data-no-navigate>
+                                        <i class="fa-solid fa-flag"></i>
+                                        <span>Report Post</span>
+                                    </button>
+                                    <button class="menu-item" data-entry-id="${entry.id}" data-user-id="${entry.user_id}" data-action="mute" data-no-navigate>
+                                        <i class="fa-solid fa-volume-xmark"></i>
+                                        <span>Mute User</span>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     ` : ''}
@@ -328,11 +344,13 @@ function createEntryCard(entry, options = {}) {
         shareButton.dataset.hashId = hashId;
     }
     
-    // Add event listeners for edit/delete buttons
-    if (canModify) {
+    // Add event listeners for menu buttons
+    if (canModify || isLoggedIn) {
         const menuButton = card.querySelector('[data-action="toggle-menu"]');
         const editButton = card.querySelector('[data-action="edit"]');
         const deleteButton = card.querySelector('[data-action="delete"]');
+        const reportButton = card.querySelector('[data-action="report"]');
+        const muteButton = card.querySelector('[data-action="mute"]');
         
         if (menuButton) {
             menuButton.addEventListener('click', (e) => {
@@ -366,6 +384,30 @@ function createEntryCard(entry, options = {}) {
                     deleteEntry(entryId);
                 } else {
                     console.error('deleteEntry function not found');
+                }
+            });
+        }
+        
+        if (reportButton) {
+            reportButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const entryId = parseInt(reportButton.dataset.entryId, 10);
+                if (typeof reportEntry === 'function') {
+                    reportEntry(entryId, card);
+                } else {
+                    console.error('reportEntry function not found');
+                }
+            });
+        }
+        
+        if (muteButton) {
+            muteButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const userId = parseInt(muteButton.dataset.userId, 10);
+                if (typeof muteUser === 'function') {
+                    muteUser(userId);
+                } else {
+                    console.error('muteUser function not found');
                 }
             });
         }
@@ -615,6 +657,90 @@ async function shareEntryNative(hashId, entryUrl) {
     }
 }
 
+/**
+ * Report an entry
+ * @param {number} entryId - Entry ID to report
+ * @param {HTMLElement} cardElement - The card element to hide
+ */
+async function reportEntry(entryId, cardElement) {
+    try {
+        const response = await fetch(`/api/entries/${entryId}/report`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Hide the card immediately
+            if (cardElement) {
+                cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
+                cardElement.style.opacity = '0';
+                cardElement.style.transform = 'scale(0.95)';
+                
+                setTimeout(() => {
+                    cardElement.style.display = 'none';
+                }, 300);
+            }
+
+            // Show success message
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('Post reported. Thank you for keeping our community safe.', 'success');
+            }
+        } else if (data.already_reported) {
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('You have already reported this post', 'info');
+            }
+        } else {
+            throw new Error(data.error || 'Failed to report entry');
+        }
+    } catch (error) {
+        console.error('Error reporting entry:', error);
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to report post. Please try again.', 'error');
+        }
+    }
+}
+
+/**
+ * Mute a user
+ * @param {number} userId - User ID to mute
+ */
+async function muteUser(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/mute`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Reload the page to hide all posts from this user
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('User muted. Refreshing feed...', 'success', 1500);
+            }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Failed to mute user');
+        }
+    } catch (error) {
+        console.error('Error muting user:', error);
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to mute user. Please try again.', 'error');
+        }
+    }
+}
+
 // Export functions for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -628,6 +754,8 @@ if (typeof module !== 'undefined' && module.exports) {
         openShareModal,
         closeShareModal,
         copyEntryLink,
-        shareEntryNative
+        shareEntryNative,
+        reportEntry,
+        muteUser
     };
 }

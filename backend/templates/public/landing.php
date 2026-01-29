@@ -1064,6 +1064,7 @@
         </div>
     </main>
 
+    <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script>
         let nextCursor = null;
@@ -1254,7 +1255,9 @@
                         const card = createEntryCard(entry, {
                             showSourceBadge: false,              // No source badges on public page
                             canModify: canModifyEntry(entry),    // User-specific permissions
-                            isAdmin: false                       // Not admin context
+                            isAdmin: false,                      // Not admin context
+                            isLoggedIn: isLoggedIn,              // Pass login status
+                            currentUserId: null                  // Not needed for public page
                         });
                         entriesContainer.appendChild(card);
                     });

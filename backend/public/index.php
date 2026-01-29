@@ -16,6 +16,7 @@ use Trail\Controllers\RssController;
 use Trail\Controllers\ProfileController;
 use Trail\Controllers\ImageUploadController;
 use Trail\Controllers\TokenController;
+use Trail\Controllers\ReportController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -299,5 +300,13 @@ $app->group('/api/admin', function ($group) {
 // Public RSS routes
 $app->get('/api/rss', [RssController::class, 'globalFeed']);
 $app->get('/api/rss/{user_id}', [RssController::class, 'userFeed']);
+
+// Report and moderation routes (authenticated)
+$app->post('/api/entries/{id}/report', [ReportController::class, 'reportEntry'])->add(new AuthMiddleware($config));
+$app->post('/api/users/{id}/mute', [ReportController::class, 'muteUser'])->add(new AuthMiddleware($config));
+$app->delete('/api/users/{id}/mute', [ReportController::class, 'unmuteUser'])->add(new AuthMiddleware($config));
+$app->get('/api/users/{id}/mute-status', [ReportController::class, 'checkMuteStatus'])->add(new AuthMiddleware($config));
+$app->get('/api/users/{id}/info', [ReportController::class, 'getUserInfo'])->add(new AuthMiddleware($config));
+$app->get('/api/filters', [ReportController::class, 'getFilters'])->add(new AuthMiddleware($config));
 
 $app->run();
