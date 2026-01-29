@@ -191,6 +191,18 @@ function createEntryCard(entry, options = {}) {
         enablePermalink = true
     } = options;
     
+    // Ensure entry has a valid numeric ID
+    if (!entry.id) {
+        console.error('Entry missing ID:', entry);
+        console.error('Entry keys:', Object.keys(entry));
+        return document.createElement('div'); // Return empty div if no ID
+    }
+    
+    // Log entry ID for debugging (can be removed after testing)
+    if (canModify) {
+        console.log(`Creating card for entry ID: ${entry.id} (type: ${typeof entry.id})`);
+    }
+    
     const card = document.createElement('div');
     card.className = 'entry-card';
     card.dataset.entryId = entry.id;
@@ -239,15 +251,15 @@ function createEntryCard(entry, options = {}) {
                     </div>
                     ${canModify ? `
                         <div class="entry-menu">
-                            <button class="menu-button" onclick="toggleMenu(event, ${entry.id})" data-no-navigate aria-label="More options">
+                            <button class="menu-button" data-entry-id="${entry.id}" data-action="toggle-menu" data-no-navigate aria-label="More options">
                                 ⋯
                             </button>
                             <div class="menu-dropdown" id="menu-${entry.id}">
-                                <button class="menu-item" onclick="editEntry(${entry.id})" data-no-navigate>
+                                <button class="menu-item" data-entry-id="${entry.id}" data-action="edit" data-no-navigate>
                                     <i class="fa-solid fa-pen"></i>
                                     <span>Edit</span>
                                 </button>
-                                <button class="menu-item delete" onclick="deleteEntry(${entry.id})" data-no-navigate>
+                                <button class="menu-item delete" data-entry-id="${entry.id}" data-action="delete" data-no-navigate>
                                     <i class="fa-solid fa-trash"></i>
                                     <span>Delete</span>
                                 </button>
@@ -314,6 +326,49 @@ function createEntryCard(entry, options = {}) {
         
         // Store hash_id in dataset for share functionality
         shareButton.dataset.hashId = hashId;
+    }
+    
+    // Add event listeners for edit/delete buttons
+    if (canModify) {
+        const menuButton = card.querySelector('[data-action="toggle-menu"]');
+        const editButton = card.querySelector('[data-action="edit"]');
+        const deleteButton = card.querySelector('[data-action="delete"]');
+        
+        if (menuButton) {
+            menuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const entryId = parseInt(menuButton.dataset.entryId, 10);
+                if (typeof toggleMenu === 'function') {
+                    toggleMenu(e, entryId);
+                } else {
+                    console.error('toggleMenu function not found');
+                }
+            });
+        }
+        
+        if (editButton) {
+            editButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const entryId = parseInt(editButton.dataset.entryId, 10);
+                if (typeof editEntry === 'function') {
+                    editEntry(entryId);
+                } else {
+                    console.error('editEntry function not found');
+                }
+            });
+        }
+        
+        if (deleteButton) {
+            deleteButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const entryId = parseInt(deleteButton.dataset.entryId, 10);
+                if (typeof deleteEntry === 'function') {
+                    deleteEntry(entryId);
+                } else {
+                    console.error('deleteEntry function not found');
+                }
+            });
+        }
     }
     
     return card;

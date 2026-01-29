@@ -895,11 +895,6 @@
         window.addEventListener('scroll', handleScroll);
         window.addEventListener('resize', handleScroll);
 
-        // Get JWT token from session
-        function getAuthToken() {
-            return jwtToken;
-        }
-
         // Edit entry
         async function editEntry(entryId) {
             const menu = document.getElementById(`menu-${entryId}`);
@@ -956,18 +951,18 @@
                 return;
             }
 
-            const token = getAuthToken();
-            if (!token) {
+            if (!isLoggedIn) {
                 alert('You must be logged in to edit entries');
                 return;
             }
 
-            try {
+            try:
+                // Use fetch with credentials to send httpOnly cookies
                 const response = await fetch(`/api/entries/${entryId}`, {
                     method: 'PUT',
+                    credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ text: newText })
                 });
@@ -993,18 +988,16 @@
                 return;
             }
 
-            const token = getAuthToken();
-            if (!token) {
+            if (!isLoggedIn) {
                 alert('You must be logged in to delete entries');
                 return;
             }
 
             try {
+                // Use fetch with credentials to send httpOnly cookies
                 const response = await fetch(`/api/entries/${entryId}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
 
                 if (!response.ok) {

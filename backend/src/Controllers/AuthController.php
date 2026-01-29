@@ -94,9 +94,12 @@ class AuthController
         $jwtService = new JwtService($config);
         $jwt = $jwtService->generate($userId, $userData['email'], $isAdmin);
 
-        // Return response
+        // SECURITY: JWT token is only set in httpOnly cookie, never in response body
+        // This prevents XSS attacks from stealing the token
+        
+        // Return response (without token - it's in the cookie)
         $responseData = [
-            'token' => $jwt,
+            // 'token' => $jwt,  // REMOVED: Token should never be in response body
             'user' => [
                 'id' => $userId,
                 'email' => $userData['email'],

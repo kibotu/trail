@@ -228,6 +228,33 @@ $app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development 
 // Session info endpoint (returns user info without exposing JWT)
 $app->get('/api/auth/session', [TokenController::class, 'getTokenInfo']);
 
+// Logout endpoint - clears session and cookies
+$app->post('/api/auth/logout', function ($request, $response) use ($config) {
+    require_once __DIR__ . '/helpers/session.php';
+    $db = Database::getInstance($config);
+    
+    // Clear session from database
+    $sessionId = $_COOKIE[SESSION_COOKIE_NAME] ?? null;
+    if ($sessionId) {
+        deleteSession($db, $sessionId);
+    }
+    
+    // Clear session cookie
+    clearSessionCookie();
+    
+    // Clear JWT cookie
+    setcookie('trail_jwt', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    
+    $response->getBody()->write(json_encode(['success' => true]));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
 // Profile routes (authenticated)
 $app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
 $app->put('/api/profile', [ProfileController::class, 'updateProfile'])->add(new AuthMiddleware($config));
