@@ -684,8 +684,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     </div>
 
     <script>
-        // Store JWT token from session
-        const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
 
         function toggleDebug(userId) {
             const debugContent = document.getElementById(`debug-${userId}`);

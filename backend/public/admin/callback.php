@@ -101,6 +101,20 @@ try {
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());
 
+    // Set JWT token in httpOnly cookie for API access
+    setcookie(
+        'trail_jwt',
+        $jwtToken,
+        [
+            'expires' => $expiresAt->getTimestamp(),
+            'path' => '/',
+            'domain' => '',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]
+    );
+
     // Redirect based on user role
     if ($isAdmin) {
         header('Location: /admin/');

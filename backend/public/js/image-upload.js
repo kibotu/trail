@@ -16,14 +16,7 @@ class ImageUploader {
         this.onError = onError || ((error) => console.error(error));
         this.chunkSize = 512 * 1024; // 512KB chunks
         this.uploadId = null;
-        this.jwtToken = null;
-    }
-    
-    /**
-     * Set JWT token for authentication
-     */
-    setToken(token) {
-        this.jwtToken = token;
+        // JWT token is now stored in httpOnly cookie - no need to pass it explicitly
     }
     
     /**
@@ -62,9 +55,9 @@ class ImageUploader {
         const response = await fetch('/api/images/upload/init', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.jwtToken}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'same-origin', // Include httpOnly cookie with JWT
             body: JSON.stringify({
                 image_type: this.imageType,
                 filename: file.name,
@@ -91,9 +84,9 @@ class ImageUploader {
         const response = await fetch('/api/images/upload/chunk', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.jwtToken}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'same-origin', // Include httpOnly cookie with JWT
             body: JSON.stringify({
                 upload_id: uploadId,
                 chunk_index: chunkIndex,
@@ -116,9 +109,9 @@ class ImageUploader {
         const response = await fetch('/api/images/upload/complete', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.jwtToken}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'same-origin', // Include httpOnly cookie with JWT
             body: JSON.stringify({
                 upload_id: uploadId
             })

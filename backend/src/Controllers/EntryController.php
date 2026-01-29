@@ -12,6 +12,7 @@ use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
 use Trail\Services\UrlEmbedService;
 use Trail\Services\IframelyUsageTracker;
+use Trail\Services\HashIdService;
 
 class EntryController
 {
@@ -107,7 +108,11 @@ class EntryController
         $entries = $entryModel->getAllWithImages($limit, $before);
         $hasMore = count($entries) === $limit;
 
-        // Add avatar URLs and ensure nicknames
+        // Initialize HashIdService
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+
+        // Add avatar URLs, ensure nicknames, and add hash IDs
         $userModel = new \Trail\Models\User($db);
         $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
         
@@ -121,6 +126,15 @@ class EntryController
                     $entry['google_id'],
                     $salt
                 );
+            }
+            
+            // Add hash_id for secure permalinks
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                error_log("Failed to encode entry ID {$entry['id']}: " . $e->getMessage());
+                // Fallback to numeric ID if encoding fails
+                $entry['hash_id'] = (string) $entry['id'];
             }
         }
 
@@ -156,9 +170,19 @@ class EntryController
         $entries = $entryModel->getByUserWithImages($userId, $limit, $before);
         $hasMore = count($entries) === $limit;
 
-        // Add avatar URLs with Google photo fallback to Gravatar
+        // Initialize HashIdService
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+
+        // Add avatar URLs and hash IDs
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                error_log("Failed to encode entry ID {$entry['id']}: " . $e->getMessage());
+                $entry['hash_id'] = (string) $entry['id'];
+            }
         }
 
         // Get the cursor for the next page (created_at of the last entry)
@@ -280,18 +304,26 @@ class EntryController
     }
 
     /**
-     * Get a single entry by ID
+     * Get a single entry by hash ID
      */
     public static function getById(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $entryId = (int) $args['id'];
+        $hashId = $args['id'] ?? '';
 
-        if ($entryId <= 0) {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        
+        // Initialize HashIdService with salt from config
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+        
+        // Decode hash to get real entry ID
+        $entryId = $hashIdService->decode($hashId);
+        
+        if ($entryId === null) {
             $response->getBody()->write(json_encode(['error' => 'Invalid entry ID']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
-        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
@@ -315,6 +347,9 @@ class EntryController
                 $salt
             );
         }
+
+        // Add hash_id to response for frontend use
+        $entry['hash_id'] = $hashId;
 
         $response->getBody()->write(json_encode($entry));
         return $response->withHeader('Content-Type', 'application/json');
@@ -353,9 +388,19 @@ class EntryController
         $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before);
         $hasMore = count($entries) === $limit;
 
-        // Add avatar URLs
+        // Initialize HashIdService
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+
+        // Add avatar URLs and hash IDs
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                error_log("Failed to encode entry ID {$entry['id']}: " . $e->getMessage());
+                $entry['hash_id'] = (string) $entry['id'];
+            }
         }
 
         // Get the cursor for the next page

@@ -965,8 +965,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
 
     <script src="/js/card-template.js"></script>
     <script>
-        // Store JWT token from session
-        const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
         
         let currentPage = 0;
         let loading = false;
@@ -996,9 +995,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             
             try {
                 const response = await fetch(`/api/admin/entries?page=${currentPage}&limit=${pageSize}`, {
-                    headers: {
-                        'Authorization': 'Bearer ' + (jwtToken || localStorage.getItem('trail_jwt'))
-                    }
+                    credentials: 'same-origin' // Include httpOnly cookie with JWT
                 });
 
                 if (!response.ok) {

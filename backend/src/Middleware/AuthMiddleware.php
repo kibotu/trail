@@ -24,13 +24,34 @@ class AuthMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $authHeader = $request->getHeaderLine('Authorization');
+        $token = null;
 
-        if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            return $this->unauthorized('Missing or invalid authorization header');
+        // Try to get token from Authorization header first
+        $authHeader = $request->getHeaderLine('Authorization');
+        if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            $token = $matches[1];
         }
 
-        $token = $matches[1];
+        // Fallback: Try to get token from httpOnly cookie
+        if (!$token) {
+            $cookies = $request->getCookieParams();
+            $token = $cookies['trail_jwt'] ?? null;
+        }
+
+        // Fallback: Try to get token from session
+        if (!$token) {
+            require_once __DIR__ . '/../../public/helpers/session.php';
+            $db = \Trail\Database\Database::getInstance($this->config)->getConnection();
+            $session = getAuthenticatedUser($db);
+            if ($session && !empty($session['jwt_token'])) {
+                $token = $session['jwt_token'];
+            }
+        }
+
+        if (!$token) {
+            return $this->unauthorized('Missing or invalid authorization');
+        }
+
         $jwtService = new JwtService($this->config);
         $payload = $jwtService->verify($token);
 

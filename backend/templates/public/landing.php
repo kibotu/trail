@@ -1074,11 +1074,11 @@
         const loadingElement = document.getElementById('loading');
         const endMessage = document.getElementById('endMessage');
 
-        // User session info (from PHP)
+        // User session info (from PHP) - only non-sensitive data
         const isLoggedIn = <?= json_encode($isLoggedIn ?? false) ?>;
         const userEmail = <?= json_encode($userName ?? null) ?>;
         const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
-        const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
 
         // Character counter for post form
         if (isLoggedIn) {
@@ -1148,9 +1148,9 @@
                     const response = await fetch('/api/entries', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${jwtToken}`
+                            'Content-Type': 'application/json'
                         },
+                        credentials: 'same-origin', // Include httpOnly cookie with JWT
                         body: JSON.stringify(payload)
                     });
 

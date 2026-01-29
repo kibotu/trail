@@ -433,16 +433,14 @@
 
     <script>
         const API_BASE = '/api';
-        const jwtToken = '<?= htmlspecialchars($jwtToken ?? '', ENT_QUOTES, 'UTF-8') ?>';
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
         let currentProfile = null;
 
         // Load profile data
         async function loadProfile() {
             try {
                 const response = await fetch(`${API_BASE}/profile`, {
-                    headers: {
-                        'Authorization': `Bearer <?= htmlspecialchars($jwtToken ?? '') ?>`
-                    }
+                    credentials: 'same-origin' // Include httpOnly cookie with JWT
                 });
 
                 if (!response.ok) {
@@ -500,9 +498,9 @@
                 const response = await fetch(`${API_BASE}/profile`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer <?= htmlspecialchars($jwtToken ?? '') ?>`
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'same-origin', // Include httpOnly cookie with JWT
                     body: JSON.stringify({ nickname })
                 });
 
@@ -594,9 +592,9 @@
                 const response = await fetch(`${API_BASE}/profile`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer <?= htmlspecialchars($jwtToken ?? '') ?>`
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'same-origin', // Include httpOnly cookie with JWT
                     body: JSON.stringify(payload)
                 });
                 

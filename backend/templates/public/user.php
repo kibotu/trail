@@ -760,11 +760,11 @@
         const userHeader = document.getElementById('userHeader');
         const errorContainer = document.getElementById('errorContainer');
 
-        // User session info (from PHP)
+        // User session info (from PHP) - only non-sensitive data
         const isLoggedIn = <?= json_encode($isLoggedIn ?? false) ?>;
         const userEmail = <?= json_encode($userName ?? null) ?>;
         const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
-        const jwtToken = <?= json_encode($jwtToken ?? null) ?>;
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
 
         // Check if current user can modify this entry
         function canModifyEntry(entry) {

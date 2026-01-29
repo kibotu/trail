@@ -271,12 +271,15 @@ function createEntryCard(entry, options = {}) {
                             <span>edited ${formatTimestamp(entry.updated_at)}</span>
                         </div>` : '<div></div>'}
                 </div>
-                <button class="share-button" onclick="openShareModal(${entry.id})" data-no-navigate aria-label="Share entry">
+                <button class="share-button" data-no-navigate aria-label="Share entry">
                     <i class="fa-solid fa-share-nodes"></i>
                 </button>
             </div>
         </div>
     `;
+    
+    // Get hash ID once for all event handlers
+    const hashId = entry.hash_id || entry.id; // Fallback to numeric ID if hash_id not available
     
     // Add click handler for permalink navigation
     if (enablePermalink) {
@@ -290,184 +293,186 @@ function createEntryCard(entry, options = {}) {
                 return;
             }
             
-            window.location.href = `/status/${entry.id}`;
+            window.location.href = `/status/${hashId}`;
         });
         
         // Add keyboard navigation
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.target.closest('[data-no-navigate]')) {
-                window.location.href = `/status/${entry.id}`;
+                window.location.href = `/status/${hashId}`;
             }
         });
+    }
+    
+    // Add share button click handler
+    const shareButton = card.querySelector('.share-button');
+    if (shareButton) {
+        shareButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openShareModal(hashId, shareButton);
+        });
+        
+        // Store hash_id in dataset for share functionality
+        shareButton.dataset.hashId = hashId;
     }
     
     return card;
 }
 
 /**
- * Open share modal for an entry
- * @param {number} entryId - Entry ID to share
+ * Open share tooltip for an entry
+ * @param {string} hashId - Entry hash ID to share
+ * @param {HTMLElement} buttonElement - The share button element that was clicked
  */
-function openShareModal(entryId) {
-    // Remove any existing modal
+function openShareModal(hashId, buttonElement) {
+    // Remove any existing tooltip
     closeShareModal();
     
-    const entryUrl = `${window.location.origin}/status/${entryId}`;
+    const entryUrl = `${window.location.origin}/status/${hashId}`;
     const supportsNativeShare = navigator.share !== undefined;
     
-    // Create modal backdrop
-    const backdrop = document.createElement('div');
-    backdrop.id = 'share-modal-backdrop';
-    backdrop.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        animation: fadeIn 0.2s ease-out;
-    `;
-    
-    // Create modal container
-    const modal = document.createElement('div');
-    modal.id = 'share-modal';
-    modal.style.cssText = `
+    // Create tooltip container
+    const tooltip = document.createElement('div');
+    tooltip.id = 'share-tooltip';
+    tooltip.style.cssText = `
+        position: absolute;
         background: var(--bg-secondary, #1e293b);
         border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-        border-radius: 12px;
-        padding: 1.5rem;
-        max-width: 400px;
-        width: 100%;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-        animation: slideUp 0.3s ease-out;
+        border-radius: 8px;
+        padding: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        animation: tooltipFadeIn 0.2s ease-out;
+        min-width: 140px;
     `;
     
-    modal.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary, #f8fafc); margin: 0;">Share Entry</h3>
-            <button id="share-modal-close" style="background: transparent; border: none; color: var(--text-muted, #94a3b8); font-size: 1.5rem; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" aria-label="Close">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-        
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    tooltip.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
             <button id="copy-link-button" style="
-                background: var(--bg-tertiary, #334155);
-                border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+                background: transparent;
+                border: none;
                 color: var(--text-primary, #f8fafc);
-                padding: 0.875rem 1rem;
-                border-radius: 8px;
-                font-size: 0.9375rem;
+                padding: 0.625rem 0.75rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
                 font-weight: 500;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                gap: 0.75rem;
+                gap: 0.625rem;
                 transition: all 0.2s;
-                min-height: 44px;
+                text-align: left;
+                white-space: nowrap;
             ">
-                <i class="fa-solid fa-link"></i>
+                <i class="fa-solid fa-link" style="width: 16px;"></i>
                 <span>Copy Link</span>
             </button>
             
             ${supportsNativeShare ? `
                 <button id="native-share-button" style="
-                    background: var(--accent, #3b82f6);
+                    background: transparent;
                     border: none;
-                    color: white;
-                    padding: 0.875rem 1rem;
-                    border-radius: 8px;
-                    font-size: 0.9375rem;
+                    color: var(--text-primary, #f8fafc);
+                    padding: 0.625rem 0.75rem;
+                    border-radius: 4px;
+                    font-size: 0.875rem;
                     font-weight: 500;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    gap: 0.75rem;
+                    gap: 0.625rem;
                     transition: all 0.2s;
-                    min-height: 44px;
+                    text-align: left;
+                    white-space: nowrap;
                 ">
-                    <i class="fa-solid fa-share-from-square"></i>
+                    <i class="fa-solid fa-share-from-square" style="width: 16px;"></i>
                     <span>Share</span>
                 </button>
             ` : ''}
         </div>
     `;
     
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
+    document.body.appendChild(tooltip);
     
-    // Add CSS animations
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        #copy-link-button:hover {
-            background: var(--bg-primary, #0f172a);
-            border-color: var(--accent, #3b82f6);
-        }
-        
-        #native-share-button:hover {
-            background: var(--accent-hover, #2563eb);
-        }
-        
-        #share-modal-close:hover {
-            background: var(--bg-tertiary, #334155);
-            color: var(--text-primary, #f8fafc);
-        }
-        
-        @media (max-width: 768px) {
-            #share-modal-backdrop {
-                align-items: flex-end;
-            }
-            
-            #share-modal {
-                border-radius: 12px 12px 0 0;
-                animation: slideUpMobile 0.3s ease-out;
+    // Position tooltip above the button
+    const buttonRect = buttonElement.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // Calculate position (centered above button with arrow)
+    let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+    let top = buttonRect.top - tooltipRect.height - 8; // 8px gap
+    
+    // Adjust if tooltip goes off-screen horizontally
+    if (left < 8) {
+        left = 8;
+    } else if (left + tooltipRect.width > window.innerWidth - 8) {
+        left = window.innerWidth - tooltipRect.width - 8;
+    }
+    
+    // If tooltip goes off-screen at top, show below button instead
+    if (top < 8) {
+        top = buttonRect.bottom + 8;
+        tooltip.style.animation = 'tooltipFadeInDown 0.2s ease-out';
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    
+    // Add CSS animations if not already added
+    if (!document.getElementById('share-tooltip-styles')) {
+        const style = document.createElement('style');
+        style.id = 'share-tooltip-styles';
+        style.textContent = `
+            @keyframes tooltipFadeIn {
+                from { 
+                    opacity: 0;
+                    transform: translateY(4px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
             
-            @keyframes slideUpMobile {
-                from { transform: translateY(100%); }
-                to { transform: translateY(0); }
+            @keyframes tooltipFadeInDown {
+                from { 
+                    opacity: 0;
+                    transform: translateY(-4px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
-        }
-    `;
-    document.head.appendChild(style);
+            
+            #share-tooltip button:hover {
+                background: var(--bg-tertiary, #334155);
+            }
+            
+            #share-tooltip button:active {
+                transform: scale(0.98);
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     // Event listeners
-    document.getElementById('share-modal-close').addEventListener('click', closeShareModal);
-    backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
-            closeShareModal();
-        }
-    });
-    
-    document.getElementById('copy-link-button').addEventListener('click', () => copyEntryLink(entryId, entryUrl));
+    document.getElementById('copy-link-button').addEventListener('click', () => copyEntryLink(hashId, entryUrl, buttonElement));
     
     if (supportsNativeShare) {
-        document.getElementById('native-share-button').addEventListener('click', () => shareEntryNative(entryId, entryUrl));
+        document.getElementById('native-share-button').addEventListener('click', () => shareEntryNative(hashId, entryUrl));
     }
+    
+    // Close on click outside
+    setTimeout(() => {
+        const closeHandler = (e) => {
+            if (!tooltip.contains(e.target) && e.target !== buttonElement) {
+                closeShareModal();
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        document.addEventListener('click', closeHandler);
+    }, 0);
     
     // Close on ESC key
     const escHandler = (e) => {
@@ -480,21 +485,22 @@ function openShareModal(entryId) {
 }
 
 /**
- * Close share modal
+ * Close share tooltip
  */
 function closeShareModal() {
-    const backdrop = document.getElementById('share-modal-backdrop');
-    if (backdrop) {
-        backdrop.remove();
+    const tooltip = document.getElementById('share-tooltip');
+    if (tooltip) {
+        tooltip.remove();
     }
 }
 
 /**
  * Copy entry link to clipboard
- * @param {number} entryId - Entry ID
+ * @param {string} hashId - Entry hash ID
  * @param {string} entryUrl - Full URL to the entry
+ * @param {HTMLElement} shareButton - The share button element for positioning feedback
  */
-async function copyEntryLink(entryId, entryUrl) {
+async function copyEntryLink(hashId, entryUrl, shareButton) {
     const button = document.getElementById('copy-link-button');
     const originalContent = button.innerHTML;
     
@@ -503,33 +509,28 @@ async function copyEntryLink(entryId, entryUrl) {
         
         // Show success feedback
         button.innerHTML = `
-            <i class="fa-solid fa-check"></i>
+            <i class="fa-solid fa-check" style="width: 16px;"></i>
             <span>Copied!</span>
         `;
-        button.style.background = 'var(--accent, #3b82f6)';
-        button.style.color = 'white';
+        button.style.color = 'var(--accent, #3b82f6)';
         
-        // Reset after 2 seconds
+        // Close tooltip after brief delay
         setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.style.background = 'var(--bg-tertiary, #334155)';
-            button.style.color = 'var(--text-primary, #f8fafc)';
-        }, 2000);
+            closeShareModal();
+        }, 1000);
         
     } catch (error) {
         console.error('Failed to copy link:', error);
         
-        // Fallback: show error
+        // Show error feedback
         button.innerHTML = `
-            <i class="fa-solid fa-xmark"></i>
-            <span>Failed to copy</span>
+            <i class="fa-solid fa-xmark" style="width: 16px;"></i>
+            <span>Failed</span>
         `;
-        button.style.background = '#ef4444';
-        button.style.color = 'white';
+        button.style.color = '#ef4444';
         
         setTimeout(() => {
             button.innerHTML = originalContent;
-            button.style.background = 'var(--bg-tertiary, #334155)';
             button.style.color = 'var(--text-primary, #f8fafc)';
         }, 2000);
     }
@@ -537,10 +538,10 @@ async function copyEntryLink(entryId, entryUrl) {
 
 /**
  * Share entry using native share API
- * @param {number} entryId - Entry ID
+ * @param {string} hashId - Entry hash ID
  * @param {string} entryUrl - Full URL to the entry
  */
-async function shareEntryNative(entryId, entryUrl) {
+async function shareEntryNative(hashId, entryUrl) {
     try {
         await navigator.share({
             title: 'Trail Entry',

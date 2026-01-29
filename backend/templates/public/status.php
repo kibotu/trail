@@ -505,15 +505,15 @@
 
     <script src="/js/card-template.js"></script>
     <script>
-        const entryId = <?php echo json_encode($entryId); ?>;
+        const hashId = <?php echo json_encode($hashId ?? ''); ?>;
         const isLoggedIn = <?php echo json_encode($isLoggedIn ?? false); ?>;
-        const jwtToken = <?php echo json_encode($jwtToken ?? null); ?>;
+        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
 
         async function loadEntry() {
             const container = document.getElementById('entry-container');
             
             try {
-                const response = await fetch(`/api/entries/${entryId}`);
+                const response = await fetch(`/api/entries/${hashId}`);
                 
                 if (!response.ok) {
                     if (response.status === 404) {
@@ -546,9 +546,7 @@
                 if (isLoggedIn && jwtToken) {
                     try {
                         const profileResponse = await fetch('/api/profile', {
-                            headers: {
-                                'Authorization': `Bearer ${jwtToken}`
-                            }
+                            credentials: 'same-origin' // Include httpOnly cookie with JWT
                         });
                         
                         if (profileResponse.ok) {

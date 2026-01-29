@@ -14,6 +14,7 @@ use Trail\Controllers\AdminController;
 use Trail\Controllers\RssController;
 use Trail\Controllers\ProfileController;
 use Trail\Controllers\ImageUploadController;
+use Trail\Controllers\TokenController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -172,8 +173,8 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
         $isAdmin = $session['is_admin'] ?? false;
         $jwtToken = $session['jwt_token'] ?? null;
         
-        // Get the entry ID from the route
-        $entryId = (int) ($args['id'] ?? 0);
+        // Get the hash ID from the route (not decoded here, will be decoded by API)
+        $hashId = $args['id'] ?? '';
         
         // Build Google OAuth URL for the login button (only if not logged in)
         $googleOAuth = $config['google_oauth'] ?? null;
@@ -223,6 +224,9 @@ $app->get('/api/health', function ($request, $response) {
 // Authentication routes
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth']);
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development only
+
+// Session info endpoint (returns user info without exposing JWT)
+$app->get('/api/auth/session', [TokenController::class, 'getTokenInfo']);
 
 // Profile routes (authenticated)
 $app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
