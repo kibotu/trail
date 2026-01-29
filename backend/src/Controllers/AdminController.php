@@ -12,6 +12,7 @@ use Trail\Models\User;
 use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
 use Trail\Services\StorageService;
+use Trail\Services\ErrorLogService;
 
 class AdminController
 {
@@ -223,6 +224,100 @@ class AdminController
             
         } catch (\Throwable $e) {
             error_log("Cache clear error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Get error logs with pagination and filtering
+     */
+    public static function errorLogs(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $errorLogService = new ErrorLogService($db);
+
+        // Get query parameters
+        $queryParams = $request->getQueryParams();
+        $page = isset($queryParams['page']) ? max(0, (int)$queryParams['page']) : 0;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 50;
+        $offset = $page * $limit;
+        $statusCode = isset($queryParams['status_code']) ? (int)$queryParams['status_code'] : null;
+
+        // Get error logs
+        $logs = $errorLogService->getErrorLogs($limit, $offset, $statusCode);
+        
+        // All data is already sanitized by ErrorLogService
+        // Additional HTML escaping for JSON output (defense in depth)
+        foreach ($logs as &$log) {
+            $log['url'] = htmlspecialchars($log['url'], ENT_QUOTES, 'UTF-8');
+            if ($log['referer']) {
+                $log['referer'] = htmlspecialchars($log['referer'], ENT_QUOTES, 'UTF-8');
+            }
+            if ($log['user_agent']) {
+                $log['user_agent'] = htmlspecialchars($log['user_agent'], ENT_QUOTES, 'UTF-8');
+            }
+        }
+
+        $response->getBody()->write(json_encode([
+            'logs' => $logs,
+            'page' => $page,
+            'limit' => $limit
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get error statistics
+     */
+    public static function errorStats(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $errorLogService = new ErrorLogService($db);
+
+        $stats = $errorLogService->getErrorStatistics();
+
+        $response->getBody()->write(json_encode([
+            'statistics' => $stats
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Clean up old error logs
+     */
+    public static function cleanupErrorLogs(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            $db = Database::getInstance($config);
+            $errorLogService = new ErrorLogService($db);
+
+            // Get days parameter (default 90 days)
+            $queryParams = $request->getQueryParams();
+            $daysToKeep = isset($queryParams['days']) ? max(1, (int)$queryParams['days']) : 90;
+
+            $deleted = $errorLogService->cleanupOldLogs($daysToKeep);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'deleted' => $deleted,
+                'message' => "Deleted {$deleted} old error logs (older than {$daysToKeep} days)"
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Error log cleanup error: " . $e->getMessage());
             
             $response->getBody()->write(json_encode([
                 'success' => false,

@@ -27,12 +27,28 @@ $config = Config::load(__DIR__ . '/../secrets.yml');
 $app = AppFactory::create();
 $app->addRoutingMiddleware();
 
-// Add error middleware
+// Add error middleware with custom error handler
 $errorMiddleware = $app->addErrorMiddleware(
     $config['app']['environment'] === 'development',
     true,
     true
 );
+
+// Custom error handler for production
+if ($config['app']['environment'] !== 'development') {
+    $errorHandler = $errorMiddleware->getDefaultErrorHandler();
+    $errorHandler->registerErrorRenderer('text/html', function ($exception, $displayErrorDetails) use ($config) {
+        require_once __DIR__ . '/helpers/error.php';
+        
+        // Determine status code from exception
+        $statusCode = 500;
+        if (method_exists($exception, 'getCode') && $exception->getCode() >= 400 && $exception->getCode() < 600) {
+            $statusCode = $exception->getCode();
+        }
+        
+        return renderErrorPage($statusCode, $config);
+    });
+}
 
 // Add global middleware
 $app->add(new CorsMiddleware());
@@ -76,8 +92,8 @@ $app->get('/', function ($request, $response) use ($config) {
             ->withHeader('Expires', '0');
     }
     
-    $response->getBody()->write('Landing page not found');
-    return $response->withStatus(404);
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
 });
 
 // Profile page - Show current user's profile
@@ -115,8 +131,8 @@ $app->get('/profile', function ($request, $response) use ($config) {
             ->withHeader('Expires', '0');
     }
     
-    $response->getBody()->write('Profile page not found');
-    return $response->withStatus(404);
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
 });
 
 // User page - Show entries by nickname
@@ -157,8 +173,8 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
             ->withHeader('Expires', '0');
     }
     
-    $response->getBody()->write('User page not found');
-    return $response->withStatus(404);
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
 });
 
 // Status page - Show single entry
@@ -199,8 +215,8 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
             ->withHeader('Expires', '0');
     }
     
-    $response->getBody()->write('Status page not found');
-    return $response->withStatus(404);
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
 });
 
 // API Documentation endpoint - serve static file
@@ -214,8 +230,8 @@ $app->get('/api', function ($request, $response) {
         return $response->withHeader('Content-Type', 'text/html');
     }
     
-    $response->getBody()->write('API documentation not found');
-    return $response->withStatus(404);
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
 });
 
 // Health check endpoint
@@ -301,6 +317,9 @@ $app->group('/api/admin', function ($group) {
     $group->get('/users', [AdminController::class, 'users']);
     $group->delete('/users/{id}', [AdminController::class, 'deleteUser']);
     $group->post('/cache/clear', [AdminController::class, 'clearCache']);
+    $group->get('/error-logs', [AdminController::class, 'errorLogs']);
+    $group->get('/error-stats', [AdminController::class, 'errorStats']);
+    $group->post('/error-logs/cleanup', [AdminController::class, 'cleanupErrorLogs']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes
@@ -314,5 +333,11 @@ $app->delete('/api/users/{id}/mute', [ReportController::class, 'unmuteUser'])->a
 $app->get('/api/users/{id}/mute-status', [ReportController::class, 'checkMuteStatus'])->add(new AuthMiddleware($config));
 $app->get('/api/users/{id}/info', [ReportController::class, 'getUserInfo'])->add(new AuthMiddleware($config));
 $app->get('/api/filters', [ReportController::class, 'getFilters'])->add(new AuthMiddleware($config));
+
+// Catch-all 404 handler for unmatched routes
+$app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) use ($config) {
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
+});
 
 $app->run();
