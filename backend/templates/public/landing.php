@@ -1362,7 +1362,7 @@
             });
 
             function showMessage(message, type) {
-                postMessage.textContent = message;
+                postMessage.innerHTML = message;
                 postMessage.className = type === 'success' ? 'post-success' : 'post-error';
                 postMessage.style.display = 'block';
                 
