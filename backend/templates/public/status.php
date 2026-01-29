@@ -840,10 +840,24 @@
             cancelButton.addEventListener('click', () => cancelEdit(entryId));
             saveButton.addEventListener('click', () => saveEdit(entryId));
 
+            // Prevent click-through to status page on edit form
+            const editForm = contentDiv.querySelector('.edit-form');
+            if (editForm) {
+                editForm.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+
             // Focus textarea
             const textarea = document.getElementById(`edit-text-${entryId}`);
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            if (textarea) {
+                // Prevent click-through on textarea specifically
+                textarea.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
         }
 
         // Cancel edit
