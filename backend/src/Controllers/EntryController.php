@@ -280,6 +280,47 @@ class EntryController
     }
 
     /**
+     * Get a single entry by ID
+     */
+    public static function getById(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $entryId = (int) $args['id'];
+
+        if ($entryId <= 0) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid entry ID']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $entry = $entryModel->findByIdWithImages($entryId);
+
+        if (!$entry) {
+            $response->getBody()->write(json_encode(['error' => 'Entry not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Add avatar URL
+        $entry['avatar_url'] = self::getAvatarUrl($entry);
+
+        // Generate nickname if not set
+        if (empty($entry['user_nickname']) && !empty($entry['google_id'])) {
+            $userModel = new \Trail\Models\User($db);
+            $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+            $entry['user_nickname'] = $userModel->getOrGenerateNickname(
+                (int) $entry['user_id'],
+                $entry['google_id'],
+                $salt
+            );
+        }
+
+        $response->getBody()->write(json_encode($entry));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * Get entries by user nickname
      */
     public static function listByNickname(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface

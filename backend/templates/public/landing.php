@@ -672,16 +672,46 @@
         .entry-footer {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            justify-content: space-between;
+            gap: 1rem;
             color: var(--text-muted);
             font-size: 0.8125rem;
             padding-top: 0.75rem;
+        }
+
+        .entry-footer-left {
+            flex: 1;
         }
 
         .timestamp {
             display: flex;
             align-items: center;
             gap: 0.375rem;
+        }
+
+        .share-button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .share-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+        }
+
+        .share-button:active {
+            transform: scale(0.95);
         }
 
         .entry-stats {

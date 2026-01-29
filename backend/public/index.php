@@ -157,6 +157,48 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
     return $response->withStatus(404);
 });
 
+// Status page - Show single entry
+$app->get('/status/{id}', function ($request, $response, array $args) use ($config) {
+    $statusPage = __DIR__ . '/../templates/public/status.php';
+    if (file_exists($statusPage)) {
+        require_once __DIR__ . '/helpers/session.php';
+        
+        // Check if user is logged in
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
+        
+        // Get the entry ID from the route
+        $entryId = (int) ($args['id'] ?? 0);
+        
+        // Build Google OAuth URL for the login button (only if not logged in)
+        $googleOAuth = $config['google_oauth'] ?? null;
+        $googleAuthUrl = null;
+        
+        if ($googleOAuth !== null && !$isLoggedIn) {
+            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
+        }
+        
+        ob_start();
+        include $statusPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+        
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
+    }
+    
+    $response->getBody()->write('Status page not found');
+    return $response->withStatus(404);
+});
+
 // API Documentation endpoint - serve static file
 $app->get('/api', function ($request, $response) {
     $docsFile = __DIR__ . '/api-docs.php';
@@ -196,6 +238,7 @@ $app->delete('/api/entries/{id}', [EntryController::class, 'delete'])->add(new A
 
 // Public entry routes (must be after authenticated routes to avoid conflicts)
 $app->get('/api/entries', [EntryController::class, 'listPublic']);
+$app->get('/api/entries/{id}', [EntryController::class, 'getById']);
 
 // User entries by nickname
 $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);

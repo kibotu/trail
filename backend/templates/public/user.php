@@ -456,7 +456,12 @@
             margin-top: 0.5rem;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 1rem;
+        }
+
+        .entry-footer-left {
+            flex: 1;
         }
 
         .entry-footer .timestamp {
@@ -464,6 +469,31 @@
             align-items: center;
             gap: 0.25rem;
             font-style: italic;
+        }
+
+        .share-button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .share-button:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+        }
+
+        .share-button:active {
+            transform: scale(0.95);
         }
 
         /* Link Preview Card Styles */
