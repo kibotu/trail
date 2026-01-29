@@ -828,8 +828,6 @@ async function copyEntryLink(hashId, entryUrl, shareButton) {
 async function shareEntryNative(hashId, entryUrl) {
     try {
         await navigator.share({
-            title: 'Trail Entry',
-            text: 'Check out this entry on Trail',
             url: entryUrl
         });
         
