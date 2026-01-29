@@ -956,7 +956,7 @@
                 return;
             }
 
-            try:
+            try {
                 // Use fetch with credentials to send httpOnly cookies
                 const response = await fetch(`/api/entries/${entryId}`, {
                     method: 'PUT',

@@ -543,7 +543,7 @@
                 
                 // Check if current user can modify this entry
                 let canModify = false;
-                if (isLoggedIn && jwtToken) {
+                if (isLoggedIn) {
                     try {
                         const profileResponse = await fetch('/api/profile', {
                             credentials: 'same-origin' // Include httpOnly cookie with JWT

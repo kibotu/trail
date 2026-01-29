@@ -967,7 +967,7 @@
                     <?php if (isset($isLoggedIn) && $isLoggedIn && isset($userPhotoUrl) && $userPhotoUrl): ?>
                         <img src="<?= htmlspecialchars($userPhotoUrl) ?>" alt="User" class="header-avatar">
                     <?php else: ?>
-                        <img src="/images/app-icon.webp" alt="Trail" class="header-avatar">
+                        <img src="/assets/app-icon.webp" alt="Trail" class="header-avatar">
                     <?php endif; ?>
                     <div class="header-info">
                         <h1>
@@ -1128,7 +1128,7 @@
                     return;
                 }
 
-                if (!jwtToken) {
+                if (!isLoggedIn) {
                     showMessage('You must be logged in to post', 'error');
                     return;
                 }

@@ -92,6 +92,10 @@ try {
     $jwtService = new JwtService($config);
     $jwtToken = $jwtService->generate($userId, $email, $isAdmin);
 
+    // SECURITY: Invalidate all old sessions for this user to prevent session fixation
+    $stmt = $db->prepare("DELETE FROM trail_sessions WHERE user_id = ?");
+    $stmt->execute([$userId]);
+
     // Create new session with JWT token
     $sessionId = generateSessionId();
     $expiresAt = (new DateTime())->modify('+24 hours');

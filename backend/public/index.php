@@ -7,6 +7,7 @@ use Trail\Config\Config;
 use Trail\Middleware\CorsMiddleware;
 use Trail\Middleware\SecurityMiddleware;
 use Trail\Middleware\RateLimitMiddleware;
+use Trail\Middleware\CsrfMiddleware;
 use Trail\Middleware\AuthMiddleware;
 use Trail\Controllers\AuthController;
 use Trail\Controllers\EntryController;
@@ -35,7 +36,7 @@ $errorMiddleware = $app->addErrorMiddleware(
 // Add global middleware
 $app->add(new CorsMiddleware());
 $app->add(new SecurityMiddleware($config));
-$app->add(new RateLimitMiddleware($config));
+// Note: Rate limiting is applied per-route, not globally
 
 // Root endpoint - Show public entries landing page
 $app->get('/', function ($request, $response) use ($config) {
@@ -221,9 +222,11 @@ $app->get('/api/health', function ($request, $response) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-// Authentication routes
-$app->post('/api/auth/google', [AuthController::class, 'googleAuth']);
-$app->post('/api/auth/dev', [AuthController::class, 'devAuth']); // Development only
+// Authentication routes with rate limiting
+$app->post('/api/auth/google', [AuthController::class, 'googleAuth'])
+    ->add(new RateLimitMiddleware(5, 300)); // 5 attempts per 5 minutes
+$app->post('/api/auth/dev', [AuthController::class, 'devAuth']) // Development only
+    ->add(new RateLimitMiddleware(10, 60)); // 10 attempts per minute (dev only)
 
 // Session info endpoint (returns user info without exposing JWT)
 $app->get('/api/auth/session', [TokenController::class, 'getTokenInfo']);

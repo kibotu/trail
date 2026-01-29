@@ -349,10 +349,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
         }
     );
     
-    // Set JWT token from global variable (set by PHP template)
-    if (typeof jwtToken !== 'undefined') {
-        uploader.setToken(jwtToken);
-    }
+    // JWT token is now in httpOnly cookie - no need to set it manually
     
     // Button click opens file picker
     button.addEventListener('click', () => {
