@@ -48,7 +48,8 @@ class AdminController
         $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
         $offset = $page * $limit;
 
-        $entries = $entryModel->getAllWithImages($limit, null, $offset);
+        // Admin view includes clap counts (no user-specific counts needed)
+        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null);
 
         // Add avatar URLs with Google photo fallback to Gravatar
         foreach ($entries as &$entry) {

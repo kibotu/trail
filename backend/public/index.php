@@ -17,6 +17,7 @@ use Trail\Controllers\ProfileController;
 use Trail\Controllers\ImageUploadController;
 use Trail\Controllers\TokenController;
 use Trail\Controllers\ReportController;
+use Trail\Controllers\ClapController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -299,6 +300,10 @@ $app->get('/api/entries/{id}', [EntryController::class, 'getById']);
 
 // User entries by nickname
 $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
+
+// Clap routes
+$app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
+$app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps']);
 
 // Image upload routes (authenticated)
 $app->post('/api/images/upload/init', [ImageUploadController::class, 'initUpload'])->add(new AuthMiddleware($config));

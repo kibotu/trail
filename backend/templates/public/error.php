@@ -12,20 +12,20 @@
  * - $hasChangelog (bool): Whether changelog is available
  */
 
-// Error messages mapping
+// Error messages mapping - human, informal, relatable
 $errorMessages = [
-    400 => ['title' => 'Bad Request', 'message' => 'Something went wrong with your request.'],
-    401 => ['title' => 'Unauthorized', 'message' => 'You need to be logged in to access this.'],
-    403 => ['title' => 'Access Denied', 'message' => 'You don\'t have permission to view this.'],
-    404 => ['title' => 'Trail Lost the Path', 'message' => 'This trail doesn\'t exist.'],
-    429 => ['title' => 'Slow Down', 'message' => 'Too many requests. Take a breather.'],
-    500 => ['title' => 'Server Error', 'message' => 'Our servers wandered into the woods.'],
-    502 => ['title' => 'Bad Gateway', 'message' => 'The server is having trouble connecting.'],
-    503 => ['title' => 'Service Unavailable', 'message' => 'We\'re temporarily offline for maintenance.'],
+    400 => ['title' => 'Hmm, that didn\'t work', 'message' => 'Something about that request didn\'t quite make sense to us.'],
+    401 => ['title' => 'Hold up there', 'message' => 'You\'ll need to log in first to see this.'],
+    403 => ['title' => 'Not your trail', 'message' => 'This area is off-limits, sorry about that.'],
+    404 => ['title' => 'Well, this is awkward', 'message' => 'We looked everywhere, but this page doesn\'t exist. Maybe it never did?'],
+    429 => ['title' => 'Whoa, slow down!', 'message' => 'You\'re going too fast. Take a breath, we\'ll be here when you\'re ready.'],
+    500 => ['title' => 'Our bad', 'message' => 'Something broke on our end. We\'re on it, promise.'],
+    502 => ['title' => 'Connection issues', 'message' => 'Having trouble reaching our servers. Give it a moment?'],
+    503 => ['title' => 'Taking a quick break', 'message' => 'We\'re doing some maintenance. Back shortly!'],
 ];
 
 // Get error details or use default
-$errorInfo = $errorMessages[$statusCode] ?? ['title' => 'Something Went Wrong', 'message' => 'An unexpected error occurred.'];
+$errorInfo = $errorMessages[$statusCode] ?? ['title' => 'Oops', 'message' => 'Something unexpected happened. Not sure what, but here we are.'];
 $errorTitle = $errorInfo['title'];
 $errorMessage = $errorInfo['message'];
 ?>
@@ -60,17 +60,17 @@ $errorMessage = $errorInfo['message'];
   .container{
     width:100%;
     max-width:760px;
-    padding:16px;
+    padding:24px;
     display:flex;
     flex-direction:column;
-    gap:18px;
+    gap:24px;
   }
 
   .card{
     background:linear-gradient(180deg,#141e36,#10182b);
     border:1px solid var(--border);
-    border-radius:18px;
-    padding:14px;
+    border-radius:20px;
+    padding:24px;
     box-shadow:0 20px 40px rgba(0,0,0,.35);
   }
 
@@ -80,19 +80,24 @@ $errorMessage = $errorInfo['message'];
     color:var(--text);
     border:1px solid var(--border);
     border-radius:14px;
-    padding:12px;
+    padding:14px 16px;
     resize:none;
     font-size:15px;
     outline:none;
+    line-height:1.5;
+    transition:border-color 0.2s ease;
   }
 
-  textarea:focus{border-color:var(--accent)}
+  textarea:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(79,140,255,0.1);
+  }
 
   .composer-footer{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-top:10px;
+    margin-top:12px;
     font-size:13px;
     color:var(--muted);
   }
@@ -102,65 +107,205 @@ $errorMessage = $errorInfo['message'];
     border:none;
     color:white;
     border-radius:999px;
-    padding:8px 16px;
+    padding:10px 20px;
     font-weight:600;
     cursor:pointer;
-    transition:opacity 0.2s;
+    transition:all 0.2s ease;
+    font-size:14px;
   }
 
-  button:hover{opacity:0.9}
-  button:disabled{opacity:0.5;cursor:not-allowed}
+  button:hover{
+    opacity:0.9;
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(79,140,255,0.3);
+  }
+
+  button:active{
+    transform:translateY(0);
+  }
+
+  button:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+    transform:none;
+  }
 
   button.secondary{
     background:#1b2642;
     color:var(--text);
   }
 
+  button.secondary:hover{
+    background:#22304d;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  }
+
   .post-user{
     font-weight:700;
-    margin-bottom:6px;
+    margin-bottom:10px;
+    font-size:15px;
   }
 
   .post-user a{
     color:var(--text);
     text-decoration:none;
+    transition:color 0.2s ease;
   }
 
   .post-user a:hover{
-    text-decoration:underline;
+    color:var(--accent);
+  }
+
+  .card > div:not(.composer-footer):not(.error-box):not(.error-actions){
+    font-size:15px;
+    line-height:1.6;
+    margin-bottom:10px;
   }
 
   .link-preview{
     background:#0e1628;
     border:1px solid var(--border);
     border-radius:12px;
-    padding:10px;
+    padding:12px 14px;
     font-size:13px;
-    margin-top:6px;
+    margin-top:10px;
     color:#b6c6ff;
     text-decoration:none;
     display:inline-block;
+    transition:all 0.2s ease;
   }
 
   .link-preview:hover{
     border-color:var(--accent);
+    background:#121b30;
+    transform:translateY(-1px);
   }
 
-  .error-box{text-align:center;animation:floatIn .6s ease-out}
+  .error-box{
+    text-align:center;
+    animation:floatIn .6s ease-out;
+    position:relative;
+    padding:32px 24px;
+  }
 
   @keyframes floatIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 
-  .whale{width:160px;margin:0 auto 12px}
+  .confetti{
+    position:fixed;
+    width:10px;
+    height:10px;
+    background:#4f8cff;
+    pointer-events:none;
+    z-index:9999;
+    border-radius:2px;
+  }
 
-  .error-title{font-size:24px;font-weight:800}
-  .error-sub{color:var(--muted);margin-top:6px}
-  .error-code{font-size:13px;color:var(--muted);margin-top:4px}
+  @keyframes confetti-fall{
+    0%{
+      opacity:1;
+      transform:translate(0, 0) rotate(0deg) scale(1);
+    }
+    50%{
+      opacity:0.8;
+    }
+    100%{
+      opacity:0;
+      transform:translate(var(--tx, 0), var(--ty, 200px)) rotate(720deg) scale(0.5);
+    }
+  }
 
-  .error-actions{display:flex;justify-content:center;gap:10px;margin-top:14px}
+  .error-image{
+    width:100%;
+    max-width:420px;
+    height:auto;
+    margin:0 auto 32px;
+    display:block;
+  }
+
+  .error-title{
+    font-size:28px;
+    font-weight:700;
+    line-height:1.3;
+    margin-bottom:12px;
+    letter-spacing:-0.02em;
+  }
+
+  .error-sub{
+    color:var(--muted);
+    font-size:16px;
+    line-height:1.6;
+    margin:0 auto;
+    max-width:480px;
+    padding:0 16px;
+  }
+
+  .error-code{
+    font-size:13px;
+    color:#5a6b8a;
+    margin-top:16px;
+    font-weight:500;
+    opacity:0.7;
+  }
+
+  .error-actions{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:28px;
+  }
+
+  .error-actions button{
+    padding:12px 28px;
+    font-size:15px;
+    font-weight:600;
+  }
 
   .composer-card{display:<?= $isLoggedIn ? 'block' : 'none' ?>}
 
-  @media(max-width:600px){.container{max-width:420px}}
+  @media(max-width:600px){
+    .container{
+      max-width:100%;
+      padding:16px;
+    }
+    
+    .card{
+      padding:20px;
+      border-radius:16px;
+    }
+    
+    .error-box{
+      padding:24px 16px;
+    }
+    
+    .error-image{
+      max-width:100%;
+      margin-bottom:24px;
+    }
+    
+    .error-title{
+      font-size:24px;
+      margin-bottom:10px;
+    }
+    
+    .error-sub{
+      font-size:15px;
+      padding:0 8px;
+    }
+    
+    .error-code{
+      font-size:12px;
+      margin-top:12px;
+    }
+    
+    .error-actions{
+      margin-top:24px;
+    }
+    
+    .error-actions button{
+      padding:10px 24px;
+      font-size:14px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -188,13 +333,9 @@ $errorMessage = $errorInfo['message'];
   <?php endif; ?>
 
   <div class="card error-box">
-    <svg class="whale" viewBox="0 0 160 120">
-      <ellipse cx="80" cy="70" rx="60" ry="35" fill="#4f8cff" />
-      <circle cx="110" cy="60" r="5" fill="#0b1220" />
-      <path d="M20 70 Q5 60 20 50" stroke="#4f8cff" stroke-width="6" fill="none" />
-    </svg>
+    <img src="/assets/fail-trail.png" alt="Fail Trail" class="error-image">
 
-    <div class="error-title"><?= htmlspecialchars($errorTitle) ?> 🐋</div>
+    <div class="error-title"><?= htmlspecialchars($errorTitle) ?></div>
     <div class="error-sub"><?= htmlspecialchars($errorMessage) ?></div>
     <div class="error-code"><?= htmlspecialchars((string)$statusCode) ?> — Error Code</div>
 
@@ -271,6 +412,66 @@ $errorMessage = $errorInfo['message'];
       }
     });
   }
+
+  // Confetti celebration for finding an error - viewport-aware
+  function createConfetti() {
+    const colors = ['#4f8cff', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6'];
+    const errorBox = document.querySelector('.error-box');
+    if (!errorBox) return;
+    
+    const rect = errorBox.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + 100; // Near the image
+    
+    // Use viewport dimensions for radius calculation
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxRadius = Math.min(viewportWidth, viewportHeight) * 0.6; // 60% of smaller dimension
+
+    // Create more confetti pieces for better coverage
+    const confettiCount = Math.min(50, Math.floor(viewportWidth / 20)); // Scale with viewport
+    
+    for (let i = 0; i < confettiCount; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = centerX + 'px';
+      confetti.style.top = centerY + 'px';
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Random size between 4-8px (slightly larger for visibility)
+      const size = Math.random() * 4 + 4;
+      confetti.style.width = size + 'px';
+      confetti.style.height = size + 'px';
+      
+      // Random direction - full circle spread
+      const angle = (Math.PI * 2 * i) / confettiCount + (Math.random() - 0.5) * 0.3;
+      
+      // Velocity based on viewport size - much larger radius
+      const minVelocity = maxRadius * 0.4;
+      const maxVelocity = maxRadius * 0.8;
+      const velocity = Math.random() * (maxVelocity - minVelocity) + minVelocity;
+      
+      const tx = Math.cos(angle) * velocity;
+      const ty = Math.sin(angle) * velocity + Math.random() * (viewportHeight * 0.3);
+      
+      confetti.style.setProperty('--tx', tx + 'px');
+      confetti.style.setProperty('--ty', ty + 'px');
+      
+      // Longer animation for larger distances
+      const duration = Math.random() * 1.5 + 2; // 2-3.5 seconds
+      confetti.style.animation = `confetti-fall ${duration}s ease-out ${Math.random() * 0.3}s forwards`;
+      
+      document.body.appendChild(confetti);
+      
+      // Remove after animation
+      setTimeout(() => confetti.remove(), (duration + 0.5) * 1000);
+    }
+  }
+
+  // Trigger confetti after page loads (subtle delay)
+  window.addEventListener('load', () => {
+    setTimeout(createConfetti, 600);
+  });
 </script>
 
 </body>

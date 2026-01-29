@@ -117,7 +117,7 @@ class EntryController
             $excludeEntryIds = $reportModel->getHiddenEntryIds($userId);
         }
 
-        $entries = $entryModel->getAllWithImages($limit, $before, null, $excludeUserId, $excludeEntryIds);
+        $entries = $entryModel->getAllWithImages($limit, $before, null, $excludeUserId, $excludeEntryIds, $userId);
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
@@ -179,7 +179,7 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entries = $entryModel->getByUserWithImages($userId, $limit, $before);
+        $entries = $entryModel->getByUserWithImages($userId, $limit, $before, $userId);
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
@@ -339,7 +339,10 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        $entry = $entryModel->findByIdWithImages($entryId);
+        // Get optional user ID for clap counts
+        $userId = self::getOptionalUserId($request, $config);
+        
+        $entry = $entryModel->findByIdWithImages($entryId, $userId);
 
         if (!$entry) {
             $response->getBody()->write(json_encode(['error' => 'Entry not found']));
@@ -396,8 +399,11 @@ class EntryController
         $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
 
+        // Get optional user ID for clap counts
+        $userId = self::getOptionalUserId($request, $config);
+        
         $entryModel = new Entry($db);
-        $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before);
+        $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before, $userId);
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService

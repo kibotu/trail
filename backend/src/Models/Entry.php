@@ -48,54 +48,115 @@ class Entry
         return (int) $this->db->lastInsertId();
     }
 
-    public function findById(int $id): ?array
+    public function findById(int $id, ?int $currentUserId = null): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url 
-             FROM {$this->table} e 
-             JOIN trail_users u ON e.user_id = u.id 
-             WHERE e.id = ?"
-        );
-        $stmt->execute([$id]);
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
+                COALESCE(clap_totals.total_claps, 0) as clap_count";
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
+        $sql .= " WHERE e.id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        
+        if ($currentUserId !== null) {
+            $stmt->execute([$currentUserId, $id]);
+        } else {
+            $stmt->execute([$id]);
+        }
+        
         $entry = $stmt->fetch();
         
         return $entry ?: null;
     }
 
-    public function getByUser(int $userId, int $limit = 20, ?string $before = null): array
+    public function getByUser(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
-        if ($before !== null) {
-            // Cursor-based pagination: get entries created before the cursor timestamp
-            $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                 FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 WHERE e.user_id = ? AND e.created_at < ? 
-                 ORDER BY e.created_at DESC 
-                 LIMIT ?"
-            );
-            $stmt->execute([$userId, $before, $limit]);
-        } else {
-            // Initial load: get most recent entries
-            $stmt = $this->db->prepare(
-                "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                 FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 WHERE e.user_id = ? 
-                 ORDER BY e.created_at DESC 
-                 LIMIT ?"
-            );
-            $stmt->execute([$userId, $limit]);
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                COALESCE(clap_totals.total_claps, 0) as clap_count";
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
         }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
+        $params = [];
+        if ($currentUserId !== null) {
+            $params[] = $currentUserId;
+        }
+        
+        if ($before !== null) {
+            $sql .= " WHERE e.user_id = ? AND e.created_at < ?";
+            $params[] = $userId;
+            $params[] = $before;
+        } else {
+            $sql .= " WHERE e.user_id = ?";
+            $params[] = $userId;
+        }
+        
+        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+        $params[] = $limit;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = []): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
+        // Build SELECT with clap counts
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                COALESCE(clap_totals.total_claps, 0) as clap_count";
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
         // Build WHERE clause for filters
         $whereConditions = [];
         $params = [];
+        
+        if ($currentUserId !== null) {
+            $params[] = $currentUserId;
+        }
         
         if ($before !== null) {
             $whereConditions[] = "e.created_at < ?";
@@ -118,25 +179,16 @@ class Entry
         }
         
         $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        $sql .= " $whereClause";
         
         if ($offset !== null) {
             // Offset-based pagination for admin
-            $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                    FROM {$this->table} e 
-                    JOIN trail_users u ON e.user_id = u.id 
-                    $whereClause
-                    ORDER BY e.created_at DESC 
-                    LIMIT ? OFFSET ?";
+            $sql .= " ORDER BY e.created_at DESC LIMIT ? OFFSET ?";
             $params[] = $limit;
             $params[] = $offset;
         } else {
             // Cursor-based pagination
-            $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id 
-                    FROM {$this->table} e 
-                    JOIN trail_users u ON e.user_id = u.id 
-                    $whereClause
-                    ORDER BY e.created_at DESC 
-                    LIMIT ?";
+            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
             $params[] = $limit;
         }
         
@@ -226,9 +278,9 @@ class Entry
     /**
      * Get entry with image URLs
      */
-    public function findByIdWithImages(int $id): ?array
+    public function findByIdWithImages(int $id, ?int $currentUserId = null): ?array
     {
-        $entry = $this->findById($id);
+        $entry = $this->findById($id, $currentUserId);
         if (!$entry) {
             return null;
         }
@@ -286,18 +338,18 @@ class Entry
     /**
      * Get all entries with image URLs attached
      */
-    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = []): array
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
-        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds);
+        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId);
         return array_map([$this, 'attachImageUrls'], $entries);
     }
     
     /**
      * Get user entries with image URLs attached
      */
-    public function getByUserWithImages(int $userId, int $limit = 20, ?string $before = null): array
+    public function getByUserWithImages(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
-        $entries = $this->getByUser($userId, $limit, $before);
+        $entries = $this->getByUser($userId, $limit, $before, $currentUserId);
         return array_map([$this, 'attachImageUrls'], $entries);
     }
 }

@@ -49,6 +49,54 @@ function formatTimestamp(timestamp) {
     });
 }
 
+// Format clap count to human-readable format (e.g., 3.9k, 1.2M)
+function formatClapCount(count) {
+    if (count >= 1000000) {
+        return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (count >= 1000) {
+        return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return count.toString();
+}
+
+// Create particle explosion effect for claps
+function createClapParticles(button, clickX, clickY) {
+    // Use the exact click coordinates
+    const centerX = clickX;
+    const centerY = clickY;
+    
+    // Create 8-12 particles
+    const particleCount = Math.floor(Math.random() * 5) + 8;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'clap-particle';
+        particle.innerHTML = '<i class="fa-solid fa-heart"></i>';
+        
+        // Angle biased towards upward direction
+        // Range from -135° to -45° (upward arc)
+        const baseAngle = -90 * (Math.PI / 180); // -90° is straight up
+        const spread = 90 * (Math.PI / 180); // ±45° spread
+        const angle = baseAngle + (Math.random() - 0.5) * spread;
+        
+        const distance = 30 + Math.random() * 30;
+        const endX = Math.cos(angle) * distance;
+        const endY = Math.sin(angle) * distance;
+        
+        // Position at exact click location
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.setProperty('--end-x', endX + 'px');
+        particle.style.setProperty('--end-y', endY + 'px');
+        
+        document.body.appendChild(particle);
+        
+        // Remove after animation
+        setTimeout(() => particle.remove(), 600);
+    }
+}
+
 /**
  * Create entry images HTML
  * @param {Object} entry - Entry object with images array
@@ -227,6 +275,9 @@ function createEntryCard(entry, options = {}) {
     const linkedText = linkifyText(escapedText);
     const previewCard = createLinkPreviewCard(entry, { showSourceBadge });
     
+    // Get hash ID once for all event handlers
+    const hashId = entry.hash_id || entry.id; // Fallback to numeric ID if hash_id not available
+    
     // Determine display name (nickname or fallback)
     let displayName = entry.user_name;
     let userProfileLink = null;
@@ -304,15 +355,25 @@ function createEntryCard(entry, options = {}) {
                             <span>edited ${formatTimestamp(entry.updated_at)}</span>
                         </div>` : '<div></div>'}
                 </div>
-                <button class="share-button" data-no-navigate aria-label="Share entry">
-                    <i class="fa-solid fa-share-nodes"></i>
-                </button>
+                <div class="entry-footer-actions">
+                    <button class="clap-button ${(entry.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId && currentUserId === entry.user_id ? 'own-entry' : ''}" 
+                            data-no-navigate 
+                            data-entry-id="${entry.id}"
+                            data-hash-id="${hashId}"
+                            data-user-claps="${entry.user_clap_count || 0}"
+                            data-total-claps="${entry.clap_count || 0}"
+                            data-is-own="${currentUserId && currentUserId === entry.user_id ? 'true' : 'false'}"
+                            aria-label="${currentUserId && currentUserId === entry.user_id ? 'Your entry claps' : 'Clap for this entry'}">
+                        <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
+                        <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
+                    </button>
+                    <button class="share-button" data-no-navigate aria-label="Share entry">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                </div>
             </div>
         </div>
     `;
-    
-    // Get hash ID once for all event handlers
-    const hashId = entry.hash_id || entry.id; // Fallback to numeric ID if hash_id not available
     
     // Add click handler for permalink navigation
     if (enablePermalink) {
@@ -347,6 +408,127 @@ function createEntryCard(entry, options = {}) {
         
         // Store hash_id in dataset for share functionality
         shareButton.dataset.hashId = hashId;
+    }
+    
+    // Add clap button click handler
+    const clapButton = card.querySelector('.clap-button');
+    if (clapButton) {
+        clapButton.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            
+            // Check if this is the user's own entry
+            const isOwnEntry = clapButton.dataset.isOwn === 'true';
+            if (isOwnEntry) {
+                // Just show a subtle feedback for own entries
+                clapButton.classList.add('clap-own-entry-shake');
+                setTimeout(() => clapButton.classList.remove('clap-own-entry-shake'), 500);
+                return;
+            }
+            
+            // Check if user is logged in
+            if (!isLoggedIn) {
+                // Redirect to login or show login prompt
+                if (typeof showLoginPrompt === 'function') {
+                    showLoginPrompt();
+                } else {
+                    alert('Please log in to clap for entries');
+                }
+                return;
+            }
+            
+            // Get current clap count
+            let userClaps = parseInt(clapButton.dataset.userClaps, 10) || 0;
+            let totalClaps = parseInt(clapButton.dataset.totalClaps, 10) || 0;
+            
+            // Check if user has reached the limit
+            if (userClaps >= 50) {
+                // Show feedback that limit is reached
+                clapButton.classList.add('clap-limit-reached');
+                setTimeout(() => clapButton.classList.remove('clap-limit-reached'), 500);
+                return;
+            }
+            
+            // Increment user claps
+            userClaps++;
+            totalClaps++;
+            
+            // Optimistic UI update
+            clapButton.dataset.userClaps = userClaps;
+            clapButton.dataset.totalClaps = totalClaps;
+            clapButton.classList.add('clapped', 'clap-animation');
+            
+            // Update icon to filled heart
+            const icon = clapButton.querySelector('i');
+            icon.className = 'fa-solid fa-heart';
+            
+            // Update count display
+            const countSpan = clapButton.querySelector('.clap-count');
+            countSpan.textContent = formatClapCount(totalClaps);
+            
+            // Create particle explosion effect at click location
+            createClapParticles(clapButton, e.clientX, e.clientY);
+            
+            // Remove animation class after animation completes
+            setTimeout(() => clapButton.classList.remove('clap-animation'), 300);
+            
+            // Send request to server
+            try {
+                const response = await fetch(`/api/entries/${hashId}/claps`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ count: userClaps })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add clap');
+                }
+                
+                const data = await response.json();
+                
+                // Update with server values
+                clapButton.dataset.userClaps = data.user_claps;
+                clapButton.dataset.totalClaps = data.total_claps;
+                countSpan.textContent = formatClapCount(data.total_claps);
+                
+                // Update button state
+                if (data.user_claps >= 50) {
+                    clapButton.classList.add('clap-limit-reached');
+                    clapButton.setAttribute('aria-label', 'Maximum claps reached (50/50)');
+                } else {
+                    clapButton.setAttribute('aria-label', `Clap for this entry (${data.user_claps}/50)`);
+                }
+                
+            } catch (error) {
+                console.error('Error adding clap:', error);
+                
+                // Revert optimistic update on error
+                userClaps--;
+                totalClaps--;
+                clapButton.dataset.userClaps = userClaps;
+                clapButton.dataset.totalClaps = totalClaps;
+                countSpan.textContent = formatClapCount(totalClaps);
+                
+                if (userClaps === 0) {
+                    clapButton.classList.remove('clapped');
+                    icon.className = 'fa-regular fa-heart';
+                }
+                
+                // Show error feedback
+                alert('Failed to add clap. Please try again.');
+            }
+        });
+        
+        // Update aria label based on current state
+        const userClaps = parseInt(clapButton.dataset.userClaps, 10) || 0;
+        if (userClaps >= 50) {
+            clapButton.setAttribute('aria-label', 'Maximum claps reached (50/50)');
+        } else if (userClaps > 0) {
+            clapButton.setAttribute('aria-label', `Clap for this entry (${userClaps}/50)`);
+        }
     }
     
     // Add event listeners for menu buttons

@@ -496,6 +496,114 @@
             transform: scale(0.95);
         }
 
+        /* Clap button styles */
+        .entry-footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .clap-button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .clap-button:hover {
+            background: var(--bg-tertiary);
+            color: #ef4444;
+        }
+
+        .clap-button.clapped {
+            color: #ef4444;
+        }
+
+        .clap-button.clapped:hover {
+            color: #dc2626;
+        }
+
+        .clap-button:active {
+            transform: scale(0.95);
+        }
+
+        .clap-button.clap-limit-reached {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clap-button.own-entry {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .clap-button.own-entry:hover {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .clap-count {
+            font-size: 0.875rem;
+            font-weight: 500;
+            min-width: 1.5rem;
+            text-align: left;
+        }
+
+        /* Clap animation */
+        @keyframes clap-bounce {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        .clap-animation {
+            animation: clap-bounce 0.3s ease-in-out;
+        }
+
+        @keyframes clap-own-entry-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        .clap-own-entry-shake {
+            animation: clap-own-entry-shake 0.3s ease-in-out;
+        }
+
+        /* Clap particle effects */
+        .clap-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            color: #ef4444;
+            font-size: 0.75rem;
+            animation: clap-particle-burst 0.6s ease-out forwards;
+            transform-origin: center;
+        }
+
+        @keyframes clap-particle-burst {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--end-x), var(--end-y)) scale(0.3);
+            }
+        }
+
         /* Link Preview Card Styles */
         .link-preview-card {
             background: var(--bg-tertiary);
