@@ -333,7 +333,7 @@ $errorMessage = $errorInfo['message'];
   <?php endif; ?>
 
   <div class="card error-box">
-    <img src="/assets/fail-trail.png" alt="Fail Trail" class="error-image">
+    <img src="/assets/fail-trail.webp" alt="Fail Trail" class="error-image">
 
     <div class="error-title"><?= htmlspecialchars($errorTitle) ?></div>
     <div class="error-sub"><?= htmlspecialchars($errorMessage) ?></div>
