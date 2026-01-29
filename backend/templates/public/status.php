@@ -731,11 +731,14 @@
             if (menu) menu.classList.remove('active');
 
             const card = document.querySelector(`[data-entry-id="${entryId}"]`);
-            if (!card) return;
+            if (!card) {
+                console.error('Card not found for entry:', entryId);
+                return;
+            }
 
             const contentDiv = card.querySelector('.entry-content');
             const textDiv = card.querySelector('.entry-text');
-            const currentText = textDiv.textContent;
+            const currentText = textDiv ? textDiv.textContent : '';
 
             // Store the original HTML to restore it later
             const originalHtml = contentDiv.innerHTML;
@@ -893,17 +896,28 @@
                 
                 // Preserve existing image_ids from currentEntry
                 const payload = { text: newText };
-                if (currentEntry && currentEntry.image_ids) {
-                    try {
+                
+                // Check if entry has images and preserve them
+                if (currentEntry) {
+                    // Try to get image_ids from either image_ids field or images array
+                    let imageIds = null;
+                    
+                    if (currentEntry.image_ids) {
                         // Parse image_ids if it's a JSON string, or use as-is if it's already an array
-                        const imageIds = typeof currentEntry.image_ids === 'string' 
-                            ? JSON.parse(currentEntry.image_ids) 
-                            : currentEntry.image_ids;
-                        if (Array.isArray(imageIds) && imageIds.length > 0) {
-                            payload.image_ids = imageIds;
+                        try {
+                            imageIds = typeof currentEntry.image_ids === 'string' 
+                                ? JSON.parse(currentEntry.image_ids) 
+                                : currentEntry.image_ids;
+                        } catch (e) {
+                            console.warn('Failed to parse image_ids:', e);
                         }
-                    } catch (e) {
-                        console.warn('Failed to parse image_ids:', e);
+                    } else if (currentEntry.images && Array.isArray(currentEntry.images)) {
+                        // Extract IDs from images array
+                        imageIds = currentEntry.images.map(img => img.id);
+                    }
+                    
+                    if (imageIds && Array.isArray(imageIds) && imageIds.length > 0) {
+                        payload.image_ids = imageIds;
                     }
                 }
                 

@@ -1538,6 +1538,14 @@
                             isLoggedIn: isLoggedIn,              // Pass login status
                             currentUserId: userId                // Pass current user ID
                         });
+                        
+                        // Store entry data in card for edit functionality
+                        if (entry.image_ids) {
+                            card.dataset.imageIds = entry.image_ids;
+                        } else if (entry.images && Array.isArray(entry.images)) {
+                            card.dataset.imageIds = JSON.stringify(entry.images.map(img => img.id));
+                        }
+                        
                         entriesContainer.appendChild(card);
                     });
 
@@ -1597,28 +1605,81 @@
 
             const contentDiv = card.querySelector('.entry-content');
             const textDiv = card.querySelector('.entry-text');
-            const currentText = textDiv.textContent;
+            const currentText = textDiv ? textDiv.textContent : '';
 
-            // Store the preview card HTML to restore it later
-            const previewCard = contentDiv.querySelector('.iframely-embed, .link-preview-card');
+            // Store the original HTML to restore it later
+            const originalHtml = contentDiv.innerHTML;
+            contentDiv.dataset.originalHtml = originalHtml;
+
+            // Get images and preview card HTML to show during editing
+            const imagesDiv = contentDiv.querySelector('.entry-images');
+            const imagesHtml = imagesDiv ? imagesDiv.outerHTML : '';
+            
+            const previewCard = contentDiv.querySelector('.link-preview-card, .link-preview-wrapper');
             const previewHtml = previewCard ? previewCard.outerHTML : '';
 
-            // Create edit form
+            // Add edit-textarea styles if not already present
+            if (!document.getElementById('edit-textarea-styles')) {
+                const style = document.createElement('style');
+                style.id = 'edit-textarea-styles';
+                style.textContent = `
+                    .edit-textarea {
+                        width: 100%;
+                        min-height: 80px;
+                        background: var(--bg-primary);
+                        color: var(--text-primary);
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        font-size: 1rem;
+                        font-family: inherit;
+                        line-height: 1.6;
+                        resize: vertical;
+                    }
+                    .edit-textarea:focus {
+                        outline: none;
+                        border-color: var(--accent);
+                    }
+                    .edit-form .entry-images,
+                    .edit-form .link-preview-card,
+                    .edit-form .link-preview-wrapper {
+                        opacity: 0.7;
+                        margin-top: 0.75rem;
+                    }
+                    .edit-form .entry-images img,
+                    .edit-form .link-preview-card,
+                    .edit-form .link-preview-wrapper {
+                        pointer-events: none;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Create edit form with images and preview shown
             contentDiv.innerHTML = `
                 <div class="edit-form">
                     <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
-                    <div class="edit-actions">
-                        <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}', \`${previewHtml.replace(/`/g, '\\`')}\`)">
+                    ${imagesHtml}
+                    ${previewHtml}
+                    <div class="edit-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem;">
+                        <button class="action-button cancel-button" data-entry-id="${entryId}">
                             <i class="fa-solid fa-xmark"></i>
                             <span>Cancel</span>
                         </button>
-                        <button class="action-button save-button" onclick="saveEdit(${entryId})">
+                        <button class="action-button save-button" data-entry-id="${entryId}">
                             <i class="fa-solid fa-floppy-disk"></i>
                             <span>Save</span>
                         </button>
                     </div>
                 </div>
             `;
+
+            // Add event listeners to the buttons
+            const cancelButton = contentDiv.querySelector('.cancel-button');
+            const saveButton = contentDiv.querySelector('.save-button');
+            
+            cancelButton.addEventListener('click', () => cancelEdit(entryId));
+            saveButton.addEventListener('click', () => saveEdit(entryId));
 
             // Focus textarea
             const textarea = document.getElementById(`edit-text-${entryId}`);
@@ -1627,13 +1688,17 @@
         }
 
         // Cancel edit
-        function cancelEdit(entryId, originalText, previewHtml = '') {
+        function cancelEdit(entryId) {
             const card = document.querySelector(`[data-entry-id="${entryId}"]`);
             if (!card) return;
 
             const contentDiv = card.querySelector('.entry-content');
-            const linkedText = linkifyText(originalText);
-            contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>${previewHtml}`;
+            const originalHtml = contentDiv.dataset.originalHtml;
+            
+            if (originalHtml) {
+                contentDiv.innerHTML = originalHtml;
+                delete contentDiv.dataset.originalHtml;
+            }
         }
 
         // Save edit
@@ -1642,17 +1707,47 @@
             const newText = textarea.value.trim();
 
             if (!newText) {
-                alert('Entry text cannot be empty');
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar('Entry text cannot be empty', 'error');
+                } else {
+                    alert('Entry text cannot be empty');
+                }
                 return;
             }
 
             if (!isLoggedIn) {
-                alert('You must be logged in to edit entries');
-                window.location.href = '/admin/login.php';
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar('You must be logged in to edit entries', 'error');
+                } else {
+                    alert('You must be logged in to edit entries');
+                }
                 return;
             }
 
+            // Disable save button during request
+            const saveButton = document.querySelector(`[data-entry-id="${entryId}"].save-button`);
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saving...</span>';
+            }
+
             try {
+                // Get the card to access stored image_ids
+                const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+                
+                // Preserve existing image_ids
+                const payload = { text: newText };
+                if (card && card.dataset.imageIds) {
+                    try {
+                        const imageIds = JSON.parse(card.dataset.imageIds);
+                        if (Array.isArray(imageIds) && imageIds.length > 0) {
+                            payload.image_ids = imageIds;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse image_ids from card dataset:', e);
+                    }
+                }
+
                 // Use fetch with credentials to send httpOnly cookies
                 const response = await fetch(`/api/entries/${entryId}`, {
                     method: 'PUT',
@@ -1660,7 +1755,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text: newText })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
@@ -1670,25 +1765,29 @@
 
                 const data = await response.json();
 
-                // Update the card with new text
-                const card = document.querySelector(`[data-entry-id="${entryId}"]`);
-                const contentDiv = card.querySelector('.entry-content');
-                const escapedText = escapeHtml(newText);
-                const linkedText = linkifyText(escapedText);
-                contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>`;
-
-                // Update the footer to show edited timestamp
-                const footerDiv = card.querySelector('.entry-footer');
-                footerDiv.innerHTML = `
-                    <div class="timestamp">
-                        <i class="fa-solid fa-pen"></i>
-                        <span>edited ${formatTimestamp(data.updated_at)}</span>
-                    </div>
-                `;
+                // Show success message and reload to display updated content with images
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar('Entry updated successfully', 'success');
+                }
+                
+                // Reload the page to show updated content with images
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
 
             } catch (error) {
                 console.error('Error updating entry:', error);
-                alert(`Failed to update entry: ${error.message}`);
+                if (typeof showSnackbar === 'function') {
+                    showSnackbar(`Failed to update entry: ${error.message}`, 'error');
+                } else {
+                    alert(`Failed to update entry: ${error.message}`);
+                }
+                
+                // Re-enable save button on error
+                if (saveButton) {
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk"></i><span>Save</span>';
+                }
             }
         }
 
