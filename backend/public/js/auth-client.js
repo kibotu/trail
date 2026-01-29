@@ -118,10 +118,23 @@ class AuthClient {
                 method: 'POST',
                 credentials: 'same-origin'
             });
+            
+            // Clear JWT cookie client-side as backup
+            document.cookie = 'trail_jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+            
+            // Clear any other auth-related cookies
+            document.cookie = 'trail_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+            
             this.userInfo = null;
-            window.location.href = '/';
+            
+            // Add cache-busting parameter to force fresh load
+            window.location.href = '/?logout=' + Date.now();
         } catch (error) {
             console.error('Logout failed:', error);
+            // Even if server logout fails, clear cookies and redirect
+            document.cookie = 'trail_jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+            document.cookie = 'trail_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+            window.location.href = '/?logout=' + Date.now();
         }
     }
 }

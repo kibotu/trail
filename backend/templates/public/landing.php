@@ -973,7 +973,7 @@
                         <h1>
                             Trail
                         </h1>
-                        <p class="subtitle">Public Entries from All Users</p>
+                        <p class="subtitle">Discover what everyone is sharing</p>
                     </div>
                 </div>
                 

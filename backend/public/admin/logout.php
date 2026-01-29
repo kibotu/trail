@@ -29,6 +29,16 @@ try {
 
     // Clear session cookie
     clearSessionCookie();
+    
+    // Clear JWT cookie
+    setcookie('trail_jwt', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
 
 } catch (Exception $e) {
     error_log("Logout error: " . $e->getMessage());
