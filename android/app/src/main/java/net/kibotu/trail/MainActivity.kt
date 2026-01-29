@@ -85,6 +85,7 @@ fun TrailApp(
     themePreferences: ThemePreferences
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val showCelebration by viewModel.celebrationEvent.collectAsState()
 
     when (val state = uiState) {
         is UiState.Loading -> {
@@ -150,6 +151,10 @@ fun TrailApp(
                 onLogin = null,
                 onToggleTheme = {
                     themePreferences.toggleTheme()
+                },
+                showCelebration = showCelebration,
+                onCelebrationShown = {
+                    viewModel.resetCelebration()
                 }
             )
         }

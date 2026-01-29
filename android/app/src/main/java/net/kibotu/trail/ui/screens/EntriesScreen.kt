@@ -45,16 +45,30 @@ fun EntriesScreen(
     onRefresh: () -> Unit,
     onLogout: (() -> Unit)?,
     onLogin: (() -> Unit)?,
-    onToggleTheme: () -> Unit
+    onToggleTheme: () -> Unit,
+    showCelebration: Boolean = false,
+    onCelebrationShown: () -> Unit = {}
 ) {
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 280
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Entry?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
     
     val isPublicMode = userName == null
 
     val isDarkTheme = MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
+
+    // Show celebration when post is successful
+    LaunchedEffect(showCelebration) {
+        if (showCelebration) {
+            snackbarHostState.showSnackbar(
+                message = "🎉 Post created! Nice work! ✨",
+                duration = SnackbarDuration.Short
+            )
+            onCelebrationShown()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -88,6 +102,9 @@ fun EntriesScreen(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { paddingValues ->
         Column(

@@ -930,6 +930,70 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Celebration animations for post success! */
+        .post-confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 1;
+        }
+
+        @keyframes post-confetti-burst {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) rotate(var(--rotation)) scale(0.3);
+                opacity: 0;
+            }
+        }
+
+        .celebration-emoji {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            font-size: 2rem;
+            opacity: 1;
+        }
+
+        @keyframes celebration-emoji-float {
+            0% {
+                transform: translate(0, 0) scale(0.5) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translate(0, -20px) scale(1) rotate(10deg);
+            }
+            100% {
+                transform: translate(var(--float-x), var(--float-y)) scale(1.5) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .celebrate-pulse {
+            animation: celebrate-pulse-animation 0.6s ease-in-out;
+        }
+
+        @keyframes celebrate-pulse-animation {
+            0%, 100% {
+                transform: scale(1);
+            }
+            25% {
+                transform: scale(1.1);
+            }
+            50% {
+                transform: scale(0.95);
+            }
+            75% {
+                transform: scale(1.05);
+            }
+        }
+
         .end-message {
             text-align: center;
             padding: 2rem;
@@ -1276,13 +1340,16 @@
                     charCounter.textContent = '0 / 280';
                     window.postImageIds = [];
                     
+                    // CELEBRATE! 🎉
+                    celebratePost();
+                    
                     // Show success message
                     showMessage('<i class="fa-solid fa-check"></i> Post created successfully!', 'success');
                     
                     // Reload entries to show new post
                     setTimeout(() => {
                         location.reload();
-                    }, 1000);
+                    }, 1500);
 
                 } catch (error) {
                     console.error('Error creating post:', error);
@@ -1302,6 +1369,104 @@
                 setTimeout(() => {
                     postMessage.style.display = 'none';
                 }, 5000);
+            }
+
+            // Celebration animation for successful post! 🎉
+            function celebratePost() {
+                // Create confetti explosion
+                createPostConfetti();
+                
+                // Show floating celebration emojis
+                createCelebrationEmojis();
+                
+                // Add a subtle pulse to the post button
+                submitButton.classList.add('celebrate-pulse');
+                setTimeout(() => {
+                    submitButton.classList.remove('celebrate-pulse');
+                }, 1000);
+            }
+
+            function createPostConfetti() {
+                const colors = ['#4f8cff', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+                const postForm = document.getElementById('createPostForm');
+                if (!postForm) return;
+                
+                const rect = postForm.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const confettiCount = 60;
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'post-confetti';
+                    confetti.style.left = centerX + 'px';
+                    confetti.style.top = centerY + 'px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Random size and shape
+                    const size = Math.random() * 6 + 4;
+                    confetti.style.width = size + 'px';
+                    confetti.style.height = size + 'px';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                    
+                    // Explosive spread in all directions
+                    const angle = (Math.PI * 2 * i) / confettiCount + (Math.random() - 0.5) * 0.4;
+                    const velocity = Math.random() * 300 + 200;
+                    
+                    const tx = Math.cos(angle) * velocity;
+                    const ty = Math.sin(angle) * velocity - 100; // Slight upward bias
+                    
+                    confetti.style.setProperty('--tx', tx + 'px');
+                    confetti.style.setProperty('--ty', ty + 'px');
+                    confetti.style.setProperty('--rotation', (Math.random() * 720 - 360) + 'deg');
+                    
+                    const duration = Math.random() * 0.8 + 1.2;
+                    confetti.style.animation = `post-confetti-burst ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), duration * 1000 + 100);
+                }
+            }
+
+            function createCelebrationEmojis() {
+                const emojis = ['🎉', '✨', '🚀', '💫', '⭐', '🌟', '🎊', '🔥', '💪', '👏'];
+                const postForm = document.getElementById('createPostForm');
+                if (!postForm) return;
+                
+                const rect = postForm.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // Create 5-7 floating emojis
+                const emojiCount = Math.floor(Math.random() * 3) + 5;
+                
+                for (let i = 0; i < emojiCount; i++) {
+                    const emojiEl = document.createElement('div');
+                    emojiEl.className = 'celebration-emoji';
+                    emojiEl.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    
+                    // Random starting position around the form
+                    const offsetX = (Math.random() - 0.5) * 100;
+                    emojiEl.style.left = (centerX + offsetX) + 'px';
+                    emojiEl.style.top = centerY + 'px';
+                    
+                    // Random float direction
+                    const floatX = (Math.random() - 0.5) * 150;
+                    const floatY = -(Math.random() * 200 + 150);
+                    
+                    emojiEl.style.setProperty('--float-x', floatX + 'px');
+                    emojiEl.style.setProperty('--float-y', floatY + 'px');
+                    
+                    const duration = Math.random() * 0.5 + 1.5;
+                    const delay = Math.random() * 0.3;
+                    emojiEl.style.animation = `celebration-emoji-float ${duration}s ease-out ${delay}s forwards`;
+                    
+                    document.body.appendChild(emojiEl);
+                    
+                    setTimeout(() => emojiEl.remove(), (duration + delay) * 1000 + 100);
+                }
             }
         }
 

@@ -35,6 +35,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    private val _celebrationEvent = MutableStateFlow(false)
+    val celebrationEvent: StateFlow<Boolean> = _celebrationEvent.asStateFlow()
+
     private var pendingSharedText: String? = null
 
     init {
@@ -200,6 +203,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 val result = ApiClient.api.createEntry(CreateEntryRequest(text))
                 
                 result.onSuccess {
+                    // CELEBRATE! 🎉
+                    _celebrationEvent.value = true
+                    
                     // Reload entries after successful submission
                     loadEntries()
                 }.onFailure { e ->
@@ -209,6 +215,10 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 Log.e("TrailViewModel", "Error submitting entry", e)
             }
         }
+    }
+
+    fun resetCelebration() {
+        _celebrationEvent.value = false
     }
 
     fun logout() {

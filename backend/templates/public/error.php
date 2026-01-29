@@ -402,14 +402,103 @@ $errorMessage = $errorInfo['message'];
           throw new Error('Failed to post');
         }
 
-        // Success - navigate to landing page
-        window.location.href = '/';
+        // CELEBRATE! 🎉
+        celebratePost();
+
+        // Success - navigate to landing page after celebration
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1200);
       } catch (error) {
         console.error('Error posting:', error);
         alert('Failed to post. Please try again.');
         postBtn.disabled = false;
         postBtn.textContent = 'Post';
       }
+    });
+  }
+
+  // Celebration animation for successful post! 🎉
+  function celebratePost() {
+    const colors = ['#4f8cff', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
+    const emojis = ['🎉', '✨', '🚀', '💫', '⭐', '🌟', '🎊', '🔥', '💪', '👏'];
+    
+    const postBtn = document.getElementById('post');
+    if (!postBtn) return;
+    
+    const rect = postBtn.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Confetti burst
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.style.position = 'fixed';
+      confetti.style.left = centerX + 'px';
+      confetti.style.top = centerY + 'px';
+      confetti.style.width = (Math.random() * 6 + 4) + 'px';
+      confetti.style.height = (Math.random() * 6 + 4) + 'px';
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      confetti.style.pointerEvents = 'none';
+      confetti.style.zIndex = '10000';
+      
+      const angle = (Math.PI * 2 * i) / 50 + (Math.random() - 0.5) * 0.4;
+      const velocity = Math.random() * 250 + 150;
+      const tx = Math.cos(angle) * velocity;
+      const ty = Math.sin(angle) * velocity - 80;
+      
+      confetti.animate([
+        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+        { opacity: 1, offset: 0.5 },
+        { transform: `translate(${tx}px, ${ty}px) rotate(${Math.random() * 720 - 360}deg) scale(0.3)`, opacity: 0 }
+      ], {
+        duration: Math.random() * 800 + 1000,
+        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+      });
+      
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 2000);
+    }
+    
+    // Celebration emojis
+    for (let i = 0; i < 6; i++) {
+      const emojiEl = document.createElement('div');
+      emojiEl.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      emojiEl.style.position = 'fixed';
+      emojiEl.style.left = (centerX + (Math.random() - 0.5) * 80) + 'px';
+      emojiEl.style.top = centerY + 'px';
+      emojiEl.style.fontSize = '2rem';
+      emojiEl.style.pointerEvents = 'none';
+      emojiEl.style.zIndex = '10000';
+      
+      const floatX = (Math.random() - 0.5) * 120;
+      const floatY = -(Math.random() * 180 + 120);
+      
+      emojiEl.animate([
+        { transform: 'translate(0, 0) scale(0.5) rotate(0deg)', opacity: 0 },
+        { transform: 'translate(0, -20px) scale(1) rotate(10deg)', opacity: 1, offset: 0.1 },
+        { transform: `translate(${floatX}px, ${floatY}px) scale(1.5) rotate(360deg)`, opacity: 0 }
+      ], {
+        duration: Math.random() * 500 + 1500,
+        delay: Math.random() * 300,
+        easing: 'ease-out'
+      });
+      
+      document.body.appendChild(emojiEl);
+      setTimeout(() => emojiEl.remove(), 2200);
+    }
+    
+    // Button pulse
+    postBtn.animate([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.1)' },
+      { transform: 'scale(0.95)' },
+      { transform: 'scale(1.05)' },
+      { transform: 'scale(1)' }
+    ], {
+      duration: 600,
+      easing: 'ease-in-out'
     });
   }
 
