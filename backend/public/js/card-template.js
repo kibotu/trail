@@ -269,7 +269,7 @@ function createEntryCard(entry, options = {}) {
                                         <span>Delete</span>
                                     </button>
                                 ` : ''}
-                                ${isLoggedIn && !canModify ? `
+                                ${isLoggedIn && currentUserId && currentUserId !== entry.user_id ? `
                                     <button class="menu-item" data-entry-id="${entry.id}" data-user-id="${entry.user_id}" data-action="report" data-no-navigate>
                                         <i class="fa-solid fa-flag"></i>
                                         <span>Report Post</span>

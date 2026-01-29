@@ -1077,6 +1077,7 @@
 
         // User session info (from PHP) - only non-sensitive data
         const isLoggedIn = <?= json_encode($isLoggedIn ?? false) ?>;
+        const userId = <?= json_encode($userId ?? null) ?>;
         const userEmail = <?= json_encode($userName ?? null) ?>;
         const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
         // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
@@ -1255,9 +1256,9 @@
                         const card = createEntryCard(entry, {
                             showSourceBadge: false,              // No source badges on public page
                             canModify: canModifyEntry(entry),    // User-specific permissions
-                            isAdmin: false,                      // Not admin context
+                            isAdmin: isAdmin,                    // Pass admin status
                             isLoggedIn: isLoggedIn,              // Pass login status
-                            currentUserId: null                  // Not needed for public page
+                            currentUserId: userId                // Pass current user ID
                         });
                         entriesContainer.appendChild(card);
                     });
