@@ -619,13 +619,13 @@ function openShareModal(hashId, buttonElement) {
     const tooltip = document.createElement('div');
     tooltip.id = 'share-tooltip';
     tooltip.style.cssText = `
-        position: absolute;
+        position: fixed;
         background: var(--bg-secondary, #1e293b);
         border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
         border-radius: 8px;
         padding: 0.5rem;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
+        z-index: 10001;
         animation: tooltipFadeIn 0.2s ease-out;
         min-width: 140px;
     `;
