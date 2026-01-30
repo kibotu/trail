@@ -924,7 +924,7 @@ main {
     color: var(--text-muted);
     font-size: 1rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.5rem 0.25rem 0.5rem 0.5rem;
     border-radius: 4px;
     transition: all 0.2s;
     display: flex;
@@ -1312,15 +1312,28 @@ main {
 }
 
 .comment-footer {
-    margin-left: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     margin-top: 0.5rem;
+}
+
+.comment-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-footer-right {
+    display: flex;
+    align-items: center;
 }
 
 .comment-clap-button {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.5rem;
     background: transparent;
     border: none;
     color: var(--text-muted);

@@ -72,6 +72,12 @@ class CommentsManager {
             commentsSection = this.createCommentsSection(entryId, hashId);
             card.appendChild(commentsSection);
             
+            // Initialize image uploader after section is in DOM
+            const isLoggedIn = document.body.dataset.isLoggedIn === 'true';
+            if (isLoggedIn) {
+                this.initializeImageUploader(commentsSection, entryId);
+            }
+            
             // Load comments if not cached
             if (!this.commentsCache.has(entryId)) {
                 await this.loadComments(entryId, hashId, commentsSection);
@@ -131,12 +137,50 @@ class CommentsManager {
             </div>
         `;
         
-        // Add event listeners
+        // Add basic event listeners (image uploader will be initialized after DOM insertion)
         if (isLoggedIn) {
-            this.attachCommentInputListeners(section, entryId, hashId);
+            this.attachBasicCommentInputListeners(section, entryId, hashId);
         }
         
         return section;
+    }
+    
+    initializeImageUploader(section, entryId) {
+        const textarea = section.querySelector('.comment-input');
+        const submitButton = section.querySelector('.comment-submit-button');
+        
+        // Initialize image uploader
+        window[`commentImageIds_${entryId}`] = [];
+        
+        // Check if container exists before initializing
+        const containerId = `comment-image-upload-${entryId}`;
+        const container = document.getElementById(containerId);
+        
+        if (container) {
+            const imageUploader = createImageUploadUI(
+                'post',
+                containerId,
+                (result) => {
+                    window[`commentImageIds_${entryId}`].push(result.image_id);
+                    // Update submit button state
+                    const hasImages = window[`commentImageIds_${entryId}`].length > 0;
+                    const length = textarea.value.length;
+                    submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+                },
+                (imageId) => {
+                    const ids = window[`commentImageIds_${entryId}`];
+                    const index = ids.indexOf(imageId);
+                    if (index > -1) ids.splice(index, 1);
+                    // Update submit button state
+                    const hasImages = window[`commentImageIds_${entryId}`].length > 0;
+                    const length = textarea.value.length;
+                    submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+                }
+            );
+            window[`commentImageUploader_${entryId}`] = imageUploader;
+        } else {
+            console.warn(`Image upload container not found: ${containerId}`);
+        }
     }
 
     async loadComments(entryId, hashId, commentsSection) {
@@ -232,60 +276,39 @@ class CommentsManager {
                     ` : ''}
                 </div>
                 <div class="comment-footer">
-                    ${isLoggedIn ? `
-                        <button class="comment-clap-button ${(comment.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId === comment.user_id ? 'own-comment' : ''}" 
-                                data-no-navigate
-                                data-comment-id="${comment.id}"
-                                data-entry-id="${entryId}"
-                                data-hash-id="${hashId}"
-                                data-user-claps="${comment.user_clap_count || 0}"
-                                data-total-claps="${comment.clap_count || 0}"
-                                data-is-own="${currentUserId === comment.user_id ? 'true' : 'false'}"
-                                aria-label="${currentUserId === comment.user_id ? 'Your comment' : 'Clap for this comment'}">
-                            <i class="fa-${(comment.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
-                            <span class="clap-count">${comment.clap_count || 0}</span>
-                        </button>
-                    ` : `
-                        ${comment.clap_count > 0 ? `
-                            <div class="comment-clap-display">
-                                <i class="fa-regular fa-heart"></i>
-                                <span class="clap-count">${comment.clap_count}</span>
-                            </div>
-                        ` : ''}
-                    `}
+                    <div class="comment-footer-left"></div>
+                    <div class="comment-footer-right">
+                        ${isLoggedIn ? `
+                            <button class="comment-clap-button ${(comment.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId === comment.user_id ? 'own-comment' : ''}" 
+                                    data-no-navigate
+                                    data-comment-id="${comment.id}"
+                                    data-entry-id="${entryId}"
+                                    data-hash-id="${hashId}"
+                                    data-user-claps="${comment.user_clap_count || 0}"
+                                    data-total-claps="${comment.clap_count || 0}"
+                                    data-is-own="${currentUserId === comment.user_id ? 'true' : 'false'}"
+                                    aria-label="${currentUserId === comment.user_id ? 'Your comment' : 'Clap for this comment'}">
+                                <i class="fa-${(comment.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
+                                <span class="clap-count">${comment.clap_count || 0}</span>
+                            </button>
+                        ` : `
+                            ${comment.clap_count > 0 ? `
+                                <div class="comment-clap-display">
+                                    <i class="fa-regular fa-heart"></i>
+                                    <span class="clap-count">${comment.clap_count}</span>
+                                </div>
+                            ` : ''}
+                        `}
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    attachCommentInputListeners(section, entryId, hashId) {
+    attachBasicCommentInputListeners(section, entryId, hashId) {
         const textarea = section.querySelector('.comment-input');
         const submitButton = section.querySelector('.comment-submit-button');
         const charCounter = section.querySelector('.char-counter');
-        
-        // Initialize image uploader
-        window[`commentImageIds_${entryId}`] = [];
-        const imageUploader = createImageUploadUI(
-            'post',
-            `comment-image-upload-${entryId}`,
-            (result) => {
-                window[`commentImageIds_${entryId}`].push(result.image_id);
-                // Update submit button state
-                const hasImages = window[`commentImageIds_${entryId}`].length > 0;
-                const length = textarea.value.length;
-                submitButton.disabled = (length === 0 && !hasImages) || length > 280;
-            },
-            (imageId) => {
-                const ids = window[`commentImageIds_${entryId}`];
-                const index = ids.indexOf(imageId);
-                if (index > -1) ids.splice(index, 1);
-                // Update submit button state
-                const hasImages = window[`commentImageIds_${entryId}`].length > 0;
-                const length = textarea.value.length;
-                submitButton.disabled = (length === 0 && !hasImages) || length > 280;
-            }
-        );
-        window[`commentImageUploader_${entryId}`] = imageUploader;
         
         // Character counter
         textarea.addEventListener('input', () => {
@@ -355,10 +378,41 @@ class CommentsManager {
                 }
                 
                 const commentId = parseInt(button.dataset.commentId);
-                const currentClaps = parseInt(button.dataset.userClaps) || 0;
-                const newClaps = currentClaps > 0 ? 0 : 1;
+                let userClaps = parseInt(button.dataset.userClaps) || 0;
+                let totalClaps = parseInt(button.dataset.totalClaps) || 0;
                 
-                await this.clapComment(commentId, newClaps, entryId, hashId, button);
+                // Check if user has reached the limit
+                if (userClaps >= 50) {
+                    button.classList.add('clap-limit-reached');
+                    setTimeout(() => button.classList.remove('clap-limit-reached'), 500);
+                    return;
+                }
+                
+                // Increment claps
+                userClaps++;
+                totalClaps++;
+                
+                // Optimistic UI update
+                button.dataset.userClaps = userClaps;
+                button.dataset.totalClaps = totalClaps;
+                button.classList.add('clapped', 'clap-animation');
+                
+                // Update icon
+                const icon = button.querySelector('i');
+                icon.className = 'fa-solid fa-heart';
+                
+                // Update count
+                const countSpan = button.querySelector('.clap-count');
+                countSpan.textContent = totalClaps;
+                
+                // Create particle explosion
+                createClapParticles(button, e.clientX, e.clientY);
+                
+                // Remove animation class
+                setTimeout(() => button.classList.remove('clap-animation'), 300);
+                
+                // Call API
+                await this.clapComment(commentId, userClaps, entryId, hashId, button);
             });
         });
     }
@@ -551,22 +605,11 @@ class CommentsManager {
         }
     }
 
-    async clapComment(commentId, count, entryId, hashId, button) {
-        // Optimistic update
+    async clapComment(commentId, userClaps, entryId, hashId, button) {
         const icon = button.querySelector('i');
         const countSpan = button.querySelector('.clap-count');
-        const currentTotal = parseInt(button.dataset.totalClaps) || 0;
-        const currentUserClaps = parseInt(button.dataset.userClaps) || 0;
-        
-        if (count > 0) {
-            button.classList.add('clapped');
-            icon.className = 'fa-solid fa-heart';
-            countSpan.textContent = currentTotal - currentUserClaps + count;
-        } else {
-            button.classList.remove('clapped');
-            icon.className = 'fa-regular fa-heart';
-            countSpan.textContent = Math.max(0, currentTotal - currentUserClaps);
-        }
+        const originalUserClaps = parseInt(button.dataset.userClaps) || 0;
+        const originalTotalClaps = parseInt(button.dataset.totalClaps) || 0;
         
         try {
             const token = localStorage.getItem('jwt_token');
@@ -577,7 +620,7 @@ class CommentsManager {
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ count })
+                body: JSON.stringify({ count: userClaps })
             });
             
             if (!response.ok) {
@@ -600,15 +643,19 @@ class CommentsManager {
             }
         } catch (error) {
             console.error('Error clapping comment:', error);
+            
             // Revert optimistic update
-            if (currentUserClaps > 0) {
+            button.dataset.userClaps = originalUserClaps;
+            button.dataset.totalClaps = originalTotalClaps;
+            
+            if (originalUserClaps > 0) {
                 button.classList.add('clapped');
                 icon.className = 'fa-solid fa-heart';
             } else {
                 button.classList.remove('clapped');
                 icon.className = 'fa-regular fa-heart';
             }
-            countSpan.textContent = currentTotal;
+            countSpan.textContent = originalTotalClaps;
             
             if (typeof showSnackbar === 'function') {
                 showSnackbar('Failed to clap comment', 'error');

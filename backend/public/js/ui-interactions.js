@@ -253,6 +253,48 @@ function showLoginPrompt(message = 'Please log in to continue') {
     }
 }
 
+/**
+ * Create particle explosion effect for claps
+ * @param {HTMLElement} button - Button element
+ * @param {number} clickX - Click X coordinate
+ * @param {number} clickY - Click Y coordinate
+ */
+function createClapParticles(button, clickX, clickY) {
+    // Use the exact click coordinates
+    const centerX = clickX;
+    const centerY = clickY;
+    
+    // Create 8-12 particles
+    const particleCount = Math.floor(Math.random() * 5) + 8;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'clap-particle';
+        particle.innerHTML = '<i class="fa-solid fa-heart"></i>';
+        
+        // Angle biased towards upward direction
+        // Range from -135° to -45° (upward arc)
+        const baseAngle = -90 * (Math.PI / 180); // -90° is straight up
+        const spread = 90 * (Math.PI / 180); // ±45° spread
+        const angle = baseAngle + (Math.random() - 0.5) * spread;
+        
+        const distance = 30 + Math.random() * 30;
+        const endX = Math.cos(angle) * distance;
+        const endY = Math.sin(angle) * distance;
+        
+        // Position at exact click location
+        particle.style.left = centerX + 'px';
+        particle.style.top = centerY + 'px';
+        particle.style.setProperty('--end-x', endX + 'px');
+        particle.style.setProperty('--end-y', endY + 'px');
+        
+        document.body.appendChild(particle);
+        
+        // Remove after animation
+        setTimeout(() => particle.remove(), 600);
+    }
+}
+
 // Export functions for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -267,6 +309,7 @@ if (typeof module !== 'undefined' && module.exports) {
         setButtonLoading,
         setFormDisabled,
         validateEntryText,
-        showLoginPrompt
+        showLoginPrompt,
+        createClapParticles
     };
 }
