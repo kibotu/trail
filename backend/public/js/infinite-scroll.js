@@ -115,6 +115,16 @@ class InfiniteScroll {
             
         } catch (error) {
             console.error('Error loading more content:', error);
+            
+            // Stop infinite scroll on error to prevent endless loops
+            // Especially important for 404 errors (non-existing users/resources)
+            this.hasMore = false;
+            this.stop();
+            
+            // Hide loading indicator on error
+            if (this.loadingElement) {
+                this.loadingElement.style.display = 'none';
+            }
         } finally {
             this.isLoading = false;
             
@@ -124,7 +134,10 @@ class InfiniteScroll {
             }
             
             // Check again in case the loaded content is still short
-            setTimeout(() => this.checkScroll(), 100);
+            // Only if we still have more content to load
+            if (this.hasMore) {
+                setTimeout(() => this.checkScroll(), 100);
+            }
         }
     }
 

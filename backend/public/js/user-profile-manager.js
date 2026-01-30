@@ -18,6 +18,10 @@ class UserProfileManager {
         this.profileImageUploader = null;
         this.headerImageUploader = null;
         
+        // Shader background
+        this.shaderBackground = null;
+        this.shaderCanvas = null;
+        
         // Element IDs
         this.elements = {
             profileHeaderImage: 'profileHeaderImage',
@@ -62,13 +66,6 @@ class UserProfileManager {
             this.isOwner = this.sessionState.isLoggedIn && 
                           this.sessionState.userId === this.profileData.id;
             
-            console.log('Profile loaded:', {
-                isLoggedIn: this.sessionState.isLoggedIn,
-                sessionUserId: this.sessionState.userId,
-                profileUserId: this.profileData.id,
-                isOwner: this.isOwner
-            });
-            
             this.displayProfile();
             return this.profileData;
 
@@ -84,13 +81,17 @@ class UserProfileManager {
     displayProfile() {
         const profile = this.profileData;
         
-        // Set header image
+        // Set header image or shader background
         const headerEl = document.getElementById(this.elements.profileHeaderImage);
         if (headerEl) {
             if (profile.header_image_url) {
+                // User has a custom header image - destroy shader if exists
+                this.destroyShaderBackground();
                 headerEl.style.backgroundImage = `url('${profile.header_image_url}')`;
             } else {
+                // No header image - use shader background
                 headerEl.style.backgroundImage = '';
+                this.initShaderBackground();
             }
         }
 
@@ -175,11 +176,9 @@ class UserProfileManager {
         // Add owner class to overlays for visual feedback
         if (headerOverlay) {
             headerOverlay.classList.add('owner');
-            console.log('Added owner class to header overlay');
         }
         if (avatarOverlay) {
             avatarOverlay.classList.add('owner');
-            console.log('Added owner class to avatar overlay');
         }
         
         // Add clickable class to containers
@@ -227,31 +226,21 @@ class UserProfileManager {
         // Header image upload - click on the header container itself
         const headerContainer = document.getElementById(this.elements.profileHeaderImage);
         if (headerContainer) {
-            console.log('✓ Header container found - setting up click listener');
             headerContainer.addEventListener('click', (e) => {
-                console.log('🎯 Header container clicked!');
                 e.stopPropagation();
                 e.preventDefault();
                 this.triggerHeaderImageUpload();
             });
-            console.log('✓ Header click listener attached');
-        } else {
-            console.error('✗ Header container element not found');
         }
 
         // Avatar image upload - click on the avatar image itself
         const avatarImg = document.getElementById(this.elements.profileAvatar);
         if (avatarImg) {
-            console.log('✓ Avatar image found - setting up click listener');
             avatarImg.addEventListener('click', (e) => {
-                console.log('🎯 Avatar image clicked!');
                 e.stopPropagation();
                 e.preventDefault();
                 this.triggerAvatarImageUpload();
             });
-            console.log('✓ Avatar click listener attached');
-        } else {
-            console.error('✗ Avatar image element not found');
         }
     }
 
@@ -526,6 +515,9 @@ class UserProfileManager {
             const data = await response.json();
             this.profileData.header_image_url = data.header_image_url;
             
+            // Destroy shader background since we now have a custom image
+            this.destroyShaderBackground();
+            
             // Update display
             const headerEl = document.getElementById(this.elements.profileHeaderImage);
             if (headerEl && data.header_image_url) {
@@ -634,6 +626,52 @@ class UserProfileManager {
             showSnackbar(message, 'error');
         } else {
             alert(message);
+        }
+    }
+
+    /**
+     * Initialize shader background
+     */
+    initShaderBackground() {
+        // Check if shader function is available
+        if (typeof initProteanCloudsShader === 'undefined') {
+            console.warn('Protean Clouds shader not available');
+            return;
+        }
+
+        // Destroy existing shader if any
+        this.destroyShaderBackground();
+
+        // Create canvas element
+        const headerEl = document.getElementById(this.elements.profileHeaderImage);
+        if (!headerEl) return;
+
+        this.shaderCanvas = document.createElement('canvas');
+        this.shaderCanvas.style.position = 'absolute';
+        this.shaderCanvas.style.top = '0';
+        this.shaderCanvas.style.left = '0';
+        this.shaderCanvas.style.width = '100%';
+        this.shaderCanvas.style.height = '100%';
+        this.shaderCanvas.style.pointerEvents = 'none';
+        
+        headerEl.appendChild(this.shaderCanvas);
+
+        // Initialize shader
+        this.shaderBackground = initProteanCloudsShader(this.shaderCanvas);
+    }
+
+    /**
+     * Destroy shader background
+     */
+    destroyShaderBackground() {
+        if (this.shaderBackground) {
+            this.shaderBackground.destroy();
+            this.shaderBackground = null;
+        }
+        
+        if (this.shaderCanvas && this.shaderCanvas.parentNode) {
+            this.shaderCanvas.parentNode.removeChild(this.shaderCanvas);
+            this.shaderCanvas = null;
         }
     }
 

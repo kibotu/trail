@@ -159,6 +159,16 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
         // Get the nickname from the route
         $nickname = $args['nickname'] ?? null;
         
+        // Check if user exists
+        $userModel = new \Trail\Models\User($db);
+        $user = $userModel->findByNickname($nickname);
+        
+        if ($user === null) {
+            // User not found - show 404 error page
+            require_once __DIR__ . '/helpers/error.php';
+            return sendErrorPage($response, 404, $config);
+        }
+        
         // Build Google OAuth URL for the login button (only if not logged in)
         $googleOAuth = $config['google_oauth'] ?? null;
         $googleAuthUrl = null;

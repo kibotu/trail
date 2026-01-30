@@ -121,6 +121,7 @@
     <script src="/js/infinite-scroll.js"></script>
     <script src="/js/image-upload.js"></script>
     <script src="/js/comments-manager.js"></script>
+    <script src="/js/shader-who.js"></script>
     <script src="/js/user-profile-manager.js"></script>
     
     <!-- Page Initialization -->
