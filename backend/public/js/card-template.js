@@ -329,11 +329,6 @@ function createEntryCard(entry, options = {}) {
                             <i class="fa-regular fa-comment"></i>
                             <span class="comment-count">${entry.comment_count || 0}</span>
                         </button>
-                        <button class="share-button" data-no-navigate aria-label="Share entry">
-                            <i class="fa-solid fa-share-nodes"></i>
-                        </button>
-                    </div>
-                    <div class="entry-footer-right">
                         <button class="clap-button ${(entry.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId && currentUserId === entry.user_id ? 'own-entry' : ''}" 
                                 data-no-navigate 
                                 data-entry-id="${entry.id}"
@@ -344,6 +339,9 @@ function createEntryCard(entry, options = {}) {
                                 aria-label="${currentUserId && currentUserId === entry.user_id ? 'Your entry claps' : 'Clap for this entry'}">
                             <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
                             <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
+                        </button>
+                        <button class="share-button" data-no-navigate aria-label="Share entry">
+                            <i class="fa-solid fa-share-nodes"></i>
                         </button>
                     </div>
                 </div>
