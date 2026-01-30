@@ -80,13 +80,23 @@
         </div>
     </main>
 
+    <!-- Core JavaScript Modules -->
     <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
+    <script src="/js/ui-interactions.js"></script>
+    <script src="/js/entries-manager.js"></script>
+    <script src="/js/infinite-scroll.js"></script>
+    
     <script>
         const nickname = <?= json_encode($nickname ?? '') ?>;
+        const sessionState = {
+            isLoggedIn: <?= json_encode($isLoggedIn ?? false) ?>,
+            userId: null,
+            userEmail: <?= json_encode($userName ?? null) ?>,
+            isAdmin: <?= json_encode($isAdmin ?? false) ?>
+        };
+
         let nextCursor = null;
-        let isLoading = false;
-        let hasMore = true;
         let userData = null;
 
         const entriesContainer = document.getElementById('entriesContainer');
@@ -95,288 +105,70 @@
         const userHeader = document.getElementById('userHeader');
         const errorContainer = document.getElementById('errorContainer');
 
-        // User session info (from PHP) - only non-sensitive data
-        const isLoggedIn = <?= json_encode($isLoggedIn ?? false) ?>;
-        const userEmail = <?= json_encode($userName ?? null) ?>;
-        const isAdmin = <?= json_encode($isAdmin ?? false) ?>;
-        // JWT token is stored in httpOnly cookie - not accessible to JavaScript for security
+        // Initialize entries manager
+        const entriesManager = new EntriesManager({ sessionState });
 
-        // Check if current user can modify this entry
-        function canModifyEntry(entry) {
-            if (!isLoggedIn) return false;
-            if (isAdmin) return true;
-            return entry.user_email === userEmail;
-        }
+        // Setup menu close handler
+        setupMenuCloseHandler();
 
-        // Toggle menu dropdown
-        function toggleMenu(event, entryId) {
-            event.stopPropagation();
-            const menu = document.getElementById(`menu-${entryId}`);
-            const allMenus = document.querySelectorAll('.menu-dropdown');
-            
-            allMenus.forEach(m => {
-                if (m !== menu) {
-                    m.classList.remove('active');
+        // Setup infinite scroll
+        const infiniteScroll = new InfiniteScroll(async () => {
+            const result = await entriesManager.loadEntries(`/api/users/${nickname}/entries`, {
+                cursor: nextCursor,
+                limit: 100,
+                container: entriesContainer,
+                cardOptions: {
+                    showSourceBadge: false,
+                    canModify: (entry) => canModifyEntry(entry, sessionState),
+                    isAdmin: false,
+                    isLoggedIn: sessionState.isLoggedIn,
+                    currentUserId: null
                 }
             });
-            
-            menu.classList.toggle('active');
-        }
 
-        // Close menus when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!event.target.closest('.entry-menu')) {
-                const allMenus = document.querySelectorAll('.menu-dropdown');
-                allMenus.forEach(m => m.classList.remove('active'));
+            // Update user header on first load
+            if (result.user && !userData) {
+                userData = result.user;
+                const avatarUrl = userData.photo_url || 
+                    `https://www.gravatar.com/avatar/${userData.gravatar_hash}?s=160&d=mp`;
+                document.getElementById('userAvatar').src = avatarUrl;
+                document.getElementById('userName').textContent = `@${userData.nickname}`;
+                userHeader.style.display = 'flex';
             }
+
+            nextCursor = result.next_cursor;
+
+            if (result.entries.length === 0 && entriesContainer.children.length === 0) {
+                showEmptyState(entriesContainer, {
+                    icon: 'fa-file-lines',
+                    title: 'No entries yet',
+                    message: 'This user hasn\'t posted anything yet.'
+                });
+            }
+
+            return { hasMore: result.has_more };
+        }, {
+            threshold: 500,
+            loadingElement: loadingElement,
+            endElement: endMessage
         });
 
-        // Show error message
-        function showError(message) {
-            errorContainer.innerHTML = `
-                <div class="error-message">
-                    ${message}
-                </div>
-            `;
-        }
+        // Expose functions globally for card-template.js
+        window.editEntry = function(entryId) {
+            entriesManager.editEntry(entryId);
+        };
 
-        // Load entries from API
-        async function loadEntries() {
-            if (isLoading || !hasMore) return;
+        window.deleteEntry = function(entryId) {
+            entriesManager.deleteEntry(entryId);
+        };
 
-            isLoading = true;
-            loadingElement.style.display = 'block';
+        window.cancelEdit = function(entryId) {
+            entriesManager.cancelEdit(entryId);
+        };
 
-            try {
-                const url = new URL(`/api/users/${nickname}/entries`, window.location.origin);
-                url.searchParams.set('limit', '100');
-                if (nextCursor) {
-                    url.searchParams.set('before', nextCursor);
-                }
-
-                const response = await fetch(url);
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('User not found');
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                // Store user data and show header
-                if (data.user && !userData) {
-                    userData = data.user;
-                    const avatarUrl = userData.photo_url || 
-                        `https://www.gravatar.com/avatar/${userData.gravatar_hash}?s=160&d=mp`;
-                    document.getElementById('userAvatar').src = avatarUrl;
-                    document.getElementById('userName').textContent = `@${userData.nickname}`;
-                    userHeader.style.display = 'flex';
-                }
-
-                if (data.entries && data.entries.length > 0) {
-                    data.entries.forEach(entry => {
-                        const card = createEntryCard(entry, {
-                            showSourceBadge: false,
-                            canModify: canModifyEntry(entry),
-                            isAdmin: false,
-                            isLoggedIn: isLoggedIn,
-                            currentUserId: null
-                        });
-                        entriesContainer.appendChild(card);
-                    });
-
-                    nextCursor = data.next_cursor;
-                    hasMore = data.has_more;
-
-                    if (!hasMore) {
-                        endMessage.style.display = 'block';
-                    }
-                } else if (entriesContainer.children.length === 0) {
-                    entriesContainer.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon"><i class="fa-solid fa-file-lines"></i></div>
-                            <h2>No entries yet</h2>
-                            <p>This user hasn't posted anything yet.</p>
-                        </div>
-                    `;
-                    hasMore = false;
-                }
-            } catch (error) {
-                console.error('Error loading entries:', error);
-                if (error.message === 'User not found') {
-                    showError('User not found. Please check the username and try again.');
-                } else {
-                    showError('Failed to load entries. Please try again later.');
-                }
-                hasMore = false;
-            } finally {
-                isLoading = false;
-                loadingElement.style.display = 'none';
-            }
-        }
-
-        // Infinite scroll handler
-        function handleScroll() {
-            if (isLoading || !hasMore) return;
-
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const threshold = document.documentElement.scrollHeight - 500;
-
-            if (scrollPosition >= threshold) {
-                loadEntries();
-            }
-        }
-
-        // Initialize
-        window.addEventListener('scroll', handleScroll);
-        window.addEventListener('resize', handleScroll);
-
-        // Edit entry
-        async function editEntry(entryId) {
-            const menu = document.getElementById(`menu-${entryId}`);
-            if (menu) menu.classList.remove('active');
-
-            const card = document.querySelector(`[data-entry-id="${entryId}"]`);
-            if (!card) return;
-
-            const contentDiv = card.querySelector('.entry-content');
-            const textDiv = card.querySelector('.entry-text');
-            const currentText = textDiv.textContent;
-
-            const previewCard = contentDiv.querySelector('.iframely-embed, .link-preview-card');
-            const previewHtml = previewCard ? previewCard.outerHTML : '';
-
-            contentDiv.innerHTML = `
-                <div class="edit-form">
-                    <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
-                    <div class="edit-actions">
-                        <button class="action-button cancel-button" onclick="cancelEdit(${entryId}, '${escapeHtml(currentText).replace(/'/g, "\\'")}', \`${previewHtml.replace(/`/g, '\\`')}\`)">
-                            <i class="fa-solid fa-xmark"></i>
-                            <span>Cancel</span>
-                        </button>
-                        <button class="action-button save-button" onclick="saveEdit(${entryId})">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                            <span>Save</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            const textarea = document.getElementById(`edit-text-${entryId}`);
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-        }
-
-        // Cancel edit
-        function cancelEdit(entryId, originalText, previewHtml = '') {
-            const card = document.querySelector(`[data-entry-id="${entryId}"]`);
-            if (!card) return;
-
-            const contentDiv = card.querySelector('.entry-content');
-            const linkedText = linkifyText(originalText);
-            contentDiv.innerHTML = `<div class="entry-text">${linkedText}</div>${previewHtml}`;
-        }
-
-        // Save edit
-        async function saveEdit(entryId) {
-            const textarea = document.getElementById(`edit-text-${entryId}`);
-            const newText = textarea.value.trim();
-
-            if (!newText) {
-                alert('Entry text cannot be empty');
-                return;
-            }
-
-            if (!isLoggedIn) {
-                alert('You must be logged in to edit entries');
-                return;
-            }
-
-            try {
-                // Use fetch with credentials to send httpOnly cookies
-                const response = await fetch(`/api/entries/${entryId}`, {
-                    method: 'PUT',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: newText })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to update entry');
-                }
-
-                location.reload();
-            } catch (error) {
-                console.error('Error updating entry:', error);
-                alert(`Failed to update entry: ${error.message}`);
-            }
-        }
-
-        // Delete entry
-        async function deleteEntry(entryId) {
-            const menu = document.getElementById(`menu-${entryId}`);
-            if (menu) menu.classList.remove('active');
-
-            if (!confirm('Are you sure you want to delete this entry?')) {
-                return;
-            }
-
-            if (!isLoggedIn) {
-                alert('You must be logged in to delete entries');
-                return;
-            }
-
-            try {
-                // Use fetch with credentials to send httpOnly cookies
-                const response = await fetch(`/api/entries/${entryId}`, {
-                    method: 'DELETE',
-                    credentials: 'same-origin'
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to delete entry');
-                }
-
-                const card = document.querySelector(`[data-entry-id="${entryId}"]`);
-                if (card) {
-                    card.remove();
-                }
-
-                if (entriesContainer.children.length === 0) {
-                    entriesContainer.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon"><i class="fa-solid fa-file-lines"></i></div>
-                            <h2>No entries yet</h2>
-                            <p>This user hasn't posted anything yet.</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error deleting entry:', error);
-                alert(`Failed to delete entry: ${error.message}`);
-            }
-        }
-
-        // Helper function to escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Helper function to linkify text
-        function linkifyText(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        }
-
-        // Load initial entries
-        loadEntries();
+        window.saveEdit = function(entryId) {
+            entriesManager.saveEdit(entryId);
+        };
     </script>
 </body>
 </html>
