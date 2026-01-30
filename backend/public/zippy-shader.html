@@ -38,84 +38,11 @@
             height: 100%;
         }
 
-        .info {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 11px;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-            z-index: 10;
-            pointer-events: none;
-            line-height: 1.4;
-        }
-
-        .info a {
-            color: rgba(255, 255, 255, 0.9);
-            pointer-events: auto;
-        }
-
-        .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 12px;
-            border-radius: 6px;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 11px;
-            z-index: 10;
-            pointer-events: auto;
-            max-width: 200px;
-        }
-
-        .controls label {
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .controls input[type="checkbox"] {
-            margin-right: 8px;
-        }
-
-        .controls input[type="range"] {
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .controls .control-group {
-            margin-bottom: 10px;
-        }
-
-        .controls .control-group:last-child {
-            margin-bottom: 0;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <canvas id="shaderCanvas"></canvas>
-        
-        <div class="controls">
-        <div class="control-group">
-            <label>
-                <input type="checkbox" id="useSafeMode">
-                Use Safe Mode (stanh)
-            </label>
-        </div>
-        <div class="control-group">
-            <label>
-                Speed: <span id="speedValue">1.0</span>
-                <input type="range" id="speedSlider" min="0.1" max="3.0" value="1.0" step="0.1">
-            </label>
-        </div>
-    </div>
-
-        <div class="info">
-            Zippy Shader<br>
-            Original: <a href="https://www.shadertoy.com/view/XXyGzh" target="_blank">Shadertoy</a><br>
-            -13 thanks to Nguyen2007 ⚡
-        </div>
     </div>
 
     <script>
@@ -134,20 +61,9 @@
         const isWebGL2 = gl.constructor.name === 'WebGL2RenderingContext';
         console.log('Using ' + (isWebGL2 ? 'WebGL2' : 'WebGL1'));
 
-        // Controls
-        let useSafeMode = false;
+        // Use safe mode by default
+        let useSafeMode = true;
         let speed = 1.0;
-
-        document.getElementById('useSafeMode').addEventListener('change', (e) => {
-            useSafeMode = e.target.checked;
-            // Recompile shader with new mode
-            initShader();
-        });
-
-        document.getElementById('speedSlider').addEventListener('input', (e) => {
-            speed = parseFloat(e.target.value);
-            document.getElementById('speedValue').textContent = speed.toFixed(1);
-        });
 
         // Vertex shader
         const vertexShaderSource = `
@@ -157,8 +73,9 @@
             }
         `;
 
-        // Fragment shader - exact Shadertoy implementation
+        // Fragment shader - Shadertoy implementation
         function getFragmentShaderSource() {
+            // WebGL1 needs manual tanh implementation, WebGL2 has it built-in
             const tanhImplementation = isWebGL2 ? '' : `
             // Manual tanh implementation for WebGL1
             float tanh(float x) {
@@ -166,14 +83,32 @@
                 return (e - 1.0) / (e + 1.0);
             }
             `;
-
-            const stanhImplementation = useSafeMode ? `
-            // Safe tanh with clamping
-            float tanh_safe(float x) {
-                return tanh(clamp(x, -40.0, 40.0));
+            
+            // Vec2 overload for tanh (works for both WebGL1 and WebGL2)
+            const tanhVec2 = `
+            vec2 tanh(vec2 x) {
+                float ex0 = exp(2.0 * x.x);
+                float ex1 = exp(2.0 * x.y);
+                return vec2((ex0 - 1.0) / (ex0 + 1.0), (ex1 - 1.0) / (ex1 + 1.0));
             }
-            #define tanh_final tanh_safe
+            `;
+
+            const finalImplementation = useSafeMode ? `
+            // Safe tanh with clamping to prevent overflow
+            float tanh_final(float x) {
+                x = clamp(x, -40.0, 40.0);
+                float e = exp(2.0 * x);
+                return (e - 1.0) / (e + 1.0);
+            }
+            
+            vec2 tanh_final(vec2 x) {
+                x = clamp(x, -40.0, 40.0);
+                float ex0 = exp(2.0 * x.x);
+                float ex1 = exp(2.0 * x.y);
+                return vec2((ex0 - 1.0) / (ex0 + 1.0), (ex1 - 1.0) / (ex1 + 1.0));
+            }
             ` : `
+            // Use tanh directly
             #define tanh_final tanh
             `;
 
@@ -185,27 +120,39 @@
             uniform float uSpeed;
 
             ${tanhImplementation}
-            ${stanhImplementation}
+            ${tanhVec2}
+            ${finalImplementation}
 
-            // Exact Shadertoy shader code (-13 chars version)
+            // Shadertoy shader code (adapted for GLSL compatibility)
             void mainImage(out vec4 o, vec2 u) {
                 vec2 v = iResolution.xy;
                 u = .2*(u+u-v)/v.y;    
                 
                 vec4 z = o = vec4(1,2,3,0);
                 
-                for (float a = .5, t = iTime * uSpeed, i; 
-                     ++i < 19.; 
-                     o += (1. + cos(z+t)) 
-                        / length((1.+i*dot(v,v)) 
-                               * sin(1.5*u/(.5-dot(u,u)) - 9.*u.yx + t))
-                     )  
-                    v = cos(++t - 7.*u*pow(a += .03, i)) - 5.*u, 
-                    u += tanh_final(40. * dot(u *= mat2(cos(i + .02*t - z.wxzw*11.))
-                                       ,u)
-                                  * cos(1e2*u.yx + t)) / 2e2
+                float a = .5;
+                float t = iTime * uSpeed;
+                
+                for (float i = 0.; i < 19.; i += 1.) {
+                    // Add to output color
+                    o += (1. + cos(z+t)) 
+                       / length((1.+i*dot(v,v)) 
+                              * sin(1.5*u/(.5-dot(u,u)) - 9.*u.yx + t));
+                    
+                    // Update variables
+                    t += 1.;
+                    a += .03;
+                    v = cos(t - 7.*u*pow(a, i)) - 5.*u;
+                    
+                    // Rotation and update u
+                    u *= mat2(cos(i + .02*t - z.wxzw*11.));
+                    
+                    // The tanh term uses element-wise operations
+                    // cos(vec2) returns vec2, multiply by scalar, then apply tanh to vec2
+                    u += tanh_final(40. * dot(u, u) * cos(1e2*u.yx + t)) / 2e2
                        + .2 * a * u
                        + cos(4./exp(dot(o,o)/1e2) + t) / 3e2;
+                }
                           
                 o = 25.6 / (min(o, 13.) + 164. / o) 
                   - dot(u, u) / 250.;

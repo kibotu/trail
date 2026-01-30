@@ -63,25 +63,50 @@
             }
         `;
 
-        // Fragment shader - optimized 383 char version
+        const isWebGL2 = gl.constructor.name === 'WebGL2RenderingContext';
+        
+        // Fragment shader - optimized version with tone mapping
         const fragmentShaderSource = `
             precision highp float;
-            uniform vec2 iResolution;
+            uniform vec3 iResolution;
             uniform float iTime;
 
+            ${isWebGL2 ? '' : `
+            // Manual tanh implementation for WebGL1
+            float tanh(float x) {
+                float e = exp(2.0 * x);
+                return (e - 1.0) / (e + 1.0);
+            }
+            `}
+            
+            vec2 tanh(vec2 x) {
+                return vec2(tanh(x.x), tanh(x.y));
+            }
+            
+            vec4 tanh(vec4 x) {
+                return vec4(tanh(x.x), tanh(x.y), tanh(x.z), tanh(x.w));
+            }
+
             void mainImage(out vec4 o, vec2 u) {
-                vec2 v = iResolution.xy,
-                     w = u = .2 * (u + u - v) / v.y;    
+                vec2 v = iResolution.xy;
+                vec2 w = u = .2 * (u + u - v) / v.y;    
                      
                 vec4 z = o = vec4(1, 2, 3, 0);
-                 
-                for (float a = .5, t = iTime, i; ++i < 19.; 
-                     o += (1. + cos(z + t)) / length((1.+i*dot(v,v)) * sin(1.5*u/(.5-dot(u,u)) - 9.*u.yx + t)))
                 
-                     v = cos(++t - 7.*u*pow(a += .03, i)) - 5. * u,
-                     
-                     u += tanh(40. * dot(u *= mat2(cos(i + .02 * t - vec4(0, 11, 33, 0))), u) * cos(1e2 * u.yx + t)) / 2e2
+                float a = .5;
+                float t = iTime;
+                 
+                for (float i = 0.; i < 19.; i += 1.) {
+                    o += (1. + cos(z + t)) / length((1.+i*dot(v,v)) * sin(1.5*u/(.5-dot(u,u)) - 9.*u.yx + t));
+                    
+                    t += 1.;
+                    a += .03;
+                    v = cos(t - 7.*u*pow(a, i)) - 5. * u;
+                    
+                    u *= mat2(cos(i + .02 * t - vec4(0, 11, 33, 0)));
+                    u += tanh(40. * dot(u, u) * cos(1e2 * u.yx + t)) / 2e2
                        + .2 * a * u + cos(4. / exp(dot(o, o) / 1e2) + t) / 3e2;
+                }
                           
                 o = tanh(o / 5.9) - dot(w, w);
             }
@@ -147,7 +172,7 @@
         function render() {
             const time = (Date.now() - startTime) / 1000;
             
-            gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);
+            gl.uniform3f(iResolutionLocation, canvas.width, canvas.height, 1.0);
             gl.uniform1f(iTimeLocation, time);
             
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
