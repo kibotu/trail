@@ -13,6 +13,7 @@ use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
 use Trail\Services\StorageService;
 use Trail\Services\ErrorLogService;
+use Trail\Cron\CleanupOrphanImages;
 
 class AdminController
 {
@@ -319,6 +320,58 @@ class AdminController
             
         } catch (\Throwable $e) {
             error_log("Error log cleanup error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Prune orphaned images
+     * Performs bidirectional cleanup:
+     * 1. Deletes orphaned image files not referenced by entries, comments, or users
+     * 2. Removes database records for images where the file no longer exists
+     */
+    public static function pruneImages(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            // Get days parameter (default 0 = all orphans)
+            $queryParams = $request->getQueryParams();
+            $days = isset($queryParams['days']) ? max(0, (int)$queryParams['days']) : 0;
+
+            // Run cleanup
+            $results = CleanupOrphanImages::run($days);
+
+            // Build success message
+            $message = sprintf(
+                "Cleanup complete: %d orphaned file%s deleted, %d database record%s removed",
+                $results['deleted_files'],
+                $results['deleted_files'] === 1 ? '' : 's',
+                $results['deleted_db_records'],
+                $results['deleted_db_records'] === 1 ? '' : 's'
+            );
+
+            if ($results['errors'] > 0) {
+                $message .= sprintf(" (%d error%s)", $results['errors'], $results['errors'] === 1 ? '' : 's');
+            }
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'deleted_files' => $results['deleted_files'],
+                'deleted_db_records' => $results['deleted_db_records'],
+                'errors' => $results['errors'],
+                'message' => $message,
+                'details' => $results['details']
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Image prune error: " . $e->getMessage());
             
             $response->getBody()->write(json_encode([
                 'success' => false,

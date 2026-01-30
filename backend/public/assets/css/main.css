@@ -1754,6 +1754,76 @@ main {
     margin: 0;
 }
 
+/* Admin Controls Section */
+.page-landing .admin-controls-section {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(249, 115, 22, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.page-landing .admin-controls-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.page-landing .admin-controls-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.page-landing .admin-controls-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.page-landing .admin-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-landing .admin-button:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.page-landing .admin-button:active {
+    transform: translateY(0);
+}
+
+.page-landing .admin-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.page-landing .admin-button i {
+    font-size: 1.125rem;
+}
+
+.page-landing .admin-help-text {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
 .page-landing .post-form {
     display: flex;
     flex-direction: column;
@@ -3418,6 +3488,19 @@ main {
 
     .page-landing .create-post-header h2 {
         font-size: 1.125rem;
+    }
+
+    .page-landing .admin-controls-section {
+        padding: 1rem;
+    }
+
+    .page-landing .admin-controls-header h2 {
+        font-size: 1.125rem;
+    }
+
+    .page-landing .admin-button {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
     }
 
     .page-landing .post-textarea {

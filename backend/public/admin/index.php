@@ -160,9 +160,14 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <div class="stat-label">Storage Size</div>
                 <div class="stat-value" style="font-size: 1.5rem;"><?= $totalDiskSizeFormatted ?></div>
                 <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">Temp: <?= $tempSizeFormatted ?></div>
-                <?php if ($tempSize > 0): ?>
-                <button onclick="clearCache()" class="btn-clear-cache" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp Files</button>
-                <?php endif; ?>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <?php if ($tempSize > 0): ?>
+                    <button onclick="clearCache()" class="btn-clear-cache" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp</button>
+                    <?php endif; ?>
+                    <button onclick="pruneImages()" class="btn-prune-images" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-broom"></i> Prune Images
+                    </button>
+                </div>
             </div>
             <div class="stat-card iframely">
                 <div class="stat-label"><i class="fa-solid fa-link"></i> iframe.ly API Usage (<?= date('F Y') ?>)</div>
@@ -497,6 +502,52 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             } catch (error) {
                 console.error('Error clearing cache:', error);
                 alert('Failed to clear cache: ' + error.message);
+            }
+        }
+        
+        // Prune orphaned images function
+        async function pruneImages() {
+            if (!jwtToken) {
+                alert('Authentication token not found. Please refresh the page and log in again.');
+                return;
+            }
+            
+            if (!confirm('Prune orphaned images?\n\nThis will:\n• Delete orphaned image files not referenced by entries, comments, or users\n• Remove database records for images where files no longer exist\n\nThis action cannot be undone.')) {
+                return;
+            }
+            
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Pruning...';
+            
+            try {
+                const response = await fetch('/api/admin/images/prune', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + jwtToken
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let message = data.message;
+                    if (data.details && data.details.length > 0) {
+                        console.log('Prune details:', data.details);
+                        message += '\n\nSee console for details.';
+                    }
+                    alert(message);
+                    location.reload();
+                } else {
+                    alert('Failed to prune images: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error pruning images:', error);
+                alert('Failed to prune images: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
             }
         }
     </script>

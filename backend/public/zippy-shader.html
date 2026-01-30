@@ -12,26 +12,41 @@
         }
 
         body {
-            overflow: hidden;
-            background: #000;
+            background: #1a1a1a;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            position: relative;
+            width: 640px;
+            height: 360px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         canvas {
             display: block;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
         }
 
         .info {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 10px;
+            left: 10px;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
+            font-size: 11px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
             z-index: 10;
             pointer-events: none;
+            line-height: 1.4;
         }
 
         .info a {
@@ -41,16 +56,16 @@
 
         .controls {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 6px;
             color: rgba(255, 255, 255, 0.9);
-            font-size: 12px;
+            font-size: 11px;
             z-index: 10;
             pointer-events: auto;
-            max-width: 250px;
+            max-width: 200px;
         }
 
         .controls label {
@@ -68,14 +83,19 @@
         }
 
         .controls .control-group {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+        }
+
+        .controls .control-group:last-child {
+            margin-bottom: 0;
         }
     </style>
 </head>
 <body>
-    <canvas id="shaderCanvas"></canvas>
-    
-    <div class="controls">
+    <div class="container">
+        <canvas id="shaderCanvas"></canvas>
+        
+        <div class="controls">
         <div class="control-group">
             <label>
                 <input type="checkbox" id="useSafeMode">
@@ -90,10 +110,11 @@
         </div>
     </div>
 
-    <div class="info">
-        Zippy Shader<br>
-        Original: <a href="https://www.shadertoy.com/view/XXyGzh" target="_blank">Shadertoy</a><br>
-        -13 thanks to Nguyen2007 ⚡
+        <div class="info">
+            Zippy Shader<br>
+            Original: <a href="https://www.shadertoy.com/view/XXyGzh" target="_blank">Shadertoy</a><br>
+            -13 thanks to Nguyen2007 ⚡
+        </div>
     </div>
 
     <script>
@@ -141,12 +162,8 @@
                 return (e - 1.0) / (e + 1.0);
             }
 
-            vec2 tanh_vec2(vec2 a) {
-                return vec2(tanh_impl(a.x), tanh_impl(a.y));
-            }
-
-            vec2 stanh(vec2 a) {
-                return tanh_vec2(clamp(a, -40.0, 40.0));
+            float stanh(float a) {
+                return tanh_impl(clamp(a, -40.0, 40.0));
             }
 
             void mainImage(out vec4 o, vec2 u) {
@@ -155,39 +172,47 @@
                 
                 vec4 z = o = vec4(1.0, 2.0, 3.0, 0.0);
                 
-                float t = iTime * uSpeed;
                 float a = 0.5;
+                float t = iTime * uSpeed;
                 
                 for (float i = 0.0; i < 19.0; i += 1.0) {
-                    
+                    // Add to output color
                     o += (1.0 + cos(z + t)) 
                        / length((1.0 + i * dot(v, v)) 
                               * sin(1.5 * u / (0.5 - dot(u, u)) - 9.0 * u.yx + t));
                     
-                    v = cos(t + 1.0 - 7.0 * u * pow(a + 0.03, i + 1.0)) - 5.0 * u;
+                    // Update v
+                    t += 1.0;
+                    a += 0.03;
+                    v = cos(t - 7.0 * u * pow(a, i)) - 5.0 * u;
                     
-                    // Matrix rotation
-                    float angle = i + 1.0 + 0.02 * t;
-                    
-                    // Apply rotation with color offset
-                    u *= mat2(
-                        cos(angle - z.w * 11.0), sin(angle - z.w * 11.0),
-                        -sin(angle - z.x * 11.0), cos(angle - z.x * 11.0)
+                    // Create rotation matrix with color offset
+                    // mat2(cos(i + .02*t - z.wxzw*11.))
+                    vec4 angles = vec4(i) + 0.02 * t - z.wxzw * 11.0;
+                    mat2 rotMat = mat2(
+                        cos(angles.x), sin(angles.x),
+                        -sin(angles.y), cos(angles.y)
                     );
                     
-                    float dotUU = dot(u, u);
-                    vec2 tanhInput = 40.0 * dotUU * cos(100.0 * u.yx + t);
+                    // Apply rotation and calculate tanh term
+                    u *= rotMat;
+                    
+                    // tanh(40. * dot(u,u) * cos(1e2*u.yx + t))
+                    // In the original, this appears to be a scalar operation
+                    // cos(vec2) returns vec2, so we sum or use one component
+                    vec2 cosVec = cos(100.0 * u.yx + t);
+                    float tanhInput = 40.0 * dot(u, u) * (cosVec.x + cosVec.y);
                     
                     // Use stanh if safe mode is enabled, otherwise use regular tanh
-                    vec2 tanhResult = uUseSafeMode ? stanh(tanhInput) : tanh_vec2(tanhInput);
+                    float tanhResult = uUseSafeMode ? stanh(tanhInput) : tanh_impl(tanhInput);
                     
+                    // Update u
                     u += tanhResult / 200.0
-                       + 0.2 * (a + 0.03 * (i + 1.0)) * u
+                       + 0.2 * a * u
                        + cos(4.0 / exp(dot(o, o) / 100.0) + t) / 300.0;
-                    
-                    a += 0.03;
                 }
                 
+                // Final color calculation
                 o = 25.6 / (min(o, 13.0) + 164.0 / o) 
                   - dot(u, u) / 250.0;
             }
@@ -252,14 +277,13 @@
         const uUseSafeModeLocation = gl.getUniformLocation(program, 'uUseSafeMode');
         const uSpeedLocation = gl.getUniformLocation(program, 'uSpeed');
 
-        // Resize canvas
+        // Set canvas size to 640x360
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = 640;
+            canvas.height = 360;
             gl.viewport(0, 0, canvas.width, canvas.height);
         }
 
-        window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         // Animation loop

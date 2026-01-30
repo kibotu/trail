@@ -353,6 +353,7 @@ $app->group('/api/admin', function ($group) {
     $group->get('/error-logs', [AdminController::class, 'errorLogs']);
     $group->get('/error-stats', [AdminController::class, 'errorStats']);
     $group->post('/error-logs/cleanup', [AdminController::class, 'cleanupErrorLogs']);
+    $group->post('/images/prune', [AdminController::class, 'pruneImages']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes
