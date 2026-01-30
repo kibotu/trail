@@ -25,8 +25,8 @@ class NotificationController
         $db = Database::getInstance($config);
         $notificationModel = new Notification($db);
         
-        // Get notifications with details
-        $notifications = $notificationModel->getByUser($userId, 50);
+        // Get notifications with clap grouping
+        $notifications = $notificationModel->getByUserGrouped($userId, 50);
         $unreadCount = $notificationModel->getUnreadCount($userId);
         
         // Format notifications for display
@@ -86,7 +86,7 @@ class NotificationController
         $db = Database::getInstance($config);
         $notificationModel = new Notification($db);
         
-        $notifications = $notificationModel->getByUser($userId, $limit, $before);
+        $notifications = $notificationModel->getByUserGrouped($userId, $limit, $before);
         $unreadCount = $notificationModel->getUnreadCount($userId);
         $hasMore = count($notifications) === $limit;
         
@@ -225,38 +225,87 @@ class NotificationController
         $formatted = [];
         
         foreach ($notifications as $notification) {
-            $actorDisplayName = $notification['actor_nickname'] ?? $notification['actor_name'] ?? 'Unknown User';
-            $actorAvatarUrl = self::getAvatarUrl($notification);
-            
-            // Generate action text based on type
             $type = $notification['type'] ?? 'unknown';
-            $actionText = self::getActionText($type, $actorDisplayName);
             
-            // Generate link to entry/comment
-            $link = self::getNotificationLink($notification, $config);
-            
-            // Get preview text
-            $previewText = self::getPreviewText($notification);
-            
-            // Format relative time
-            $createdAt = $notification['created_at'] ?? date('Y-m-d H:i:s');
-            $relativeTime = self::getRelativeTime($createdAt);
-            
-            $formatted[] = [
-                'id' => $notification['id'] ?? 0,
-                'type' => $type,
-                'actor_display_name' => $actorDisplayName,
-                'actor_avatar_url' => $actorAvatarUrl,
-                'action_text' => $actionText,
-                'preview_text' => $previewText,
-                'link' => $link,
-                'is_read' => (bool) ($notification['is_read'] ?? false),
-                'relative_time' => $relativeTime,
-                'created_at' => $createdAt
-            ];
+            // Check if this is a grouped clap notification
+            if (isset($notification['actors']) && ($type === 'clap_entry' || $type === 'clap_comment')) {
+                $formatted[] = self::formatGroupedClap($notification, $config);
+            } else {
+                // Regular notification
+                $actorDisplayName = $notification['actor_nickname'] ?? $notification['actor_name'] ?? 'Unknown User';
+                $actorAvatarUrl = self::getAvatarUrl($notification);
+                
+                // Generate action text based on type
+                $actionText = self::getActionText($type, $actorDisplayName);
+                
+                // Generate link to entry/comment
+                $link = self::getNotificationLink($notification, $config);
+                
+                // Get preview text
+                $previewText = self::getPreviewText($notification);
+                
+                // Format relative time
+                $createdAt = $notification['created_at'] ?? date('Y-m-d H:i:s');
+                $relativeTime = self::getRelativeTime($createdAt);
+                
+                $formatted[] = [
+                    'id' => $notification['id'] ?? 0,
+                    'type' => $type,
+                    'actor_display_name' => $actorDisplayName,
+                    'actor_avatar_url' => $actorAvatarUrl,
+                    'action_text' => $actionText,
+                    'preview_text' => $previewText,
+                    'link' => $link,
+                    'is_read' => (bool) ($notification['is_read'] ?? false),
+                    'relative_time' => $relativeTime,
+                    'created_at' => $createdAt
+                ];
+            }
         }
         
         return $formatted;
+    }
+
+    /**
+     * Format grouped clap notification
+     */
+    private static function formatGroupedClap(array $notification, array $config): array
+    {
+        $actors = $notification['actors'] ?? [];
+        $count = count($actors);
+        $type = $notification['type'];
+        
+        // Generate action text
+        if ($count === 1) {
+            $actionText = $actors[0]['name'] . ' clapped for your ' . ($type === 'clap_entry' ? 'post' : 'comment');
+        } elseif ($count === 2) {
+            $actionText = $actors[0]['name'] . ' and ' . $actors[1]['name'] . ' clapped for your ' . ($type === 'clap_entry' ? 'post' : 'comment');
+        } else {
+            $actionText = $actors[0]['name'] . ' and ' . ($count - 1) . ' others clapped for your ' . ($type === 'clap_entry' ? 'post' : 'comment');
+        }
+        
+        // Generate link
+        $link = self::getNotificationLink($notification, $config);
+        
+        // Get preview text
+        $previewText = self::getPreviewText($notification);
+        
+        // Format relative time
+        $createdAt = $notification['created_at'] ?? date('Y-m-d H:i:s');
+        $relativeTime = self::getRelativeTime($createdAt);
+        
+        return [
+            'id' => $notification['id'] ?? 0,
+            'type' => $type,
+            'actors' => array_slice($actors, 0, 3), // Show up to 3 avatars
+            'clap_count' => $count,
+            'action_text' => $actionText,
+            'preview_text' => $previewText,
+            'link' => $link,
+            'is_read' => (bool) ($notification['is_read'] ?? false),
+            'relative_time' => $relativeTime,
+            'created_at' => $createdAt
+        ];
     }
 
     /**

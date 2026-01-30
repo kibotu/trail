@@ -34,24 +34,53 @@
                              data-id="<?= $notification['id'] ?>"
                              onclick="handleNotificationClick(<?= $notification['id'] ?>, '<?= htmlspecialchars($notification['link'], ENT_QUOTES) ?>')">
                             
-                            <img src="<?= htmlspecialchars($notification['actor_avatar_url']) ?>" 
-                                 alt="<?= htmlspecialchars($notification['actor_display_name']) ?>"
-                                 class="avatar">
-                            
-                            <div class="notification-content">
-                                <p class="notification-text">
-                                    <strong><?= htmlspecialchars($notification['actor_display_name']) ?></strong>
-                                    <?= htmlspecialchars($notification['action_text']) ?>
-                                </p>
+                            <?php if (isset($notification['actors'])): ?>
+                                <!-- Grouped clap notification with multiple avatars -->
+                                <div class="notification-avatars">
+                                    <?php foreach (array_slice($notification['actors'], 0, 3) as $actor): ?>
+                                        <img src="<?= htmlspecialchars($actor['avatar_url']) ?>" 
+                                             alt="<?= htmlspecialchars($actor['name']) ?>"
+                                             class="avatar-stacked">
+                                    <?php endforeach; ?>
+                                </div>
                                 
-                                <?php if ($notification['preview_text']): ?>
-                                    <p class="notification-preview">
-                                        "<?= htmlspecialchars($notification['preview_text']) ?>"
+                                <div class="notification-content">
+                                    <p class="notification-text">
+                                        <?= htmlspecialchars($notification['action_text']) ?>
+                                        <?php if ($notification['clap_count'] > 1): ?>
+                                            <span class="clap-count-badge"><?= $notification['clap_count'] ?></span>
+                                        <?php endif; ?>
                                     </p>
-                                <?php endif; ?>
+                                    
+                                    <?php if ($notification['preview_text']): ?>
+                                        <p class="notification-preview">
+                                            "<?= htmlspecialchars($notification['preview_text']) ?>"
+                                        </p>
+                                    <?php endif; ?>
+                                    
+                                    <span class="notification-time"><?= htmlspecialchars($notification['relative_time']) ?></span>
+                                </div>
+                            <?php else: ?>
+                                <!-- Regular notification -->
+                                <img src="<?= htmlspecialchars($notification['actor_avatar_url']) ?>" 
+                                     alt="<?= htmlspecialchars($notification['actor_display_name']) ?>"
+                                     class="avatar">
                                 
-                                <span class="notification-time"><?= htmlspecialchars($notification['relative_time']) ?></span>
-                            </div>
+                                <div class="notification-content">
+                                    <p class="notification-text">
+                                        <strong><?= htmlspecialchars($notification['actor_display_name']) ?></strong>
+                                        <?= htmlspecialchars($notification['action_text']) ?>
+                                    </p>
+                                    
+                                    <?php if ($notification['preview_text']): ?>
+                                        <p class="notification-preview">
+                                            "<?= htmlspecialchars($notification['preview_text']) ?>"
+                                        </p>
+                                    <?php endif; ?>
+                                    
+                                    <span class="notification-time"><?= htmlspecialchars($notification['relative_time']) ?></span>
+                                </div>
+                            <?php endif; ?>
                             
                             <?php if (!$notification['is_read']): ?>
                                 <span class="unread-dot"></span>

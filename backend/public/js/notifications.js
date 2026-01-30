@@ -86,21 +86,53 @@ function updateDropdownList(notifications) {
         return;
     }
     
-    list.innerHTML = notifications.map(n => `
-        <a href="${escapeHtml(n.link)}" 
-           class="dropdown-notification-item ${n.is_read ? '' : 'unread'}"
-           onclick="markAsRead(${n.id}); event.stopPropagation();">
-            <img src="${escapeHtml(n.actor_avatar_url)}" 
-                 alt="${escapeHtml(n.actor_display_name)}"
-                 class="avatar-small">
-            <div class="dropdown-notification-content">
-                <p><strong>${escapeHtml(n.actor_display_name)}</strong> ${escapeHtml(n.action_text)}</p>
-                ${n.preview_text ? `<p class="preview-text">"${escapeHtml(n.preview_text)}"</p>` : ''}
-                <span class="time">${escapeHtml(n.relative_time)}</span>
-            </div>
-            ${!n.is_read ? '<span class="unread-dot-small"></span>' : ''}
-        </a>
-    `).join('');
+    list.innerHTML = notifications.map(n => {
+        // Check if this is a grouped clap notification
+        if (n.actors && n.actors.length > 0) {
+            // Grouped clap notification with multiple avatars
+            const avatarsHtml = n.actors.slice(0, 3).map(actor => 
+                `<img src="${escapeHtml(actor.avatar_url)}" 
+                     alt="${escapeHtml(actor.name)}"
+                     class="avatar-stacked-small">`
+            ).join('');
+            
+            const clapBadge = n.clap_count > 1 ? 
+                `<span class="clap-count-badge-small">${n.clap_count}</span>` : '';
+            
+            return `
+                <a href="${escapeHtml(n.link)}" 
+                   class="dropdown-notification-item ${n.is_read ? '' : 'unread'}"
+                   onclick="markAsRead(${n.id}); event.stopPropagation();">
+                    <div class="notification-avatars-small">
+                        ${avatarsHtml}
+                    </div>
+                    <div class="dropdown-notification-content">
+                        <p>${escapeHtml(n.action_text)} ${clapBadge}</p>
+                        ${n.preview_text ? `<p class="preview-text">"${escapeHtml(n.preview_text)}"</p>` : ''}
+                        <span class="time">${escapeHtml(n.relative_time)}</span>
+                    </div>
+                    ${!n.is_read ? '<span class="unread-dot-small"></span>' : ''}
+                </a>
+            `;
+        } else {
+            // Regular notification
+            return `
+                <a href="${escapeHtml(n.link)}" 
+                   class="dropdown-notification-item ${n.is_read ? '' : 'unread'}"
+                   onclick="markAsRead(${n.id}); event.stopPropagation();">
+                    <img src="${escapeHtml(n.actor_avatar_url)}" 
+                         alt="${escapeHtml(n.actor_display_name)}"
+                         class="avatar-small">
+                    <div class="dropdown-notification-content">
+                        <p><strong>${escapeHtml(n.actor_display_name)}</strong> ${escapeHtml(n.action_text)}</p>
+                        ${n.preview_text ? `<p class="preview-text">"${escapeHtml(n.preview_text)}"</p>` : ''}
+                        <span class="time">${escapeHtml(n.relative_time)}</span>
+                    </div>
+                    ${!n.is_read ? '<span class="unread-dot-small"></span>' : ''}
+                </a>
+            `;
+        }
+    }).join('');
 }
 
 async function markAsRead(notificationId) {

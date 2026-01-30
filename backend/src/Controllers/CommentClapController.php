@@ -90,6 +90,33 @@ class CommentClapController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
+        // Create notification for comment author (if not already exists)
+        try {
+            $notificationModel = new \Trail\Models\Notification($db);
+            $entryId = $comment['entry_id'];
+            
+            $existingNotification = $notificationModel->findByActorAndTarget(
+                (int) $comment['user_id'],
+                $userId,
+                'clap_comment',
+                $entryId,
+                $commentId
+            );
+            
+            if (!$existingNotification) {
+                $notificationModel->create(
+                    (int) $comment['user_id'],
+                    'clap_comment',
+                    $userId,
+                    $entryId,
+                    $commentId
+                );
+            }
+        } catch (\Throwable $e) {
+            // Log error but don't fail the clap operation
+            error_log("CommentClapController: Notification creation failed: " . $e->getMessage());
+        }
+
         // Get updated totals
         $totalClaps = $clapModel->getClapsByComment($commentId);
         $userClaps = $clapModel->getUserClapForComment($commentId, $userId);

@@ -105,6 +105,31 @@ class ClapController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
+        // Create notification for entry author (if not already exists)
+        try {
+            $notificationModel = new \Trail\Models\Notification($db);
+            $existingNotification = $notificationModel->findByActorAndTarget(
+                (int) $entry['user_id'],
+                $userId,
+                'clap_entry',
+                $entryId,
+                null
+            );
+            
+            if (!$existingNotification) {
+                $notificationModel->create(
+                    (int) $entry['user_id'],
+                    'clap_entry',
+                    $userId,
+                    $entryId,
+                    null
+                );
+            }
+        } catch (\Throwable $e) {
+            // Log error but don't fail the clap operation
+            error_log("ClapController: Notification creation failed: " . $e->getMessage());
+        }
+
         // Get updated totals
         $totalClaps = $clapModel->getClapsByEntry($entryId);
         $userClaps = $clapModel->getUserClapForEntry($entryId, $userId);
