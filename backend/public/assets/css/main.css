@@ -1989,9 +1989,7 @@ main {
     font-weight: 600;
 }
 
-.page-error .composer-card {
-    display: none;
-}
+/* Composer card visible on error page for logged-in users */
 
 /* ============================================
    PAGE-SPECIFIC: API DOCS

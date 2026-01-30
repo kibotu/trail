@@ -70,6 +70,7 @@ class ProfileManager {
         const urlEl = document.getElementById(this.elements.profileUrl);
         const urlTextEl = document.getElementById(this.elements.profileUrlText);
         const linkGroupEl = document.getElementById(this.elements.profileLinkGroup);
+        const rssLinkEl = document.getElementById('profileRssLink');
 
         if (nameEl) nameEl.textContent = profile.name || 'User';
         if (emailEl) emailEl.textContent = profile.email;
@@ -88,6 +89,15 @@ class ProfileManager {
             urlEl.href = profileUrl;
             urlTextEl.textContent = `@${profile.nickname}`;
             linkGroupEl.style.display = 'block';
+        }
+
+        // Show RSS link if nickname exists
+        if (profile.nickname && rssLinkEl) {
+            const rssUrl = `/api/users/@${profile.nickname}/rss`;
+            rssLinkEl.href = rssUrl;
+            rssLinkEl.style.display = '';
+        } else if (rssLinkEl) {
+            rssLinkEl.style.display = 'none';
         }
     }
 

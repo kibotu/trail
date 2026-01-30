@@ -68,6 +68,7 @@ function renderErrorPage(int $statusCode, array $config): string
     $userName = $session['email'] ?? null;
     $userPhotoUrl = $session['photo_url'] ?? null;
     $userId = $session['user_id'] ?? null;
+    $isAdmin = $session['is_admin'] ?? false;
     
     // Log the error to database
     logErrorToDatabase($statusCode, $config, $userId);

@@ -330,6 +330,7 @@ $app->group('/api/admin', function ($group) {
 // Public RSS routes
 $app->get('/api/rss', [RssController::class, 'globalFeed']);
 $app->get('/api/rss/{user_id}', [RssController::class, 'userFeed']);
+$app->get('/api/users/{nickname}/rss', [RssController::class, 'userFeedByNickname']);
 
 // Report and moderation routes (authenticated)
 $app->post('/api/entries/{id}/report', [ReportController::class, 'reportEntry'])->add(new AuthMiddleware($config));

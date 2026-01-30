@@ -30,6 +30,9 @@
                     <a href="/api" class="nav-link" aria-label="API Documentation">
                         <i class="fa-solid fa-book"></i>
                     </a>
+                    <a href="/api/users/@<?= htmlspecialchars($nickname ?? '') ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
                     <?php if (isset($isAdmin) && $isAdmin): ?>
                         <a href="/admin" class="nav-link" aria-label="Admin Dashboard">
                             <i class="fa-solid fa-gear"></i>
@@ -42,6 +45,9 @@
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </a>
                 <?php elseif (isset($googleAuthUrl) && $googleAuthUrl): ?>
+                    <a href="/api/users/@<?= htmlspecialchars($nickname ?? '') ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
                     <a href="<?= htmlspecialchars($googleAuthUrl) ?>" class="login-button">
                         <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -52,6 +58,9 @@
                         <span>Sign in with Google</span>
                     </a>
                 <?php else: ?>
+                    <a href="/api/users/@<?= htmlspecialchars($nickname ?? '') ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
                     <a href="/admin/login.php" class="login-button">
                         <i class="fa-solid fa-lock"></i>
                         <span>Login</span>

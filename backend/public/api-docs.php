@@ -103,9 +103,16 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/rss/{user_id}',
-        'description' => 'User-specific RSS feed',
+        'description' => 'User-specific RSS feed by user ID',
         'auth' => false,
         'curl' => "curl {$baseUrl}/api/rss/123"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/users/{nickname}/rss',
+        'description' => 'User-specific RSS feed by nickname',
+        'auth' => false,
+        'curl' => "curl {$baseUrl}/api/users/@alice/rss"
     ]
 ];
 

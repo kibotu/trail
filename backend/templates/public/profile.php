@@ -25,6 +25,9 @@
                 <a href="/api" class="nav-link" aria-label="API Documentation">
                     <i class="fa-solid fa-book"></i>
                 </a>
+                <a href="#" id="profileRssLink" class="nav-link" aria-label="RSS Feed" style="display: none;">
+                    <i class="fa-solid fa-rss"></i>
+                </a>
                 <?php if (isset($isAdmin) && $isAdmin): ?>
                     <a href="/admin" class="nav-link" aria-label="Admin Dashboard">
                         <i class="fa-solid fa-gear"></i>

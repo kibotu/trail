@@ -25,10 +25,9 @@
         
         const postText = document.getElementById('postBox');
         const charCounter = document.getElementById('count');
-        const submitButton = document.getElementById('post');
-        const postForm = document.getElementById('postForm');
+        const submitButton = document.getElementById('postBtn');
 
-        if (postText && charCounter && submitButton && postForm) {
+        if (postText && charCounter && submitButton) {
             // Setup character counter
             setupCharacterCounter({
                 textarea: postText,
@@ -36,8 +35,8 @@
                 submitButton: submitButton
             }, 280);
 
-            // Handle form submission
-            postForm.addEventListener('submit', async (e) => {
+            // Handle button click
+            submitButton.addEventListener('click', async (e) => {
                 e.preventDefault();
                 
                 const text = postText.value.trim();
@@ -52,7 +51,7 @@
                     await entriesManager.createEntry(text, []);
                     
                     // Celebrate!
-                    celebratePost('post');
+                    celebratePost(submitButton);
                     
                     // Redirect to home
                     setTimeout(() => {
@@ -61,7 +60,11 @@
 
                 } catch (error) {
                     console.error('Error creating post:', error);
-                    alert(`Failed to create post: ${error.message}`);
+                    if (typeof showSnackbar === 'function') {
+                        showSnackbar(`Failed to create post: ${error.message}`, 'error');
+                    } else {
+                        alert(`Failed to create post: ${error.message}`);
+                    }
                 } finally {
                     setButtonLoading(submitButton, false);
                 }
