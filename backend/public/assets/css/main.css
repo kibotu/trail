@@ -2262,6 +2262,198 @@ main {
     color: var(--text-secondary);
 }
 
+/* Admin Users Page - User Cards */
+.page-admin-users .users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.page-admin-users .user-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: transform 0.2s, opacity 0.3s, box-shadow 0.2s;
+}
+
+.page-admin-users .user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.page-admin-users .user-card .user-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-admin-users .user-card .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    object-fit: cover;
+}
+
+.page-admin-users .user-info-card {
+    flex: 1;
+    min-width: 0;
+}
+
+.page-admin-users .user-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.page-admin-users .user-email-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.page-admin-users .user-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-admin-users .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.page-admin-users .meta-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.page-admin-users .meta-value {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.page-admin-users .admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--warning);
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.page-admin-users .user-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.page-admin-users .action-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-admin-users .action-button:hover {
+    background: var(--bg-secondary);
+    transform: translateY(-1px);
+}
+
+.page-admin-users .action-button.delete {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.page-admin-users .action-button.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.page-admin-users .debug-section {
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.page-admin-users .debug-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.page-admin-users .debug-toggle:hover {
+    color: var(--text-primary);
+}
+
+.page-admin-users .debug-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.page-admin-users .debug-content.show {
+    max-height: 500px;
+    margin-top: 0.75rem;
+}
+
+.page-admin-users .debug-content pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    color: var(--text-secondary);
+}
+
+.page-admin-users .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.page-admin-users .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
 .page-admin-dashboard .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -2824,6 +3016,21 @@ main {
     .page-admin-dashboard .user-email,
     .page-admin-users .user-email {
         display: none;
+    }
+
+    /* Admin users mobile */
+    .page-admin-users .users-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .page-admin-users .user-card {
+        padding: 1rem;
+    }
+
+    .page-admin-users .user-meta {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 
     /* Admin login mobile */
