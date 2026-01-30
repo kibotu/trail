@@ -153,9 +153,9 @@
                        + .2 * a * u
                        + cos(4./exp(dot(o,o)/1e2) + t) / 3e2;
                 }
-                          
-                o = 25.6 / (min(o, 13.) + 164. / o) 
-                  - dot(u, u) / 250.;
+                
+                // Final color with tone mapping only
+                o = 25.6 / (min(o, 13.) + 164. / o);
             }
 
             void main() {
