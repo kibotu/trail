@@ -30,6 +30,13 @@ sealed class UiState {
     data class Error(val message: String) : UiState()
 }
 
+// Comment state per entry
+data class CommentState(
+    val comments: List<Comment> = emptyList(),
+    val isLoading: Boolean = false,
+    val isExpanded: Boolean = false
+)
+
 class TrailViewModel(private val context: Context) : ViewModel() {
     private val tokenManager = TokenManager(context)
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -37,6 +44,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
 
     private val _celebrationEvent = MutableStateFlow(false)
     val celebrationEvent: StateFlow<Boolean> = _celebrationEvent.asStateFlow()
+
+    private val _commentsState = MutableStateFlow<Map<Int, CommentState>>(emptyMap())
+    val commentsState: StateFlow<Map<Int, CommentState>> = _commentsState.asStateFlow()
 
     private var pendingSharedText: String? = null
 
@@ -274,6 +284,136 @@ class TrailViewModel(private val context: Context) : ViewModel() {
             currentState.isAdmin || entry.userId == currentState.userId
         } else {
             false
+        }
+    }
+
+    // Comment operations
+    fun toggleComments(entryId: Int) {
+        val currentState = _commentsState.value[entryId] ?: CommentState()
+        val newExpanded = !currentState.isExpanded
+        
+        _commentsState.value = _commentsState.value.toMutableMap().apply {
+            put(entryId, currentState.copy(isExpanded = newExpanded))
+        }
+        
+        // Load comments on first expand
+        if (newExpanded && currentState.comments.isEmpty()) {
+            loadComments(entryId)
+        }
+    }
+
+    fun loadComments(entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val currentState = _commentsState.value[entryId] ?: CommentState()
+                _commentsState.value = _commentsState.value.toMutableMap().apply {
+                    put(entryId, currentState.copy(isLoading = true))
+                }
+                
+                val result = ApiClient.api.getComments(entryId)
+                
+                result.onSuccess { response ->
+                    _commentsState.value = _commentsState.value.toMutableMap().apply {
+                        put(entryId, CommentState(
+                            comments = response.comments,
+                            isLoading = false,
+                            isExpanded = true
+                        ))
+                    }
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to load comments", e)
+                    _commentsState.value = _commentsState.value.toMutableMap().apply {
+                        put(entryId, currentState.copy(isLoading = false))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading comments", e)
+            }
+        }
+    }
+
+    fun createComment(entryId: Int, text: String) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.createComment(entryId, CreateCommentRequest(text))
+                
+                result.onSuccess {
+                    // Reload comments and entries (to update comment count)
+                    loadComments(entryId)
+                    loadEntries()
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to create comment", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error creating comment", e)
+            }
+        }
+    }
+
+    fun updateComment(commentId: Int, text: String, entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.updateComment(commentId, UpdateCommentRequest(text))
+                
+                result.onSuccess {
+                    loadComments(entryId)
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to update comment", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error updating comment", e)
+            }
+        }
+    }
+
+    fun deleteComment(commentId: Int, entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.deleteComment(commentId)
+                
+                result.onSuccess {
+                    // Reload comments and entries (to update comment count)
+                    loadComments(entryId)
+                    loadEntries()
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to delete comment", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error deleting comment", e)
+            }
+        }
+    }
+
+    fun clapComment(commentId: Int, count: Int, entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.addCommentClap(commentId, count)
+                
+                result.onSuccess {
+                    loadComments(entryId)
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to clap comment", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error clapping comment", e)
+            }
+        }
+    }
+
+    fun reportComment(commentId: Int, entryId: Int) {
+        viewModelScope.launch {
+            try {
+                val result = ApiClient.api.reportComment(commentId)
+                
+                result.onSuccess {
+                    // Reload comments (reported comment will be hidden)
+                    loadComments(entryId)
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to report comment", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error reporting comment", e)
+            }
         }
     }
 }

@@ -19,7 +19,9 @@
 </head>
 <body class="page-status"
       data-hash-id="<?= htmlspecialchars($hashId ?? '') ?>"
-      data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>">
+      data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>"
+      data-user-id="<?= json_encode($userId ?? null) ?>"
+      data-is-admin="<?= json_encode($isAdmin ?? false) ?>">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
@@ -46,6 +48,8 @@
     <script src="/js/card-template.js"></script>
     <script src="/js/ui-interactions.js"></script>
     <script src="/js/entries-manager.js"></script>
+    <script src="/js/image-upload.js"></script>
+    <script src="/js/comments-manager.js"></script>
     <script src="/js/meta-updater.js"></script>
     
     <!-- Page Initialization -->

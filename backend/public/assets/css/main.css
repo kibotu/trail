@@ -903,7 +903,19 @@ main {
 .entry-footer-actions {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
+}
+
+.entry-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.entry-footer-right {
+    display: flex;
+    align-items: center;
 }
 
 .clap-button {
@@ -1003,6 +1015,406 @@ main {
         opacity: 0;
         transform: translate(var(--end-x), var(--end-y)) scale(0.3);
     }
+}
+
+/* ============================================
+   COMMENT COMPONENTS
+   ============================================ */
+
+/* Comment button in entry footer */
+.comment-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 9999px;
+    transition: all 0.2s;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.comment-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.comment-button.active {
+    color: var(--accent);
+}
+
+.comment-button.active i {
+    color: var(--accent);
+}
+
+.comment-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Comments section */
+.comments-section {
+    background: rgba(30, 41, 59, 0.3);
+    border-top: 1px solid var(--border);
+    padding: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 2000px;
+    }
+}
+
+/* Comment input */
+.comment-input-container {
+    margin-bottom: 1rem;
+}
+
+.comment-input {
+    width: 100%;
+    min-height: 60px;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.comment-input::placeholder {
+    color: var(--text-muted);
+}
+
+.comment-input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.comment-submit-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.comment-submit-button:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.comment-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.comment-cancel-button {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.comment-cancel-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.comment-save-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.comment-save-button:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.comment-save-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Comment cards */
+.comment-card {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s;
+}
+
+.comment-card:hover {
+    background: rgba(51, 65, 85, 0.6);
+}
+
+.comment-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-header-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+}
+
+.comment-user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.comment-timestamp {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+.comment-edited {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.75rem;
+}
+
+.comment-menu-button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.comment-menu-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.comment-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    min-width: 150px;
+    z-index: 100;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.comment-menu-dropdown .menu-item {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+    transition: background 0.2s;
+}
+
+.comment-menu-dropdown .menu-item:hover {
+    background: var(--bg-secondary);
+}
+
+.comment-menu-dropdown .menu-item.delete {
+    color: var(--error);
+}
+
+.comment-menu-dropdown .menu-item i {
+    width: 1rem;
+    text-align: center;
+}
+
+.comment-body {
+    margin-left: 2.5rem;
+}
+
+.comment-text {
+    color: var(--text-primary);
+    line-height: 1.5;
+    font-size: 0.9375rem;
+    word-wrap: break-word;
+}
+
+.comment-text a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.comment-text a:hover {
+    text-decoration: underline;
+}
+
+.comment-edit-form {
+    margin-top: 0.5rem;
+}
+
+.comment-edit-form .comment-input {
+    margin-bottom: 0.5rem;
+}
+
+.comment-footer {
+    margin-left: 2.5rem;
+    margin-top: 0.5rem;
+}
+
+.comment-clap-button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.comment-clap-button:hover:not(.own-comment) {
+    background: var(--bg-tertiary);
+    color: #ef4444;
+}
+
+.comment-clap-button.clapped {
+    color: #ef4444;
+}
+
+.comment-clap-button.own-comment {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.comment-clap-button.own-comment:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.comment-clap-display {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.empty-comments {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.empty-comments i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.empty-comments p {
+    font-size: 0.9375rem;
+}
+
+.loading-comments {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.loading-spinner-small {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.comment-image-upload-container {
+    margin-top: 0.5rem;
+}
+
+.comment-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.comment-image {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+    max-height: 200px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.comment-image:hover {
+    transform: scale(1.02);
 }
 
 /* ============================================

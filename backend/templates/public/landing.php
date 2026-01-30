@@ -130,6 +130,7 @@
     <script src="/js/infinite-scroll.js"></script>
     <script src="/js/celebrations.js"></script>
     <script src="/js/image-upload.js"></script>
+    <script src="/js/comments-manager.js"></script>
     <script src="/js/shader-background.js"></script>
     
     <!-- Page Initialization -->

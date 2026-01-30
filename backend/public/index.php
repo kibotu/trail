@@ -18,6 +18,9 @@ use Trail\Controllers\ImageUploadController;
 use Trail\Controllers\TokenController;
 use Trail\Controllers\ReportController;
 use Trail\Controllers\ClapController;
+use Trail\Controllers\CommentController;
+use Trail\Controllers\CommentClapController;
+use Trail\Controllers\CommentReportController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -304,6 +307,19 @@ $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickn
 // Clap routes
 $app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
 $app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps']);
+
+// Comment routes
+$app->post('/api/entries/{id}/comments', [CommentController::class, 'create'])->add(new AuthMiddleware($config));
+$app->get('/api/entries/{id}/comments', [CommentController::class, 'list']);
+$app->put('/api/comments/{id}', [CommentController::class, 'update'])->add(new AuthMiddleware($config));
+$app->delete('/api/comments/{id}', [CommentController::class, 'delete'])->add(new AuthMiddleware($config));
+
+// Comment clap routes
+$app->post('/api/comments/{id}/claps', [CommentClapController::class, 'addClap'])->add(new AuthMiddleware($config));
+$app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps']);
+
+// Comment report route
+$app->post('/api/comments/{id}/report', [CommentReportController::class, 'reportComment'])->add(new AuthMiddleware($config));
 
 // Image upload routes (authenticated)
 $app->post('/api/images/upload/init', [ImageUploadController::class, 'initUpload'])->add(new AuthMiddleware($config));

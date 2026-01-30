@@ -64,4 +64,82 @@ class TrailApi(private val client: HttpClient) {
             Result.failure(e)
         }
     }
+
+    // Comment endpoints
+    suspend fun getComments(entryId: Int, limit: Int = 50, before: String? = null): Result<CommentsResponse> {
+        return try {
+            val response = client.get("api/entries/$entryId/comments") {
+                parameter("limit", limit)
+                before?.let { parameter("before", it) }
+            }
+            Result.success(response.body<CommentsResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createComment(entryId: Int, request: CreateCommentRequest): Result<CreateCommentResponse> {
+        return try {
+            val response = client.post("api/entries/$entryId/comments") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            Result.success(response.body<CreateCommentResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateComment(commentId: Int, request: UpdateCommentRequest): Result<UpdateCommentResponse> {
+        return try {
+            val response = client.put("api/comments/$commentId") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            Result.success(response.body<UpdateCommentResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteComment(commentId: Int): Result<Unit> {
+        return try {
+            client.delete("api/comments/$commentId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Comment clap endpoints
+    suspend fun addCommentClap(commentId: Int, count: Int): Result<CommentClapResponse> {
+        return try {
+            val response = client.post("api/comments/$commentId/claps") {
+                contentType(ContentType.Application.Json)
+                setBody(CommentClapRequest(count))
+            }
+            Result.success(response.body<CommentClapResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCommentClaps(commentId: Int): Result<CommentClapResponse> {
+        return try {
+            val response = client.get("api/comments/$commentId/claps")
+            Result.success(response.body<CommentClapResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Comment report endpoint
+    suspend fun reportComment(commentId: Int): Result<Unit> {
+        return try {
+            client.post("api/comments/$commentId/report")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

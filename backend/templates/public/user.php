@@ -14,6 +14,7 @@
 <body class="page-user"
       data-nickname="<?= htmlspecialchars($nickname ?? '') ?>"
       data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>"
+      data-user-id="<?= json_encode($userId ?? null) ?>"
       data-user-email="<?= json_encode($userName ?? null) ?>"
       data-is-admin="<?= json_encode($isAdmin ?? false) ?>">
     <div class="orb orb-1"></div>
@@ -99,6 +100,8 @@
     <script src="/js/ui-interactions.js"></script>
     <script src="/js/entries-manager.js"></script>
     <script src="/js/infinite-scroll.js"></script>
+    <script src="/js/image-upload.js"></script>
+    <script src="/js/comments-manager.js"></script>
     
     <!-- Page Initialization -->
     <script src="/js/user-page.js"></script>

@@ -76,6 +76,22 @@
             
             container.appendChild(card);
             
+            // Auto-expand comments on status page
+            const autoExpandComments = () => {
+                const commentButton = card.querySelector('.comment-button');
+                if (commentButton && typeof commentsManager !== 'undefined' && commentsManager.expandComments) {
+                    const entryId = parseInt(commentButton.dataset.entryId);
+                    const hashId = commentButton.dataset.hashId;
+                    commentsManager.expandComments(entryId, hashId, card, commentButton);
+                } else if (typeof commentsManager === 'undefined') {
+                    // Retry if commentsManager is not yet loaded
+                    setTimeout(autoExpandComments, 100);
+                }
+            };
+            
+            // Wait for DOM to be ready and commentsManager to be initialized
+            setTimeout(autoExpandComments, 200);
+            
         } catch (error) {
             console.error('Error loading entry:', error);
             if (error.message === 'Entry not found') {

@@ -127,6 +127,8 @@ fun TrailApp(
             )
         }
         is UiState.Entries -> {
+            val commentsState by viewModel.commentsState.collectAsState()
+            
             EntriesScreen(
                 entries = state.entries,
                 isLoading = state.isLoading,
@@ -155,7 +157,16 @@ fun TrailApp(
                 showCelebration = showCelebration,
                 onCelebrationShown = {
                     viewModel.resetCelebration()
-                }
+                },
+                // Comment callbacks
+                commentsState = commentsState,
+                onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
+                onLoadComments = { entryId -> viewModel.loadComments(entryId) },
+                onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
+                onUpdateComment = { commentId, text, entryId -> viewModel.updateComment(commentId, text, entryId) },
+                onDeleteComment = { commentId, entryId -> viewModel.deleteComment(commentId, entryId) },
+                onClapComment = { commentId, count, entryId -> viewModel.clapComment(commentId, count, entryId) },
+                onReportComment = { commentId, entryId -> viewModel.reportComment(commentId, entryId) }
             )
         }
         is UiState.Error -> {

@@ -14,6 +14,7 @@ data class Entry(
     @SerialName("avatar_url") val avatarUrl: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("comment_count") val commentCount: Int = 0,
     // URL Preview fields
     @SerialName("preview_url") val previewUrl: String? = null,
     @SerialName("preview_title") val previewTitle: String? = null,

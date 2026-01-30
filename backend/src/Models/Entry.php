@@ -51,7 +51,8 @@ class Entry
     public function findById(int $id, ?int $currentUserId = null): ?array
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
-                COALESCE(clap_totals.total_claps, 0) as clap_count";
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -63,7 +64,12 @@ class Entry
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
                      GROUP BY entry_id
-                 ) clap_totals ON e.id = clap_totals.entry_id";
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -87,7 +93,8 @@ class Entry
     public function getByUser(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
-                COALESCE(clap_totals.total_claps, 0) as clap_count";
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -99,7 +106,12 @@ class Entry
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
                      GROUP BY entry_id
-                 ) clap_totals ON e.id = clap_totals.entry_id";
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -130,9 +142,10 @@ class Entry
 
     public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
-        // Build SELECT with clap counts
+        // Build SELECT with clap counts and comment counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
-                COALESCE(clap_totals.total_claps, 0) as clap_count";
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -144,7 +157,12 @@ class Entry
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
                      GROUP BY entry_id
-                 ) clap_totals ON e.id = clap_totals.entry_id";
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";

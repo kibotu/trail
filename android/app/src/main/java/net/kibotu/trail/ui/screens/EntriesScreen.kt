@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
@@ -27,6 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import net.kibotu.trail.data.model.Entry
+import net.kibotu.trail.data.model.Comment
+import net.kibotu.trail.ui.components.CommentsSection
+import net.kibotu.trail.ui.viewmodel.CommentState
 import androidx.compose.material3.HorizontalDivider
 import java.text.SimpleDateFormat
 import java.util.*
@@ -47,7 +52,16 @@ fun EntriesScreen(
     onLogin: (() -> Unit)?,
     onToggleTheme: () -> Unit,
     showCelebration: Boolean = false,
-    onCelebrationShown: () -> Unit = {}
+    onCelebrationShown: () -> Unit = {},
+    // Comment parameters
+    commentsState: Map<Int, CommentState> = emptyMap(),
+    onToggleComments: (Int) -> Unit = {},
+    onLoadComments: (Int) -> Unit = {},
+    onCreateComment: (Int, String) -> Unit = { _, _ -> },
+    onUpdateComment: (Int, String, Int) -> Unit = { _, _, _ -> },
+    onDeleteComment: (Int, Int) -> Unit = { _, _ -> },
+    onClapComment: (Int, Int, Int) -> Unit = { _, _, _ -> },
+    onReportComment: (Int, Int) -> Unit = { _, _ -> }
 ) {
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 280
@@ -198,11 +212,25 @@ fun EntriesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(entries) { entry ->
+                        val commentState = commentsState[entry.id] ?: CommentState()
+                        
                         EntryItem(
                             entry = entry,
                             canModify = !isPublicMode && (isAdmin || entry.userId == currentUserId),
                             onEdit = { editingEntry = entry },
-                            onDelete = { showDeleteDialog = entry }
+                            onDelete = { showDeleteDialog = entry },
+                            currentUserId = currentUserId,
+                            isAdmin = isAdmin,
+                            comments = commentState.comments,
+                            commentsLoading = commentState.isLoading,
+                            commentsExpanded = commentState.isExpanded,
+                            onToggleComments = { onToggleComments(entry.id) },
+                            onLoadComments = { onLoadComments(entry.id) },
+                            onCreateComment = { text -> onCreateComment(entry.id, text) },
+                            onUpdateComment = { commentId, text -> onUpdateComment(commentId, text, entry.id) },
+                            onDeleteComment = { commentId -> onDeleteComment(commentId, entry.id) },
+                            onClapComment = { commentId, count -> onClapComment(commentId, count, entry.id) },
+                            onReportComment = { commentId -> onReportComment(commentId, entry.id) }
                         )
                     }
                 }
@@ -240,7 +268,19 @@ fun EntryItem(
     entry: Entry,
     canModify: Boolean,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    currentUserId: Int? = null,
+    isAdmin: Boolean = false,
+    comments: List<Comment> = emptyList(),
+    commentsLoading: Boolean = false,
+    commentsExpanded: Boolean = false,
+    onToggleComments: () -> Unit = {},
+    onLoadComments: () -> Unit = {},
+    onCreateComment: (String) -> Unit = {},
+    onUpdateComment: (Int, String) -> Unit = { _, _ -> },
+    onDeleteComment: (Int) -> Unit = {},
+    onClapComment: (Int, Int) -> Unit = { _, _ -> },
+    onReportComment: (Int) -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
     
@@ -248,124 +288,186 @@ fun EntryItem(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Avatar
-            AsyncImage(
-                model = entry.avatarUrl,
-                contentDescription = "Avatar",
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-            )
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = entry.displayName,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Avatar
+                AsyncImage(
+                    model = entry.avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.End
-                        ) {
-                            Text(
-                                text = formatDate(entry.createdAt),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            // Show "edited" indicator if entry was modified
-                            if (entry.updatedAt != null && entry.updatedAt != entry.createdAt) {
-                                Text(
-                                    text = "edited ${formatRelativeTime(entry.updatedAt)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
+                        Text(
+                            text = entry.displayName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                         
-                        // Action menu for entry creator or admin
-                        if (canModify) {
-                            Box {
-                                IconButton(
-                                    onClick = { showMenu = true },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = "More options",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = formatDate(entry.createdAt),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                // Show "edited" indicator if entry was modified
+                                if (entry.updatedAt != null && entry.updatedAt != entry.createdAt) {
+                                    Text(
+                                        text = "edited ${formatRelativeTime(entry.updatedAt)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontStyle = FontStyle.Italic,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
                                 }
-                                
-                                DropdownMenu(
-                                    expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Edit") },
-                                        onClick = {
-                                            showMenu = false
-                                            onEdit()
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = null
-                                            )
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Delete") },
-                                        onClick = {
-                                            showMenu = false
-                                            onDelete()
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        },
-                                        colors = MenuDefaults.itemColors(
-                                            textColor = MaterialTheme.colorScheme.error
+                            }
+                            
+                            // Action menu for entry creator or admin
+                            if (canModify) {
+                                Box {
+                                    IconButton(
+                                        onClick = { showMenu = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "More options",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    )
+                                    }
+                                    
+                                    DropdownMenu(
+                                        expanded = showMenu,
+                                        onDismissRequest = { showMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Edit") },
+                                            onClick = {
+                                                showMenu = false
+                                                onEdit()
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Delete") },
+                                            onClick = {
+                                                showMenu = false
+                                                onDelete()
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            },
+                                            colors = MenuDefaults.itemColors(
+                                                textColor = MaterialTheme.colorScheme.error
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = entry.text,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    // URL Preview Card (only if we have valid preview data)
+                    if (entry.previewUrl != null && hasValidPreviewData(entry)) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinkPreviewCard(entry = entry)
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = entry.text,
-                    style = MaterialTheme.typography.bodyMedium
+            }
+            
+            // Action bar with chat icon
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Chat/Comment icon button
+                Row(
+                    modifier = Modifier
+                        .clickable { onToggleComments() }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (commentsExpanded) 
+                            Icons.Default.ChatBubble 
+                        else 
+                            Icons.Outlined.ChatBubbleOutline,
+                        contentDescription = "Comments",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (commentsExpanded) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    if (entry.commentCount > 0) {
+                        Text(
+                            text = entry.commentCount.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (commentsExpanded) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            // Comments Section (conditionally shown)
+            if (commentsExpanded) {
+                CommentsSection(
+                    entryId = entry.id,
+                    commentCount = entry.commentCount,
+                    comments = comments,
+                    isLoading = commentsLoading,
+                    currentUserId = currentUserId,
+                    isAdmin = isAdmin,
+                    onLoadComments = onLoadComments,
+                    onCreateComment = onCreateComment,
+                    onUpdateComment = onUpdateComment,
+                    onDeleteComment = onDeleteComment,
+                    onClapComment = onClapComment,
+                    onReportComment = onReportComment
                 )
-                
-                // URL Preview Card (only if we have valid preview data)
-                if (entry.previewUrl != null && hasValidPreviewData(entry)) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    LinkPreviewCard(entry = entry)
-                }
             }
         }
     }

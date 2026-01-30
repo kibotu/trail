@@ -356,20 +356,33 @@ function createEntryCard(entry, options = {}) {
                         </div>` : '<div></div>'}
                 </div>
                 <div class="entry-footer-actions">
-                    <button class="clap-button ${(entry.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId && currentUserId === entry.user_id ? 'own-entry' : ''}" 
-                            data-no-navigate 
-                            data-entry-id="${entry.id}"
-                            data-hash-id="${hashId}"
-                            data-user-claps="${entry.user_clap_count || 0}"
-                            data-total-claps="${entry.clap_count || 0}"
-                            data-is-own="${currentUserId && currentUserId === entry.user_id ? 'true' : 'false'}"
-                            aria-label="${currentUserId && currentUserId === entry.user_id ? 'Your entry claps' : 'Clap for this entry'}">
-                        <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
-                        <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
-                    </button>
-                    <button class="share-button" data-no-navigate aria-label="Share entry">
-                        <i class="fa-solid fa-share-nodes"></i>
-                    </button>
+                    <div class="entry-footer-left">
+                        <button class="comment-button" 
+                                ${options.enablePermalink !== false ? '' : 'data-no-navigate'}
+                                data-entry-id="${entry.id}"
+                                data-hash-id="${hashId}"
+                                data-comment-count="${entry.comment_count || 0}"
+                                aria-label="Comments">
+                            <i class="fa-regular fa-comment"></i>
+                            <span class="comment-count">${entry.comment_count || 0}</span>
+                        </button>
+                        <button class="share-button" data-no-navigate aria-label="Share entry">
+                            <i class="fa-solid fa-share-nodes"></i>
+                        </button>
+                    </div>
+                    <div class="entry-footer-right">
+                        <button class="clap-button ${(entry.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId && currentUserId === entry.user_id ? 'own-entry' : ''}" 
+                                data-no-navigate 
+                                data-entry-id="${entry.id}"
+                                data-hash-id="${hashId}"
+                                data-user-claps="${entry.user_clap_count || 0}"
+                                data-total-claps="${entry.clap_count || 0}"
+                                data-is-own="${currentUserId && currentUserId === entry.user_id ? 'true' : 'false'}"
+                                aria-label="${currentUserId && currentUserId === entry.user_id ? 'Your entry claps' : 'Clap for this entry'}">
+                            <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
+                            <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
