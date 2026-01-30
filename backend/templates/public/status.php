@@ -13,6 +13,7 @@
     <meta name="twitter:card" content="summary">
     
     <title>Entry - Trail</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
