@@ -75,15 +75,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Profile Image</label>
-                        <div id="profile-image-upload"></div>
-                        <p class="form-hint">Max 20MB. Formats: JPEG, PNG, GIF, WebP, SVG, AVIF</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Header Image</label>
-                        <div id="header-image-upload"></div>
-                        <p class="form-hint">Max 20MB. Recommended: 1920x400px</p>
+                        <label for="bio">Bio</label>
+                        <textarea 
+                            id="bio" 
+                            name="bio" 
+                            placeholder="Tell us about yourself"
+                            maxlength="160"
+                            rows="3"
+                        ></textarea>
+                        <p class="form-hint">
+                            <span id="bio-counter">0</span>/160 characters
+                        </p>
                     </div>
 
                     <div class="form-group" id="profile-link-group" style="display: none;">
@@ -92,6 +94,7 @@
                             <i class="fa-solid fa-link"></i>
                             <span id="profile-url-text"></span>
                         </a>
+                        <p class="form-hint">Visit your profile to change your avatar and header image.</p>
                     </div>
 
                     <div class="button-group">
@@ -123,7 +126,6 @@
 
     <!-- Core JavaScript Modules -->
     <script src="/js/snackbar.js"></script>
-    <script src="/js/image-upload.js"></script>
     <script src="/js/profile-manager.js"></script>
     
     <!-- Page Initialization -->

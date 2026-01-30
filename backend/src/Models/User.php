@@ -36,11 +36,40 @@ class User
 
     public function findByNickname(string $nickname): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE nickname = ?");
-        $stmt->execute([$nickname]);
-        $user = $stmt->fetch();
-        
-        return $user ?: null;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*,
+                       pi.filename as profile_image_filename,
+                       hi.filename as header_image_filename
+                FROM {$this->table} u
+                LEFT JOIN trail_images pi ON u.profile_image_id = pi.id
+                LEFT JOIN trail_images hi ON u.header_image_id = hi.id
+                WHERE u.nickname = ?
+            ");
+            $stmt->execute([$nickname]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                return null;
+            }
+            
+            // Add image URLs
+            if (!empty($user['profile_image_filename'])) {
+                $user['profile_image_url'] = '/uploads/images/' . $user['id'] . '/' . $user['profile_image_filename'];
+            }
+            if (!empty($user['header_image_filename'])) {
+                $user['header_image_url'] = '/uploads/images/' . $user['id'] . '/' . $user['header_image_filename'];
+            }
+            
+            return $user;
+        } catch (\PDOException $e) {
+            // Fallback if trail_images table doesn't exist yet
+            error_log("findByNickname error (table may not exist): " . $e->getMessage());
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE nickname = ?");
+            $stmt->execute([$nickname]);
+            $user = $stmt->fetch();
+            return $user ?: null;
+        }
     }
 
     public function create(string $googleId, string $email, string $name, string $gravatarHash, ?string $photoUrl = null): int
@@ -123,6 +152,20 @@ class User
         );
         
         return $stmt->execute([$nickname, $id]);
+    }
+
+    /**
+     * Update user's bio
+     */
+    public function updateBio(int $id, ?string $bio): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET bio = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$bio, $id]);
     }
 
     /**

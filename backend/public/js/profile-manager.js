@@ -18,6 +18,8 @@ class ProfileManager {
             profileName: options.profileNameId || 'profile-name',
             profileEmail: options.profileEmailId || 'profile-email',
             nickname: options.nicknameId || 'nickname',
+            bio: options.bioId || 'bio',
+            bioCounter: options.bioCounterId || 'bio-counter',
             profileAvatar: options.profileAvatarId || 'profile-avatar',
             profileUrl: options.profileUrlId || 'profile-url',
             profileUrlText: options.profileUrlTextId || 'profile-url-text',
@@ -66,6 +68,8 @@ class ProfileManager {
         const nameEl = document.getElementById(this.elements.profileName);
         const emailEl = document.getElementById(this.elements.profileEmail);
         const nicknameEl = document.getElementById(this.elements.nickname);
+        const bioEl = document.getElementById(this.elements.bio);
+        const bioCounterEl = document.getElementById(this.elements.bioCounter);
         const avatarEl = document.getElementById(this.elements.profileAvatar);
         const urlEl = document.getElementById(this.elements.profileUrl);
         const urlTextEl = document.getElementById(this.elements.profileUrlText);
@@ -75,10 +79,17 @@ class ProfileManager {
         if (nameEl) nameEl.textContent = profile.name || 'User';
         if (emailEl) emailEl.textContent = profile.email;
         if (nicknameEl) nicknameEl.value = profile.nickname || '';
+        
+        // Set bio
+        if (bioEl) {
+            bioEl.value = profile.bio || '';
+            this.updateBioCounter();
+        }
 
         // Set avatar
         if (avatarEl) {
-            const avatarUrl = profile.photo_url || 
+            const avatarUrl = profile.profile_image_url ||
+                profile.photo_url || 
                 `https://www.gravatar.com/avatar/${profile.gravatar_hash}?s=160&d=mp`;
             avatarEl.src = avatarUrl;
         }
@@ -136,45 +147,24 @@ class ProfileManager {
     }
 
     /**
-     * Update profile with image
-     * @param {string} imageType - 'profile' or 'header'
-     * @param {number} imageId - Image ID
-     * @returns {Promise<Object>} Updated profile data
+     * Update bio character counter
      */
-    async updateProfileWithImage(imageType, imageId) {
-        try {
-            const nicknameEl = document.getElementById(this.elements.nickname);
-            const payload = {
-                nickname: nicknameEl ? nicknameEl.value : ''
-            };
-
-            if (imageType === 'profile') {
-                payload.profile_image_id = imageId;
-            } else if (imageType === 'header') {
-                payload.header_image_id = imageId;
+    updateBioCounter() {
+        const bioEl = document.getElementById(this.elements.bio);
+        const counterEl = document.getElementById(this.elements.bioCounter);
+        
+        if (bioEl && counterEl) {
+            const length = bioEl.value.length;
+            counterEl.textContent = length;
+            
+            // Change color if approaching limit
+            if (length > 140) {
+                counterEl.style.color = 'var(--error)';
+            } else if (length > 120) {
+                counterEl.style.color = 'var(--warning, orange)';
+            } else {
+                counterEl.style.color = '';
             }
-
-            const response = await fetch(`${this.apiBase}/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to update profile');
-            }
-
-            this.showAlert(`${imageType === 'profile' ? 'Profile' : 'Header'} image updated successfully!`, 'success');
-            return await response.json();
-
-        } catch (error) {
-            console.error('Error updating profile image:', error);
-            this.showAlert(error.message || 'Failed to update image. Please try again.', 'error');
-            throw error;
         }
     }
 

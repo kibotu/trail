@@ -15,20 +15,28 @@
     const nickname = body.dataset.nickname;
     const sessionState = {
         isLoggedIn: body.dataset.isLoggedIn === 'true',
-        userId: null,
+        userId: body.dataset.userId ? parseInt(body.dataset.userId, 10) : null,
         userEmail: body.dataset.userEmail || null,
         isAdmin: body.dataset.isAdmin === 'true'
     };
 
     let nextCursor = null;
-    let userData = null;
 
     const entriesContainer = document.getElementById('entriesContainer');
     const loadingElement = document.getElementById('loading');
     const endMessage = document.getElementById('endMessage');
-    const userHeader = document.getElementById('userHeader');
 
     if (!entriesContainer || !loadingElement || !endMessage) return;
+
+    // Initialize profile manager
+    const userProfileManager = new UserProfileManager({
+        nickname: nickname,
+        sessionState: sessionState,
+        apiBase: '/api'
+    });
+
+    // Load profile
+    userProfileManager.init();
 
     // Initialize entries manager
     const entriesManager = new EntriesManager({ sessionState });
@@ -50,18 +58,6 @@
                 currentUserId: null
             }
         });
-
-        // Update user header on first load
-        if (result.user && !userData && userHeader) {
-            userData = result.user;
-            const avatarUrl = userData.photo_url || 
-                `https://www.gravatar.com/avatar/${userData.gravatar_hash}?s=160&d=mp`;
-            const userAvatar = document.getElementById('userAvatar');
-            const userName = document.getElementById('userName');
-            if (userAvatar) userAvatar.src = avatarUrl;
-            if (userName) userName.textContent = `@${userData.nickname}`;
-            userHeader.style.display = 'flex';
-        }
 
         nextCursor = result.next_cursor;
 

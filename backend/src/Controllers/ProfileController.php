@@ -47,6 +47,7 @@ class ProfileController
             'email' => $user['email'],
             'name' => $user['name'],
             'nickname' => $nickname,
+            'bio' => $user['bio'] ?? null,
             'photo_url' => $user['photo_url'],
             'gravatar_hash' => $user['gravatar_hash'],
             'profile_image_id' => $user['profile_image_id'],
@@ -76,11 +77,18 @@ class ProfileController
 
         $data = json_decode((string) $request->getBody(), true);
         $nickname = $data['nickname'] ?? null;
+        $bio = $data['bio'] ?? null;
         $profileImageId = isset($data['profile_image_id']) ? (int) $data['profile_image_id'] : null;
         $headerImageId = isset($data['header_image_id']) ? (int) $data['header_image_id'] : null;
 
         if (empty($nickname)) {
             $response->getBody()->write(json_encode(['error' => 'Nickname is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validate bio length if provided
+        if ($bio !== null && strlen($bio) > 160) {
+            $response->getBody()->write(json_encode(['error' => 'Bio must be 160 characters or less']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -110,6 +118,11 @@ class ProfileController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
 
+        // Update bio if provided
+        if ($bio !== null) {
+            $userModel->updateBio($userId, $bio);
+        }
+
         // Update profile image if provided
         if ($profileImageId !== null) {
             $userModel->updateProfileImage($userId, $profileImageId);
@@ -127,6 +140,7 @@ class ProfileController
             'email' => $user['email'],
             'name' => $user['name'],
             'nickname' => $user['nickname'],
+            'bio' => $user['bio'] ?? null,
             'photo_url' => $user['photo_url'],
             'gravatar_hash' => $user['gravatar_hash'],
             'profile_image_id' => $user['profile_image_id'],
@@ -169,8 +183,12 @@ class ProfileController
         $profileData = [
             'id' => $user['id'],
             'nickname' => $user['nickname'],
+            'name' => $user['name'],
+            'bio' => $user['bio'] ?? null,
             'photo_url' => $user['photo_url'],
             'gravatar_hash' => $user['gravatar_hash'],
+            'profile_image_url' => $user['profile_image_url'] ?? null,
+            'header_image_url' => $user['header_image_url'] ?? null,
             'created_at' => $user['created_at']
         ];
 

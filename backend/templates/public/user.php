@@ -72,11 +72,30 @@
     </header>
 
     <main>
-        <div class="user-header" id="userHeader" style="display: none;">
-            <img id="userAvatar" class="user-avatar" src="" alt="User avatar">
-            <div class="user-info">
-                <h1 id="userName">Loading...</h1>
-                <p class="nickname">@<?= htmlspecialchars($nickname ?? '') ?></p>
+        <div class="profile-banner-container" id="profileBannerContainer" style="display: none;">
+            <div class="profile-header-image" id="profileHeaderImage">
+                <div class="header-upload-overlay" id="headerUploadOverlay">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Change header</span>
+                </div>
+            </div>
+            
+            <div class="profile-info-section">
+                <div class="profile-avatar-container">
+                    <img class="profile-avatar" id="profileAvatar" src="" alt="Profile avatar">
+                    <div class="avatar-upload-overlay" id="avatarUploadOverlay">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                </div>
+                
+                <div class="profile-details">
+                    <h1 class="profile-name" id="profileName">Loading...</h1>
+                    <p class="profile-nickname" id="profileNickname">@<?= htmlspecialchars($nickname ?? '') ?></p>
+                    <p class="profile-bio" id="profileBio"></p>
+                    <p class="profile-joined" id="profileJoined">
+                        <i class="fa-solid fa-calendar"></i> Joined...
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -102,6 +121,7 @@
     <script src="/js/infinite-scroll.js"></script>
     <script src="/js/image-upload.js"></script>
     <script src="/js/comments-manager.js"></script>
+    <script src="/js/user-profile-manager.js"></script>
     
     <!-- Page Initialization -->
     <script src="/js/user-page.js"></script>

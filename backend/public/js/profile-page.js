@@ -23,6 +23,7 @@
             e.preventDefault();
 
             const nickname = document.getElementById('nickname').value.trim();
+            const bio = document.getElementById('bio').value.trim();
             const saveBtn = document.getElementById('save-btn');
 
             // Validate nickname
@@ -32,13 +33,19 @@
                 return;
             }
 
+            // Validate bio length
+            if (bio.length > 160) {
+                profileManager.showAlert('Bio must be 160 characters or less', 'error');
+                return;
+            }
+
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.textContent = 'Saving...';
             }
 
             try {
-                await profileManager.updateProfile({ nickname });
+                await profileManager.updateProfile({ nickname, bio });
             } catch (error) {
                 // Error already handled by profileManager
             } finally {
@@ -50,34 +57,13 @@
         });
     }
 
-    // Initialize image uploaders
+    // Setup bio character counter
     window.addEventListener('DOMContentLoaded', () => {
-        // Profile image uploader
-        const profileUploadContainer = document.getElementById('profile-image-upload');
-        if (profileUploadContainer) {
-            createImageUploadUI(
-                'profile',
-                'profile-image-upload',
-                (result) => {
-                    if (!result.removed) {
-                        profileManager.updateProfileWithImage('profile', result.image_id);
-                    }
-                }
-            );
-        }
-        
-        // Header image uploader
-        const headerUploadContainer = document.getElementById('header-image-upload');
-        if (headerUploadContainer) {
-            createImageUploadUI(
-                'header',
-                'header-image-upload',
-                (result) => {
-                    if (!result.removed) {
-                        profileManager.updateProfileWithImage('header', result.image_id);
-                    }
-                }
-            );
+        const bioEl = document.getElementById('bio');
+        if (bioEl) {
+            bioEl.addEventListener('input', () => {
+                profileManager.updateBioCounter();
+            });
         }
 
         // Load muted users
