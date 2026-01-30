@@ -10,6 +10,7 @@ use Trail\Database\Database;
 use Trail\Models\Notification;
 use Trail\Models\NotificationPreference;
 use Trail\Config\Config;
+use Trail\Services\HashIdService;
 
 class NotificationController
 {
@@ -224,11 +225,12 @@ class NotificationController
         $formatted = [];
         
         foreach ($notifications as $notification) {
-            $actorDisplayName = $notification['actor_nickname'] ?? $notification['actor_name'];
+            $actorDisplayName = $notification['actor_nickname'] ?? $notification['actor_name'] ?? 'Unknown User';
             $actorAvatarUrl = self::getAvatarUrl($notification);
             
             // Generate action text based on type
-            $actionText = self::getActionText($notification['type'], $actorDisplayName);
+            $type = $notification['type'] ?? 'unknown';
+            $actionText = self::getActionText($type, $actorDisplayName);
             
             // Generate link to entry/comment
             $link = self::getNotificationLink($notification, $config);
@@ -237,19 +239,20 @@ class NotificationController
             $previewText = self::getPreviewText($notification);
             
             // Format relative time
-            $relativeTime = self::getRelativeTime($notification['created_at']);
+            $createdAt = $notification['created_at'] ?? date('Y-m-d H:i:s');
+            $relativeTime = self::getRelativeTime($createdAt);
             
             $formatted[] = [
-                'id' => $notification['id'],
-                'type' => $notification['type'],
+                'id' => $notification['id'] ?? 0,
+                'type' => $type,
                 'actor_display_name' => $actorDisplayName,
                 'actor_avatar_url' => $actorAvatarUrl,
                 'action_text' => $actionText,
                 'preview_text' => $previewText,
                 'link' => $link,
-                'is_read' => (bool) $notification['is_read'],
+                'is_read' => (bool) ($notification['is_read'] ?? false),
                 'relative_time' => $relativeTime,
-                'created_at' => $notification['created_at']
+                'created_at' => $createdAt
             ];
         }
         
@@ -284,8 +287,22 @@ class NotificationController
     {
         $baseUrl = $config['app']['base_url'] ?? '';
         
-        if ($notification['entry_id']) {
-            return $baseUrl . '/entries/' . $notification['entry_id'];
+        if (!empty($notification['entry_id'])) {
+            // Generate hash_id dynamically (not stored in database)
+            $hashId = null;
+            $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+            
+            try {
+                $hashIdService = new HashIdService($hashSalt);
+                $hashId = $hashIdService->encode((int) $notification['entry_id']);
+            } catch (\Throwable $e) {
+                error_log("Failed to encode entry ID {$notification['entry_id']} for notification: " . $e->getMessage());
+            }
+            
+            // Fall back to numeric ID if hash generation fails
+            $identifier = $hashId ?? $notification['entry_id'];
+            
+            return $baseUrl . '/status/' . $identifier;
         }
         
         return $baseUrl;
@@ -296,11 +313,15 @@ class NotificationController
      */
     private static function getPreviewText(array $notification): ?string
     {
-        if ($notification['type'] === 'mention_comment' || $notification['type'] === 'comment_on_entry') {
-            return $notification['comment_text'] ? substr($notification['comment_text'], 0, 100) : null;
+        $type = $notification['type'] ?? '';
+        
+        if ($type === 'mention_comment' || $type === 'comment_on_entry') {
+            $commentText = $notification['comment_text'] ?? null;
+            return $commentText ? substr($commentText, 0, 100) : null;
         }
         
-        return $notification['entry_text'] ? substr($notification['entry_text'], 0, 100) : null;
+        $entryText = $notification['entry_text'] ?? null;
+        return $entryText ? substr($entryText, 0, 100) : null;
     }
 
     /**
@@ -357,8 +378,9 @@ class NotificationController
         $weekAgo = strtotime('-7 days');
         
         foreach ($notifications as $notification) {
-            $notificationDate = date('Y-m-d', strtotime($notification['created_at']));
-            $notificationTime = strtotime($notification['created_at']);
+            $createdAt = $notification['created_at'] ?? date('Y-m-d H:i:s');
+            $notificationDate = date('Y-m-d', strtotime($createdAt));
+            $notificationTime = strtotime($createdAt);
             
             if ($notificationDate === $today) {
                 $grouped['Today'][] = $notification;

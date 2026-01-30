@@ -41,7 +41,7 @@ class AuthMiddleware implements MiddlewareInterface
         // Fallback: Try to get token from session
         if (!$token) {
             require_once __DIR__ . '/../../public/helpers/session.php';
-            $db = \Trail\Database\Database::getInstance($this->config)->getConnection();
+            $db = \Trail\Database\Database::getInstance($this->config);
             $session = getAuthenticatedUser($db);
             if ($session && !empty($session['jwt_token'])) {
                 $token = $session['jwt_token'];

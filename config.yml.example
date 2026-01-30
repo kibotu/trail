@@ -49,6 +49,7 @@ app:
   rss_title: "Trail - Link Journal"
   rss_description: "Public link journal feed"
   environment: ${APP_ENV}
+  entry_hash_salt: ${ENTRY_HASH_SALT}  # Random salt for generating entry hash IDs (prevents enumeration)
   nickname_salt: ${NICKNAME_SALT}  # Random salt for generating nickname hashes
 
 # Notification System Configuration

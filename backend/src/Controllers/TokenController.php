@@ -35,7 +35,7 @@ class TokenController
         // Get session from cookie
         require_once __DIR__ . '/../../public/helpers/session.php';
         
-        $db = \Trail\Database\Database::getInstance($this->config)->getConnection();
+        $db = \Trail\Database\Database::getInstance($this->config);
         $session = getAuthenticatedUser($db);
 
         if (!$session) {
@@ -69,7 +69,7 @@ class TokenController
         // Get session from cookie
         require_once __DIR__ . '/../../public/helpers/session.php';
         
-        $db = \Trail\Database\Database::getInstance($this->config)->getConnection();
+        $db = \Trail\Database\Database::getInstance($this->config);
         $session = getAuthenticatedUser($db);
 
         if (!$session) {
