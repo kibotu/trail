@@ -257,10 +257,11 @@ $app->get('/api/health', function ($request, $response) {
 });
 
 // Authentication routes with rate limiting
+$rateLimitEnabled = $config['security']['rate_limit']['enabled'] ?? true;
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth'])
-    ->add(new RateLimitMiddleware(5, 300)); // 5 attempts per 5 minutes
+    ->add(new RateLimitMiddleware(5, 300, $rateLimitEnabled)); // 5 attempts per 5 minutes
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']) // Development only
-    ->add(new RateLimitMiddleware(10, 60)); // 10 attempts per minute (dev only)
+    ->add(new RateLimitMiddleware(10, 60, $rateLimitEnabled)); // 10 attempts per minute (dev only)
 
 // Session info endpoint (returns user info without exposing JWT)
 $app->get('/api/auth/session', [TokenController::class, 'getTokenInfo']);

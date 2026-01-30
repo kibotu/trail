@@ -12,16 +12,23 @@ class RateLimitService
     private string $table = 'trail_rate_limits';
     private int $requestsPerMinute;
     private int $requestsPerHour;
+    private bool $enabled;
 
     public function __construct(PDO $db, array $config)
     {
         $this->db = $db;
         $this->requestsPerMinute = $config['security']['rate_limit']['requests_per_minute'];
         $this->requestsPerHour = $config['security']['rate_limit']['requests_per_hour'];
+        $this->enabled = $config['security']['rate_limit']['enabled'] ?? true;
     }
 
     public function checkLimit(string $identifier, string $endpoint): bool
     {
+        // Skip rate limiting if disabled
+        if (!$this->enabled) {
+            return true;
+        }
+
         // Clean up old records
         $this->cleanup();
 

@@ -20,20 +20,28 @@ class RateLimitMiddleware implements MiddlewareInterface
 {
     private int $maxAttempts;
     private int $windowSeconds;
+    private bool $enabled;
     private static array $attempts = [];
     
     /**
      * @param int $maxAttempts Maximum number of attempts allowed
      * @param int $windowSeconds Time window in seconds
+     * @param bool $enabled Whether rate limiting is enabled
      */
-    public function __construct(int $maxAttempts = 5, int $windowSeconds = 300)
+    public function __construct(int $maxAttempts = 5, int $windowSeconds = 300, bool $enabled = true)
     {
         $this->maxAttempts = $maxAttempts;
         $this->windowSeconds = $windowSeconds;
+        $this->enabled = $enabled;
     }
     
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        // Skip rate limiting if disabled
+        if (!$this->enabled) {
+            return $handler->handle($request);
+        }
+        
         $ip = $this->getClientIp($request);
         $key = $this->getKey($ip, $request->getUri()->getPath());
         

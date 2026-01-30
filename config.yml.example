@@ -36,7 +36,7 @@ iframely:
 
 security:
   rate_limit:
-    enabled: true
+    enabled: true  # Set to false to disable rate limiting globally
     requests_per_minute: 120  # Increased for post creation, edit/delete operations
     requests_per_hour: 3000   # Increased for active user sessions
   bot_protection:
