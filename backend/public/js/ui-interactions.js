@@ -244,12 +244,8 @@ function validateEntryText(text, options = {}) {
 function showLoginPrompt(message = 'Please log in to continue') {
     if (typeof showSnackbar === 'function') {
         showSnackbar(message, 'info');
-        setTimeout(() => {
-            window.location.href = '/admin/login.php';
-        }, 1500);
     } else {
         alert(message);
-        window.location.href = '/admin/login.php';
     }
 }
 
