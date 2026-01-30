@@ -2872,6 +2872,55 @@ main {
     line-height: 1.8;
 }
 
+/* Feature Cards for Advanced Features Section */
+.page-api-docs .feature-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-api-docs .feature-card h3 {
+    color: #3b82f6;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-api-docs .feature-card h3 i {
+    font-size: 1rem;
+}
+
+.page-api-docs .feature-card p {
+    margin-bottom: 0.75rem;
+    color: #cbd5e1;
+}
+
+.page-api-docs .feature-card .code-block {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.page-api-docs .feature-card .code-block code {
+    font-family: "Courier New", monospace;
+    font-size: 0.875rem;
+    color: #7dd3fc;
+    line-height: 1.8;
+}
+
+.page-api-docs .feature-card .note {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
 .page-api-docs .footer {
     margin-top: 4rem;
     padding: 2rem;

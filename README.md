@@ -254,10 +254,15 @@ See [SECURITY.md](SECURITY.md) for complete security documentation.
 ## Documentation
 
 ### Backend & Deployment
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide
-- [MIGRATIONS.md](MIGRATIONS.md) - Database migration guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide (use `./sync.sh`)
+- [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) - Database migration guide
 - [SECURITY.md](SECURITY.md) - Security guide and best practices
 - [TEST_SECURITY_GUIDE.md](TEST_SECURITY_GUIDE.md) - Production security testing guide
+
+### API Documentation
+- [API_EXAMPLES.md](API_EXAMPLES.md) - Complete API usage examples
+- [CUSTOM_DATE_FEATURE_README.md](CUSTOM_DATE_FEATURE_README.md) - Custom date entry creation feature
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical implementation details
 
 ### Architecture & Navigation
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture overview and patterns

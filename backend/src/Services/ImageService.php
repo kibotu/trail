@@ -160,6 +160,52 @@ class ImageService
     }
     
     /**
+     * Save raw image without processing (validation or conversion)
+     * WARNING: This bypasses security validation. Use only for trusted sources.
+     * 
+     * @param string $sourcePath Source file path
+     * @param string $targetPath Target file path
+     * @return array Image metadata (width, height, file_size, mime_type)
+     */
+    public function saveRawImage(string $sourcePath, string $targetPath): array
+    {
+        if (!file_exists($sourcePath)) {
+            throw new InvalidArgumentException('Source file does not exist');
+        }
+        
+        $fileSize = filesize($sourcePath);
+        if ($fileSize === false || $fileSize > self::MAX_FILE_SIZE) {
+            throw new InvalidArgumentException('File size exceeds maximum allowed size');
+        }
+        
+        // Detect MIME type
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $sourcePath);
+        
+        // Get dimensions if possible (skip for non-image files)
+        $width = null;
+        $height = null;
+        if ($mimeType !== 'image/svg+xml') {
+            $imageInfo = @getimagesize($sourcePath);
+            if ($imageInfo !== false) {
+                [$width, $height] = $imageInfo;
+            }
+        }
+        
+        // Copy file as-is
+        if (!copy($sourcePath, $targetPath)) {
+            throw new RuntimeException('Failed to copy raw image file');
+        }
+        
+        return [
+            'width' => $width,
+            'height' => $height,
+            'file_size' => $fileSize,
+            'mime_type' => $mimeType
+        ];
+    }
+    
+    /**
      * Optimize and convert image to WebP
      */
     public function optimizeAndConvert(

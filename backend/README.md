@@ -143,7 +143,7 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 ### Protected Endpoints (Requires JWT)
 
 - `GET /api/entries` - List user's entries
-- `POST /api/entries` - Create entry
+- `POST /api/entries` - Create entry (supports custom dates, inline media, initial claps)
 - `PUT /api/entries/{id}` - Update entry
 - `DELETE /api/entries/{id}` - Delete entry
 
@@ -152,6 +152,44 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 - `GET /admin` - Admin dashboard
 - `GET /admin/login` - Google OAuth login
 - `GET /admin/logout` - Logout
+
+## Advanced Entry Creation
+
+The `/api/entries` endpoint supports advanced features for importing content:
+
+### Custom Creation Dates
+Import entries with their original timestamps (e.g., from Twitter/X):
+```json
+{
+  "text": "Imported tweet",
+  "created_at": "Fri Nov 28 10:54:34 +0000 2025"
+}
+```
+
+### Inline Media Upload
+Upload images directly in the request (base64 encoded):
+```json
+{
+  "text": "Photo post",
+  "media": [{
+    "data": "base64_encoded_image...",
+    "filename": "photo.jpg",
+    "image_type": "post"
+  }],
+  "raw_upload": false
+}
+```
+
+### Initial Engagement Metrics
+Set initial clap counts when importing:
+```json
+{
+  "text": "Popular post",
+  "initial_claps": 25
+}
+```
+
+See [API_EXAMPLES.md](../API_EXAMPLES.md) for complete API documentation.
 
 ## Project Structure
 
@@ -214,17 +252,26 @@ security:
 
 ## Database Migrations
 
-Migrations run automatically during deployment via `sync.sh`.
-
-Manual migration:
+**IMPORTANT:** Migrations run automatically during deployment via `./sync.sh`.
 
 ```bash
-mysql -u user -p database < migrations/001_initial_schema.sql
-mysql -u user -p database < migrations/002_add_sessions_table.sql
-# ... etc
+# Deploy and run all pending migrations
+./sync.sh
 ```
 
-Latest migration: `005_add_url_preview_to_entries.sql`
+The sync script:
+1. Detects pending migrations automatically
+2. Executes them in order
+3. Records successful migrations
+4. Rolls back on failure
+
+**Never run migrations manually.** Always use `./sync.sh`.
+
+Latest migrations:
+- `021_add_custom_created_at.sql` - Custom date support for entries
+- `022_record_custom_created_at_migration.sql` - Migration tracking
+
+See [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md) for details.
 
 ## Performance
 
@@ -247,10 +294,20 @@ Development only:
 
 ## Documentation
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
-- [TESTING.md](TESTING.md) - Testing guide
+### Deployment & Operations
+- [DEPLOYMENT.md](../DEPLOYMENT.md) - Complete deployment guide
+- [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md) - Database migration guide
+
+### API Documentation
+- [API_EXAMPLES.md](../API_EXAMPLES.md) - Complete API usage examples
+- [CUSTOM_DATE_FEATURE_README.md](../CUSTOM_DATE_FEATURE_README.md) - Custom date entry feature
+
+### Features
 - [URL_PREVIEW_FEATURE.md](../URL_PREVIEW_FEATURE.md) - URL preview documentation
-- [IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md) - Implementation details
+- [IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md) - Technical implementation details
+
+### Testing
+- [TESTING.md](TESTING.md) - Testing guide
 
 ## License
 

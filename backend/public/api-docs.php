@@ -82,9 +82,37 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/entries',
-        'description' => 'Create a new entry (authenticated) - Max 280 characters',
+        'description' => 'Create a new entry (authenticated) - Max 280 characters. Supports custom dates, inline media upload, and initial claps.',
         'auth' => true,
         'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries',
+        'description' => 'Create entry with custom date (Twitter format) - Import entries with original timestamps',
+        'auth' => true,
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Imported tweet\",\"created_at\":\"Fri Nov 28 10:54:34 +0000 2025\"}' \\\n     {$baseUrl}/api/entries"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries',
+        'description' => 'Create entry with inline media upload - Upload images as base64 in request body',
+        'auth' => true,
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Photo post\",\"media\":[{\"data\":\"BASE64_IMAGE_DATA\",\"filename\":\"photo.jpg\",\"image_type\":\"post\"}],\"raw_upload\":false}' \\\n     {$baseUrl}/api/entries"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries',
+        'description' => 'Create entry with initial claps - Set engagement metrics when importing content',
+        'auth' => true,
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Popular post\",\"initial_claps\":25}' \\\n     {$baseUrl}/api/entries"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries',
+        'description' => 'Create entry with all advanced features - Custom date, media, and claps combined',
+        'auth' => true,
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Imported tweet with photo\",\"created_at\":\"Mon Jan 15 14:30:00 -0800 2024\",\"media\":[{\"data\":\"BASE64_IMAGE_DATA\",\"filename\":\"photo.jpg\",\"image_type\":\"post\"}],\"raw_upload\":true,\"initial_claps\":42}' \\\n     {$baseUrl}/api/entries"
     ],
     [
         'method' => 'GET',
@@ -177,6 +205,73 @@ usort($endpoints, function($a, $b) {
                     </div>
                 </div>
             <?php endforeach; ?>
+        </div>
+        
+        <div class="section">
+            <h2>Advanced Entry Creation</h2>
+            <p>The <code>POST /api/entries</code> endpoint supports advanced features for importing content from other platforms (e.g., Twitter/X):</p>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-clock"></i> Custom Creation Dates</h3>
+                <p>Import entries with their original timestamps using Twitter date format:</p>
+                <div class="code-block">
+                    <code>"created_at": "Fri Nov 28 10:54:34 +0000 2025"</code>
+                </div>
+                <p class="note">Format: <code>Day Mon DD HH:MM:SS ±ZZZZ YYYY</code> (e.g., timezone +0000 for UTC, -0800 for PST)</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-image"></i> Inline Media Upload</h3>
+                <p>Upload images directly in the request (base64 encoded):</p>
+                <div class="code-block">
+                    <code>"media": [{<br>
+                    &nbsp;&nbsp;"data": "base64_encoded_image_data...",<br>
+                    &nbsp;&nbsp;"filename": "photo.jpg",<br>
+                    &nbsp;&nbsp;"mime_type": "image/jpeg",<br>
+                    &nbsp;&nbsp;"image_type": "post"<br>
+                    }]</code>
+                </div>
+                <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-bolt"></i> Raw Upload Mode</h3>
+                <p>Skip image processing for faster imports:</p>
+                <div class="code-block">
+                    <code>"raw_upload": true</code>
+                </div>
+                <p class="note">When enabled, images are saved without resizing or WebP conversion. Use for trusted sources only.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-hands-clapping"></i> Initial Claps</h3>
+                <p>Set engagement metrics when importing:</p>
+                <div class="code-block">
+                    <code>"initial_claps": 25</code>
+                </div>
+                <p class="note">Valid range: 1-50. Claps are attributed to the authenticated user (author).</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-circle-info"></i> Response Format</h3>
+                <p>Successful entry creation returns:</p>
+                <div class="code-block">
+                    <code>{<br>
+                    &nbsp;&nbsp;"id": 123,<br>
+                    &nbsp;&nbsp;"created_at": "2026-01-30 12:34:56",<br>
+                    &nbsp;&nbsp;"custom_created_at": "2025-11-28 10:54:34",<br>
+                    &nbsp;&nbsp;"images": [{<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"id": 456,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"url": "/uploads/images/1/1_1738246496_abc.webp",<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"width": 1200,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"height": 800,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"file_size": 45678<br>
+                    &nbsp;&nbsp;}],<br>
+                    &nbsp;&nbsp;"clap_count": 25,<br>
+                    &nbsp;&nbsp;"user_clap_count": 25<br>
+                    }</code>
+                </div>
+            </div>
         </div>
         
         <div class="footer">

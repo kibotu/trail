@@ -16,33 +16,61 @@ class Entry
         $this->db = $db;
     }
 
-    public function create(int $userId, string $text, ?array $preview = null, ?array $imageIds = null): int
+    public function create(int $userId, string $text, ?array $preview = null, ?array $imageIds = null, ?string $customCreatedAt = null): int
     {
         $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
         
         if ($preview !== null) {
-            $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->execute([
-                $userId,
-                $text,
-                $preview['url'] ?? null,
-                $preview['title'] ?? null,
-                $preview['description'] ?? null,
-                $preview['image'] ?? null,
-                $preview['site_name'] ?? null,
-                $preview['json'] ?? null,
-                $preview['source'] ?? null,
-                $imageIdsJson
-            ]);
+            if ($customCreatedAt !== null) {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids, custom_created_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                );
+                $stmt->execute([
+                    $userId,
+                    $text,
+                    $preview['url'] ?? null,
+                    $preview['title'] ?? null,
+                    $preview['description'] ?? null,
+                    $preview['image'] ?? null,
+                    $preview['site_name'] ?? null,
+                    $preview['json'] ?? null,
+                    $preview['source'] ?? null,
+                    $imageIdsJson,
+                    $customCreatedAt
+                ]);
+            } else {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                );
+                $stmt->execute([
+                    $userId,
+                    $text,
+                    $preview['url'] ?? null,
+                    $preview['title'] ?? null,
+                    $preview['description'] ?? null,
+                    $preview['image'] ?? null,
+                    $preview['site_name'] ?? null,
+                    $preview['json'] ?? null,
+                    $preview['source'] ?? null,
+                    $imageIdsJson
+                ]);
+            }
         } else {
-            $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (user_id, text, image_ids) 
-                 VALUES (?, ?, ?)"
-            );
-            $stmt->execute([$userId, $text, $imageIdsJson]);
+            if ($customCreatedAt !== null) {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO {$this->table} (user_id, text, image_ids, custom_created_at) 
+                     VALUES (?, ?, ?, ?)"
+                );
+                $stmt->execute([$userId, $text, $imageIdsJson, $customCreatedAt]);
+            } else {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO {$this->table} (user_id, text, image_ids) 
+                     VALUES (?, ?, ?)"
+                );
+                $stmt->execute([$userId, $text, $imageIdsJson]);
+            }
         }
         
         return (int) $this->db->lastInsertId();
@@ -123,7 +151,7 @@ class Entry
         }
         
         if ($before !== null) {
-            $sql .= " WHERE e.user_id = ? AND e.created_at < ?";
+            $sql .= " WHERE e.user_id = ? AND COALESCE(e.custom_created_at, e.created_at) < ?";
             $params[] = $userId;
             $params[] = $before;
         } else {
@@ -131,7 +159,7 @@ class Entry
             $params[] = $userId;
         }
         
-        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+        $sql .= " ORDER BY COALESCE(e.custom_created_at, e.created_at) DESC LIMIT ?";
         $params[] = $limit;
         
         $stmt = $this->db->prepare($sql);
@@ -177,7 +205,7 @@ class Entry
         }
         
         if ($before !== null) {
-            $whereConditions[] = "e.created_at < ?";
+            $whereConditions[] = "COALESCE(e.custom_created_at, e.created_at) < ?";
             $params[] = $before;
         }
         
@@ -201,12 +229,12 @@ class Entry
         
         if ($offset !== null) {
             // Offset-based pagination for admin
-            $sql .= " ORDER BY e.created_at DESC LIMIT ? OFFSET ?";
+            $sql .= " ORDER BY COALESCE(e.custom_created_at, e.created_at) DESC LIMIT ? OFFSET ?";
             $params[] = $limit;
             $params[] = $offset;
         } else {
             // Cursor-based pagination
-            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+            $sql .= " ORDER BY COALESCE(e.custom_created_at, e.created_at) DESC LIMIT ?";
             $params[] = $limit;
         }
         

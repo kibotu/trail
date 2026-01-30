@@ -13,6 +13,8 @@ use Trail\Services\TextSanitizer;
 use Trail\Services\UrlEmbedService;
 use Trail\Services\IframelyUsageTracker;
 use Trail\Services\HashIdService;
+use Trail\Services\TwitterDateParser;
+use Trail\Services\ImageService;
 
 class EntryController
 {
@@ -23,6 +25,103 @@ class EntryController
         
         $text = $data['text'] ?? '';
         $imageIds = $data['image_ids'] ?? null;
+        $media = $data['media'] ?? null;
+        $rawUpload = $data['raw_upload'] ?? false;
+        $customCreatedAt = $data['created_at'] ?? null;
+        $initialClaps = $data['initial_claps'] ?? null;
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+
+        // Process inline media uploads if provided
+        $uploadedImageIds = [];
+        if (!empty($media) && is_array($media)) {
+            try {
+                $uploadBasePath = __DIR__ . '/../../public/uploads/images';
+                $tempBasePath = __DIR__ . '/../../storage/temp';
+                $imageService = new ImageService($uploadBasePath, $tempBasePath);
+                
+                foreach ($media as $mediaItem) {
+                    if (empty($mediaItem['data']) || empty($mediaItem['filename'])) {
+                        continue;
+                    }
+                    
+                    // Decode base64 data
+                    $imageData = base64_decode($mediaItem['data'], true);
+                    if ($imageData === false) {
+                        error_log("EntryController::create: Failed to decode base64 image data");
+                        continue;
+                    }
+                    
+                    // Save to temp file
+                    $tempFile = tempnam($tempBasePath, 'upload_');
+                    file_put_contents($tempFile, $imageData);
+                    
+                    // Generate secure filename
+                    $secureFilename = $imageService->generateSecureFilename($userId, $mediaItem['filename']);
+                    $targetPath = $imageService->getImagePath($userId, $secureFilename);
+                    
+                    // Process or save raw
+                    if ($rawUpload) {
+                        $result = $imageService->saveRawImage($tempFile, $targetPath);
+                        $mimeType = $result['mime_type'];
+                        $width = $result['width'];
+                        $height = $result['height'];
+                        $fileSize = $result['file_size'];
+                    } else {
+                        // Validate first
+                        $validation = $imageService->validateImage($tempFile);
+                        $mimeType = $validation['mime_type'];
+                        
+                        // Optimize and convert
+                        $imageType = $mediaItem['image_type'] ?? 'post';
+                        $optimized = $imageService->optimizeAndConvert($tempFile, $targetPath, $imageType);
+                        $width = $optimized['width'];
+                        $height = $optimized['height'];
+                        $fileSize = $optimized['file_size'];
+                    }
+                    
+                    // Secure the file
+                    $imageService->secureUploadedFile($targetPath);
+                    
+                    // Generate ETag
+                    $etag = $imageService->generateETag($targetPath);
+                    
+                    // Save to database
+                    $stmt = $db->prepare("
+                        INSERT INTO trail_images (
+                            user_id, filename, original_filename, image_type, 
+                            mime_type, file_size, width, height, etag
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $userId,
+                        $secureFilename,
+                        $mediaItem['filename'],
+                        $mediaItem['image_type'] ?? 'post',
+                        $mimeType,
+                        $fileSize,
+                        $width,
+                        $height,
+                        $etag
+                    ]);
+                    
+                    $uploadedImageIds[] = (int) $db->lastInsertId();
+                    
+                    // Clean up temp file
+                    @unlink($tempFile);
+                }
+            } catch (\Throwable $e) {
+                error_log("EntryController::create: Media upload failed: " . $e->getMessage());
+                $response->getBody()->write(json_encode(['error' => 'Media upload failed: ' . $e->getMessage()]));
+                return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+            }
+        }
+        
+        // Merge uploaded image IDs with provided image IDs
+        if (!empty($uploadedImageIds)) {
+            $imageIds = array_merge($imageIds ?? [], $uploadedImageIds);
+        }
 
         // Validation: Either text or images must be provided
         if (empty($text) && (empty($imageIds) || !is_array($imageIds) || count($imageIds) === 0)) {
@@ -62,8 +161,16 @@ class EntryController
             }
         }
 
-        $config = Config::load(__DIR__ . '/../../secrets.yml');
-        $db = Database::getInstance($config);
+        // Parse custom created_at date if provided
+        $parsedCustomDate = null;
+        if (!empty($customCreatedAt)) {
+            $parsedCustomDate = TwitterDateParser::parse($customCreatedAt);
+            if ($parsedCustomDate === null) {
+                $response->getBody()->write(json_encode(['error' => 'Invalid date format. Expected Twitter format: "Fri Nov 28 10:54:34 +0000 2025"']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+        }
+
         $entryModel = new Entry($db);
 
         // Extract and fetch URL preview if text contains a URL
@@ -83,8 +190,23 @@ class EntryController
             $preview = null;
         }
 
-        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds);
-        $entry = $entryModel->findById($entryId);
+        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds, $parsedCustomDate);
+        $entry = $entryModel->findById($entryId, $userId);
+
+        // Add initial claps if provided
+        if ($initialClaps !== null) {
+            $clapCount = (int) $initialClaps;
+            if ($clapCount < 1 || $clapCount > 50) {
+                error_log("EntryController::create: Invalid initial_claps value: {$clapCount}");
+            } else {
+                try {
+                    $clapModel = new \Trail\Models\Clap($db);
+                    $clapModel->addClap($entryId, $userId, $clapCount);
+                } catch (\Throwable $e) {
+                    error_log("EntryController::create: Failed to add initial claps: " . $e->getMessage());
+                }
+            }
+        }
 
         // Create notifications for mentioned users
         if (!empty($sanitizedText)) {
@@ -131,9 +253,16 @@ class EntryController
             }
         }
 
+        // Fetch entry with images for response
+        $entryWithImages = $entryModel->findByIdWithImages($entryId, $userId);
+
         $response->getBody()->write(json_encode([
             'id' => $entryId,
             'created_at' => $entry['created_at'],
+            'custom_created_at' => $entry['custom_created_at'] ?? null,
+            'images' => $entryWithImages['images'] ?? [],
+            'clap_count' => $entry['clap_count'] ?? 0,
+            'user_clap_count' => $entry['user_clap_count'] ?? 0,
         ]));
         
         return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
