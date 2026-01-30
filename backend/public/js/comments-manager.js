@@ -263,7 +263,7 @@ class CommentsManager {
                     ` : ''}
                 </div>
                 <div class="comment-body">
-                    <div class="comment-text" data-comment-id="${comment.id}">${linkifyText(escapeHtml(comment.text))}</div>
+                    <div class="comment-text" data-comment-id="${comment.id}">${linkifyText(linkifyMentions(escapeHtml(comment.text)))}</div>
                     ${comment.images && comment.images.length > 0 ? `
                         <div class="comment-images">
                             ${comment.images.map(img => `

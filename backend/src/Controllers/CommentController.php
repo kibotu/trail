@@ -89,6 +89,69 @@ class CommentController
         $commentId = $commentModel->create($entryId, $userId, $sanitizedText, $imageIds);
         $comment = $commentModel->findById($commentId);
 
+        // Create notifications for mentioned users and entry author
+        if (!empty($sanitizedText)) {
+            try {
+                $userModel = new \Trail\Models\User($db);
+                $mentionService = new \Trail\Services\MentionService($userModel);
+                $notificationModel = new \Trail\Models\Notification($db);
+                $notificationPrefs = new \Trail\Models\NotificationPreference($db);
+                $emailService = new \Trail\Services\EmailService(
+                    $config['production']['admin_email'] ?? 'admin@example.com',
+                    $config['app']['base_url'] ?? 'http://localhost'
+                );
+                
+                // Generate hash ID for the entry (use the hash from the URL)
+                $hashId = $entryHashId;
+                
+                // 1. Notify mentioned users
+                $mentionedUserIds = $mentionService->extractMentions($sanitizedText);
+                foreach ($mentionedUserIds as $mentionedUserId) {
+                    if ($mentionedUserId !== $userId) { // Don't notify self
+                        $notificationModel->create(
+                            $mentionedUserId,
+                            'mention_comment',
+                            $userId,
+                            $entryId,
+                            $commentId
+                        );
+                        
+                        // Send email if enabled
+                        if ($notificationPrefs->shouldSendEmail($mentionedUserId, 'mention_comment')) {
+                            $recipient = $userModel->findById($mentionedUserId);
+                            $actor = $userModel->findById($userId);
+                            if ($recipient && $actor) {
+                                $emailService->sendMentionNotification($recipient, $actor, $entry, $hashId);
+                            }
+                        }
+                    }
+                }
+                
+                // 2. Notify entry author (if not self and not already mentioned)
+                if ($entry['user_id'] !== $userId && !in_array($entry['user_id'], $mentionedUserIds)) {
+                    $notificationModel->create(
+                        (int) $entry['user_id'],
+                        'comment_on_entry',
+                        $userId,
+                        $entryId,
+                        $commentId
+                    );
+                    
+                    // Send email if enabled
+                    if ($notificationPrefs->shouldSendEmail((int) $entry['user_id'], 'comment_on_entry')) {
+                        $recipient = $userModel->findById((int) $entry['user_id']);
+                        $actor = $userModel->findById($userId);
+                        if ($recipient && $actor) {
+                            $emailService->sendCommentNotification($recipient, $actor, $entry, $comment, $hashId);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Log error but don't fail the comment creation
+                error_log("CommentController::create: Notification creation failed: " . $e->getMessage());
+            }
+        }
+
         $response->getBody()->write(json_encode([
             'id' => $commentId,
             'created_at' => $comment['created_at'],

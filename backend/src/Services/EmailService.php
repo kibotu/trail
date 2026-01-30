@@ -247,6 +247,295 @@ TEXT;
     }
 
     /**
+     * Send mention notification email
+     */
+    public function sendMentionNotification(array $recipient, array $actor, array $entry, ?string $hashId = null): bool
+    {
+        $actorNickname = htmlspecialchars($actor['nickname'] ?? $actor['name'], ENT_QUOTES, 'UTF-8');
+        $actorName = htmlspecialchars($actor['name'], ENT_QUOTES, 'UTF-8');
+        $recipientName = htmlspecialchars($recipient['name'], ENT_QUOTES, 'UTF-8');
+        $entryText = htmlspecialchars(substr($entry['text'], 0, 200), ENT_QUOTES, 'UTF-8');
+        
+        // Use hash ID for permalink if available, otherwise fall back to numeric ID
+        $entryIdentifier = $hashId ?? $entry['hash_id'] ?? $entry['id'];
+        $entryUrl = $this->baseUrl . '/status/' . $entryIdentifier;
+        $preferencesUrl = $this->baseUrl . '/notifications/preferences';
+        
+        $subject = "@{$actorNickname} mentioned you on Trail";
+        
+        $htmlBody = $this->buildMentionEmailHtml($recipientName, $actorName, $actorNickname, $entryText, $entryUrl, $preferencesUrl);
+        $textBody = $this->buildMentionEmailText($recipientName, $actorName, $actorNickname, $entryText, $entryUrl, $preferencesUrl);
+        
+        return $this->sendEmail($recipient['email'], $subject, $htmlBody, $textBody);
+    }
+
+    /**
+     * Send comment notification email
+     */
+    public function sendCommentNotification(array $recipient, array $actor, array $entry, array $comment, ?string $hashId = null): bool
+    {
+        $actorNickname = htmlspecialchars($actor['nickname'] ?? $actor['name'], ENT_QUOTES, 'UTF-8');
+        $actorName = htmlspecialchars($actor['name'], ENT_QUOTES, 'UTF-8');
+        $recipientName = htmlspecialchars($recipient['name'], ENT_QUOTES, 'UTF-8');
+        $entryText = htmlspecialchars(substr($entry['text'], 0, 200), ENT_QUOTES, 'UTF-8');
+        $commentText = htmlspecialchars(substr($comment['text'], 0, 200), ENT_QUOTES, 'UTF-8');
+        
+        // Use hash ID for permalink if available, otherwise fall back to numeric ID
+        $entryIdentifier = $hashId ?? $entry['hash_id'] ?? $entry['id'];
+        $entryUrl = $this->baseUrl . '/status/' . $entryIdentifier;
+        $preferencesUrl = $this->baseUrl . '/notifications/preferences';
+        
+        $subject = "{$actorNickname} commented on your post";
+        
+        $htmlBody = $this->buildCommentEmailHtml($recipientName, $actorName, $actorNickname, $entryText, $commentText, $entryUrl, $preferencesUrl);
+        $textBody = $this->buildCommentEmailText($recipientName, $actorName, $actorNickname, $entryText, $commentText, $entryUrl, $preferencesUrl);
+        
+        return $this->sendEmail($recipient['email'], $subject, $htmlBody, $textBody);
+    }
+
+    /**
+     * Build mention email HTML
+     */
+    private function buildMentionEmailHtml(string $recipientName, string $actorName, string $actorNickname, string $entryText, string $entryUrl, string $preferencesUrl): string
+    {
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mention Notification</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👋 You were mentioned!</h1>
+        </div>
+        
+        <p>Hi {$recipientName},</p>
+        <p><strong>{$actorName}</strong> (@{$actorNickname}) mentioned you in a post:</p>
+        
+        <div class="content-box">
+            "{$entryText}"
+        </div>
+        
+        <a href="{$entryUrl}" class="action-button">View Post →</a>
+        
+        <div class="footer">
+            <p>You're receiving this because you have email notifications enabled for mentions.<br>
+            <a href="{$preferencesUrl}">Change your preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Build mention email text
+     */
+    private function buildMentionEmailText(string $recipientName, string $actorName, string $actorNickname, string $entryText, string $entryUrl, string $preferencesUrl): string
+    {
+        return <<<TEXT
+Hi {$recipientName},
+
+{$actorName} (@{$actorNickname}) mentioned you in a post:
+
+"{$entryText}"
+
+View post: {$entryUrl}
+
+---
+You're receiving this because you have email notifications enabled for mentions.
+Change your preferences: {$preferencesUrl}
+TEXT;
+    }
+
+    /**
+     * Build comment email HTML
+     */
+    private function buildCommentEmailHtml(string $recipientName, string $actorName, string $actorNickname, string $entryText, string $commentText, string $entryUrl, string $preferencesUrl): string
+    {
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comment Notification</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .label {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 New Comment</h1>
+        </div>
+        
+        <p>Hi {$recipientName},</p>
+        <p><strong>{$actorName}</strong> (@{$actorNickname}) commented on your post:</p>
+        
+        <div class="label">Your Post:</div>
+        <div class="content-box">
+            "{$entryText}"
+        </div>
+        
+        <div class="label">Their Comment:</div>
+        <div class="content-box">
+            "{$commentText}"
+        </div>
+        
+        <a href="{$entryUrl}" class="action-button">View Conversation →</a>
+        
+        <div class="footer">
+            <p>You're receiving this because you have email notifications enabled for comments.<br>
+            <a href="{$preferencesUrl}">Change your preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Build comment email text
+     */
+    private function buildCommentEmailText(string $recipientName, string $actorName, string $actorNickname, string $entryText, string $commentText, string $entryUrl, string $preferencesUrl): string
+    {
+        return <<<TEXT
+Hi {$recipientName},
+
+{$actorName} (@{$actorNickname}) commented on your post:
+
+Your post: "{$entryText}"
+Their comment: "{$commentText}"
+
+View conversation: {$entryUrl}
+
+---
+You're receiving this because you have email notifications enabled for comments.
+Change your preferences: {$preferencesUrl}
+TEXT;
+    }
+
+    /**
      * Send email using PHP mail() function
      */
     private function sendEmail(string $to, string $subject, string $htmlBody, string $textBody): bool

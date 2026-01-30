@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
+    <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+    <link rel="stylesheet" href="/assets/css/notifications.css">
+    <?php endif; ?>
 </head>
 <body class="page-landing" 
       data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>"
@@ -49,6 +52,25 @@
                                 <i class="fa-solid fa-gear"></i>
                             </a>
                         <?php endif; ?>
+                        <!-- Notification Bell -->
+                        <div class="notification-bell-container">
+                            <button id="notification-bell" class="nav-link" onclick="toggleNotificationDropdown()" aria-label="Notifications">
+                                <i class="fa-solid fa-bell"></i>
+                                <span id="notification-badge" class="notification-badge hidden">0</span>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="notification-dropdown" class="notification-dropdown hidden">
+                                <div class="notification-dropdown-header">
+                                    <h3>Notifications</h3>
+                                    <button onclick="markAllAsRead()" class="mark-all-btn">Mark all as read</button>
+                                </div>
+                                <div id="notification-dropdown-list" class="notification-dropdown-list">
+                                    <!-- Populated via AJAX -->
+                                </div>
+                                <a href="/notifications" class="view-all-link">View All Notifications</a>
+                            </div>
+                        </div>
                         <a href="/profile" class="nav-link" aria-label="Profile">
                             <i class="fa-solid fa-user"></i>
                         </a>
@@ -132,6 +154,9 @@
     <script src="/js/image-upload.js"></script>
     <script src="/js/comments-manager.js"></script>
     <script src="/js/shader-background.js"></script>
+    <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+    <script src="/js/notifications.js"></script>
+    <?php endif; ?>
     
     <!-- Page Initialization -->
     <script src="/js/landing-page.js"></script>

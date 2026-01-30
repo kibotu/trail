@@ -51,6 +51,17 @@ app:
   environment: ${APP_ENV}
   nickname_salt: ${NICKNAME_SALT}  # Random salt for generating nickname hashes
 
+# Notification System Configuration
+notifications:
+  email_from: "Trail Notifications <notifications@trail.services.kibotu.net>"
+  batch_claps_minutes: 60  # Group claps within 60 minutes
+  max_emails_per_user_per_hour: 10  # Rate limit for email notifications
+  poll_interval_seconds: 30  # Frontend polling interval for notification badge
+
+# Production settings
+production:
+  admin_email: admin@example.com  # Admin email for system notifications
+
 # Development settings (only used when environment=development)
 development:
   # Bypass Google OAuth with these test users

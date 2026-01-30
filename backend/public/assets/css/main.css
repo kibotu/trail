@@ -1303,6 +1303,17 @@ main {
     text-decoration: underline;
 }
 
+/* Mention links styling */
+.mention-link {
+    color: var(--accent, #3b82f6);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.mention-link:hover {
+    text-decoration: underline;
+}
+
 .comment-edit-form {
     margin-top: 0.5rem;
 }

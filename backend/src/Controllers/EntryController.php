@@ -86,6 +86,51 @@ class EntryController
         $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds);
         $entry = $entryModel->findById($entryId);
 
+        // Create notifications for mentioned users
+        if (!empty($sanitizedText)) {
+            try {
+                $userModel = new \Trail\Models\User($db);
+                $mentionService = new \Trail\Services\MentionService($userModel);
+                $notificationModel = new \Trail\Models\Notification($db);
+                $notificationPrefs = new \Trail\Models\NotificationPreference($db);
+                $emailService = new \Trail\Services\EmailService(
+                    $config['production']['admin_email'] ?? 'admin@example.com',
+                    $config['app']['base_url'] ?? 'http://localhost'
+                );
+                
+                // Generate hash ID for the entry
+                $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+                $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+                $hashId = $hashIdService->encode($entryId);
+                
+                $mentionedUserIds = $mentionService->extractMentions($sanitizedText);
+                foreach ($mentionedUserIds as $mentionedUserId) {
+                    if ($mentionedUserId !== $userId) { // Don't notify self
+                        // Create notification
+                        $notificationModel->create(
+                            $mentionedUserId,
+                            'mention_entry',
+                            $userId,
+                            $entryId,
+                            null
+                        );
+                        
+                        // Send email if user has email notifications enabled
+                        if ($notificationPrefs->shouldSendEmail($mentionedUserId, 'mention_entry')) {
+                            $recipient = $userModel->findById($mentionedUserId);
+                            $actor = $userModel->findById($userId);
+                            if ($recipient && $actor) {
+                                $emailService->sendMentionNotification($recipient, $actor, $entry, $hashId);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Log error but don't fail the entry creation
+                error_log("EntryController::create: Notification creation failed: " . $e->getMessage());
+            }
+        }
+
         $response->getBody()->write(json_encode([
             'id' => $entryId,
             'created_at' => $entry['created_at'],

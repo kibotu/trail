@@ -21,6 +21,7 @@ use Trail\Controllers\ClapController;
 use Trail\Controllers\CommentController;
 use Trail\Controllers\CommentClapController;
 use Trail\Controllers\CommentReportController;
+use Trail\Controllers\NotificationController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -355,6 +356,18 @@ $app->delete('/api/users/{id}/mute', [ReportController::class, 'unmuteUser'])->a
 $app->get('/api/users/{id}/mute-status', [ReportController::class, 'checkMuteStatus'])->add(new AuthMiddleware($config));
 $app->get('/api/users/{id}/info', [ReportController::class, 'getUserInfo'])->add(new AuthMiddleware($config));
 $app->get('/api/filters', [ReportController::class, 'getFilters'])->add(new AuthMiddleware($config));
+
+// Notification Web Pages (require auth)
+$app->get('/notifications', [NotificationController::class, 'page'])->add(new AuthMiddleware($config));
+$app->get('/notifications/preferences', [NotificationController::class, 'preferencesPage'])->add(new AuthMiddleware($config));
+
+// Notification API Endpoints (require auth)
+$app->get('/api/notifications', [NotificationController::class, 'list'])->add(new AuthMiddleware($config));
+$app->put('/api/notifications/{id}/read', [NotificationController::class, 'markRead'])->add(new AuthMiddleware($config));
+$app->put('/api/notifications/read-all', [NotificationController::class, 'markAllRead'])->add(new AuthMiddleware($config));
+$app->delete('/api/notifications/{id}', [NotificationController::class, 'delete'])->add(new AuthMiddleware($config));
+$app->get('/api/notifications/preferences', [NotificationController::class, 'getPreferences'])->add(new AuthMiddleware($config));
+$app->put('/api/notifications/preferences', [NotificationController::class, 'updatePreferences'])->add(new AuthMiddleware($config));
 
 // Catch-all 404 handler for unmatched routes
 $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) use ($config) {

@@ -16,6 +16,16 @@ function linkifyText(text) {
     return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 
+// Convert @mentions to clickable links
+function linkifyMentions(text) {
+    // Match @username (alphanumeric + underscore + hyphen)
+    const mentionRegex = /@(\w+)/g;
+    return text.replace(mentionRegex, (match, username) => {
+        // Preserve the original casing from the text
+        return `<a href="/@${username}" class="mention-link" data-no-navigate>@${username}</a>`;
+    });
+}
+
 // Extract domain from URL
 function extractDomain(url) {
     try {
@@ -235,7 +245,8 @@ function createEntryCard(entry, options = {}) {
     }
     
     const escapedText = escapeHtml(entry.text);
-    const linkedText = linkifyText(escapedText);
+    const mentionedText = linkifyMentions(escapedText);
+    const linkedText = linkifyText(mentionedText);
     const previewCard = createLinkPreviewCard(entry, { showSourceBadge });
     
     // Get hash ID once for all event handlers
@@ -905,6 +916,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         escapeHtml,
         linkifyText,
+        linkifyMentions,
         extractDomain,
         formatTimestamp,
         createEntryImagesHtml,
