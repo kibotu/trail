@@ -265,17 +265,17 @@ $app->get('/api/config', function ($request, $response) use ($config) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
-// Authentication routes with rate limiting
+// Authentication routes - internal use only (used by frontend, not exposed in API docs)
 $rateLimitEnabled = $config['security']['rate_limit']['enabled'] ?? true;
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth'])
     ->add(new RateLimitMiddleware(5, 300, $rateLimitEnabled)); // 5 attempts per 5 minutes
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']) // Development only
     ->add(new RateLimitMiddleware(10, 60, $rateLimitEnabled)); // 10 attempts per minute (dev only)
 
-// Session info endpoint (returns user info without exposing JWT)
+// Session info endpoint - internal use only
 $app->get('/api/auth/session', [TokenController::class, 'getTokenInfo']);
 
-// Logout endpoint - clears session and cookies
+// Logout endpoint - internal use only
 $app->post('/api/auth/logout', function ($request, $response) use ($config) {
     require_once __DIR__ . '/helpers/session.php';
     $db = Database::getInstance($config);
@@ -305,26 +305,26 @@ $app->post('/api/entries', [EntryController::class, 'create'])->add(new AuthMidd
 $app->put('/api/entries/{id}', [EntryController::class, 'update'])->add(new AuthMiddleware($config));
 $app->delete('/api/entries/{id}', [EntryController::class, 'delete'])->add(new AuthMiddleware($config));
 
-// Public entry routes (must be after authenticated routes to avoid conflicts)
-$app->get('/api/entries', [EntryController::class, 'listPublic']);
-$app->get('/api/entries/{id}', [EntryController::class, 'getById']);
+// Entry routes (require authentication)
+$app->get('/api/entries', [EntryController::class, 'listPublic'])->add(new AuthMiddleware($config));
+$app->get('/api/entries/{id}', [EntryController::class, 'getById'])->add(new AuthMiddleware($config));
 
-// User entries by nickname
-$app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
+// User entries by nickname (require authentication)
+$app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname'])->add(new AuthMiddleware($config));
 
-// Clap routes
+// Clap routes (require authentication)
 $app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
-$app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps']);
+$app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps'])->add(new AuthMiddleware($config));
 
-// Comment routes
+// Comment routes (require authentication)
 $app->post('/api/entries/{id}/comments', [CommentController::class, 'create'])->add(new AuthMiddleware($config));
-$app->get('/api/entries/{id}/comments', [CommentController::class, 'list']);
+$app->get('/api/entries/{id}/comments', [CommentController::class, 'list'])->add(new AuthMiddleware($config));
 $app->put('/api/comments/{id}', [CommentController::class, 'update'])->add(new AuthMiddleware($config));
 $app->delete('/api/comments/{id}', [CommentController::class, 'delete'])->add(new AuthMiddleware($config));
 
-// Comment clap routes
+// Comment clap routes (require authentication)
 $app->post('/api/comments/{id}/claps', [CommentClapController::class, 'addClap'])->add(new AuthMiddleware($config));
-$app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps']);
+$app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps'])->add(new AuthMiddleware($config));
 
 // Comment report route
 $app->post('/api/comments/{id}/report', [CommentReportController::class, 'reportComment'])->add(new AuthMiddleware($config));
@@ -335,8 +335,8 @@ $app->post('/api/images/upload/chunk', [ImageUploadController::class, 'uploadChu
 $app->post('/api/images/upload/complete', [ImageUploadController::class, 'completeUpload'])->add(new AuthMiddleware($config));
 $app->delete('/api/images/{id}', [ImageUploadController::class, 'deleteImage'])->add(new AuthMiddleware($config));
 
-// Public image serving
-$app->get('/api/images/{id}', [ImageUploadController::class, 'serveImage']);
+// Image serving (require authentication)
+$app->get('/api/images/{id}', [ImageUploadController::class, 'serveImage'])->add(new AuthMiddleware($config));
 
 // Admin routes (authenticated + admin)
 $app->group('/api/admin', function ($group) {

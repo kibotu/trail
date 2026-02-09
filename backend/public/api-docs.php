@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * API Documentation Page
  * 
- * Displays all available API endpoints with curl examples
+ * Comprehensive API documentation for technical leadership and developers
+ * Restructured to prioritize critical information and integration paths
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -21,118 +22,22 @@ $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https'
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $baseUrl = $protocol . '://' . $host;
 
-// Define all API endpoints
+// Get rate limits from config
+$rateLimitPerMinute = $config['security']['rate_limit']['requests_per_minute'] ?? 180;
+$rateLimitPerHour = $config['security']['rate_limit']['requests_per_hour'] ?? 3000;
+$maxTextLength = $config['app']['max_text_length'] ?? 140;
+
+// Define all API endpoints with enhanced metadata
 $endpoints = [
-    [
-        'method' => 'GET',
-        'path' => '/api/admin/entries',
-        'description' => 'List all entries (admin only)',
-        'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries"
-    ],
-    [
-        'method' => 'DELETE',
-        'path' => '/api/admin/entries/{id}',
-        'description' => 'Delete an entry (admin only)',
-        'auth' => true,
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries/123"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/admin/users',
-        'description' => 'List all users (admin only)',
-        'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users"
-    ],
-    [
-        'method' => 'DELETE',
-        'path' => '/api/admin/users/{id}',
-        'description' => 'Delete a user (admin only)',
-        'auth' => true,
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/admin/entries/{id}',
-        'description' => 'Update an entry (admin only)',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text with https://example.com\"}' \\\n     {$baseUrl}/api/admin/entries/123"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/auth/google',
-        'description' => 'Authenticate with Google OAuth token',
-        'auth' => false,
-        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"id_token\":\"GOOGLE_ID_TOKEN\"}' \\\n     {$baseUrl}/api/auth/google"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/entries',
-        'description' => 'List user entries (authenticated) - Supports cursor-based pagination with ?limit=20&before=TIMESTAMP',
-        'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20\n\n# Next page:\ncurl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20&before=2024-01-01%2012:00:00"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/entries?q={query}',
-        'description' => 'Search entries (authenticated) - Full-text search with pagination. Supports ?q=query&limit=20&before=TIMESTAMP',
-        'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?q=example\n\n# With pagination:\ncurl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?q=example&limit=20&before=2024-01-01%2012:00:00"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/entries',
-        'description' => 'Create a new entry (authenticated) - Max 140 characters. Supports custom dates, inline media upload, and initial claps.',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/entries',
-        'description' => 'Create entry with custom date (Twitter format) - Import entries with original timestamps',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Imported tweet\",\"created_at\":\"Fri Nov 28 10:54:34 +0000 2025\"}' \\\n     {$baseUrl}/api/entries"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/entries',
-        'description' => 'Create entry with inline media upload - Upload images as base64 in request body',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Photo post\",\"media\":[{\"data\":\"BASE64_IMAGE_DATA\",\"filename\":\"photo.jpg\",\"image_type\":\"post\"}],\"raw_upload\":false}' \\\n     {$baseUrl}/api/entries"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/entries',
-        'description' => 'Create entry with initial claps - Set engagement metrics when importing content',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Popular post\",\"initial_claps\":25}' \\\n     {$baseUrl}/api/entries"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/entries',
-        'description' => 'Create entry with all advanced features - Custom date, media, and claps combined',
-        'auth' => true,
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Imported tweet with photo\",\"created_at\":\"Mon Jan 15 14:30:00 -0800 2024\",\"media\":[{\"data\":\"BASE64_IMAGE_DATA\",\"filename\":\"photo.jpg\",\"image_type\":\"post\"}],\"raw_upload\":true,\"initial_claps\":42}' \\\n     {$baseUrl}/api/entries"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/users/{nickname}/entries',
-        'description' => 'List entries by user nickname - Supports cursor-based pagination with ?limit=20&before=TIMESTAMP',
-        'auth' => false,
-        'curl' => "curl {$baseUrl}/api/users/@alice/entries?limit=20"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/users/{nickname}/entries?q={query}',
-        'description' => 'Search entries by user nickname (authenticated) - Full-text search within user\'s entries. Supports ?q=query&limit=20&before=TIMESTAMP',
-        'auth' => true,
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/@alice/entries?q=example&limit=20"
-    ],
+    // PUBLIC ENDPOINTS (No Auth Required)
     [
         'method' => 'GET',
         'path' => '/api/health',
         'description' => 'Health check endpoint',
         'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
         'curl' => "curl {$baseUrl}/api/health"
     ],
     [
@@ -140,6 +45,9 @@ $endpoints = [
         'path' => '/api/rss',
         'description' => 'Global RSS feed of all public entries',
         'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
         'curl' => "curl {$baseUrl}/api/rss"
     ],
     [
@@ -147,14 +55,506 @@ $endpoints = [
         'path' => '/api/users/{nickname}/rss',
         'description' => 'User-specific RSS feed by nickname',
         'auth' => false,
-        'curl' => "curl {$baseUrl}/api/users/@alice/rss"
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/users/alice/rss"
+    ],
+    
+    // CORE USER ENDPOINTS (Auth Required)
+    [
+        'method' => 'GET',
+        'path' => '/api/profile',
+        'description' => 'Get own profile',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/profile"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/profile',
+        'description' => 'Update own profile',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"nickname\":\"alice\",\"bio\":\"Hello world\"}' \\\n     {$baseUrl}/api/profile"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/users/{nickname}',
+        'description' => 'Get public profile by nickname',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/users/alice"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/users/{nickname}/entries',
+        'description' => 'List entries by user nickname - Supports cursor-based pagination',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/users/alice/entries?limit=20"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries',
+        'description' => 'Create a new entry - Max 140 characters',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/entries',
+        'description' => 'List all entries with optional search - Supports cursor-based pagination',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries?limit=20\n\n# With search:\ncurl -b cookies.txt {$baseUrl}/api/entries?q=example&limit=20"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/entries/{id}',
+        'description' => 'Get a single entry by hash ID',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/abc123"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/entries/{id}',
+        'description' => 'Update own entry',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/entries/123"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/entries/{id}',
+        'description' => 'Delete own entry',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries/123"
+    ],
+    
+    // ENGAGEMENT ENDPOINTS (Auth Required)
+    [
+        'method' => 'POST',
+        'path' => '/api/entries/{id}/claps',
+        'description' => 'Add clap to entry (1-50 claps)',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"count\":5}' \\\n     {$baseUrl}/api/entries/123/claps"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/entries/{id}/claps',
+        'description' => 'Get clap count for entry',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/123/claps"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries/{id}/comments',
+        'description' => 'Create comment on entry',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Great post!\"}' \\\n     {$baseUrl}/api/entries/123/comments"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/entries/{id}/comments',
+        'description' => 'List comments for entry',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/123/comments"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/comments/{id}',
+        'description' => 'Update own comment',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -b cookies.txt \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated comment\"}' \\\n     {$baseUrl}/api/comments/456"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/comments/{id}',
+        'description' => 'Delete own comment',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -b cookies.txt \\\n     {$baseUrl}/api/comments/456"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/comments/{id}/claps',
+        'description' => 'Add clap to comment',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"count\":3}' \\\n     {$baseUrl}/api/comments/456/claps"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/comments/{id}/claps',
+        'description' => 'Get clap count for comment',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/comments/456/claps"
+    ],
+    
+    // MEDIA ENDPOINTS (Auth Required)
+    [
+        'method' => 'POST',
+        'path' => '/api/images/upload/init',
+        'description' => 'Initialize chunked image upload',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'media',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"filename\":\"photo.jpg\",\"total_size\":1024000}' \\\n     {$baseUrl}/api/images/upload/init"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/images/upload/chunk',
+        'description' => 'Upload image chunk',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'media',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -F \"upload_id=abc123\" \\\n     -F \"chunk_index=0\" \\\n     -F \"chunk=@chunk0.bin\" \\\n     {$baseUrl}/api/images/upload/chunk"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/images/upload/complete',
+        'description' => 'Complete chunked upload',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'media',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"upload_id\":\"abc123\"}' \\\n     {$baseUrl}/api/images/upload/complete"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/images/{id}',
+        'description' => 'Serve image by ID',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'media',
+        'rate_limit' => 'None',
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/images/789"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/images/{id}',
+        'description' => 'Delete own image',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'media',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/images/789"
+    ],
+    
+    // MODERATION ENDPOINTS (Auth Required)
+    [
+        'method' => 'POST',
+        'path' => '/api/entries/{id}/report',
+        'description' => 'Report entry for moderation',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"spam\"}' \\\n     {$baseUrl}/api/entries/123/report"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/comments/{id}/report',
+        'description' => 'Report comment for moderation',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"harassment\"}' \\\n     {$baseUrl}/api/comments/456/report"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/users/{id}/mute',
+        'description' => 'Mute user (hide their content)',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/users/{id}/mute',
+        'description' => 'Unmute user',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/users/{id}/mute-status',
+        'description' => 'Check if user is muted',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute-status"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/filters',
+        'description' => 'Get content filters',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'moderation',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/filters"
+    ],
+    
+    // NOTIFICATION ENDPOINTS (Auth Required)
+    [
+        'method' => 'GET',
+        'path' => '/api/notifications',
+        'description' => 'List notifications',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/notifications/{id}/read',
+        'description' => 'Mark notification as read',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/123/read"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/notifications/read-all',
+        'description' => 'Mark all notifications as read',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/read-all"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/notifications/{id}',
+        'description' => 'Delete notification',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/123"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/notifications/preferences',
+        'description' => 'Get notification preferences',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/preferences"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/notifications/preferences',
+        'description' => 'Update notification preferences',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'notifications',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"email_mentions\":true}' \\\n     {$baseUrl}/api/notifications/preferences"
+    ],
+    
+    // ADMIN ENDPOINTS (Admin Auth Required)
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/entries',
+        'description' => 'List all entries (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/entries/{id}',
+        'description' => 'Update any entry (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/admin/entries/123"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/admin/entries/{id}',
+        'description' => 'Delete any entry (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries/123"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/users',
+        'description' => 'List all users (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/admin/users/{id}',
+        'description' => 'Delete user (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/admin/users/{id}/entries',
+        'description' => 'Delete all user entries (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/entries"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/admin/users/{id}/comments',
+        'description' => 'Delete all user comments (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/comments"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/cache/clear',
+        'description' => 'Clear application cache (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/cache/clear"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/error-logs',
+        'description' => 'View error logs (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/error-stats',
+        'description' => 'Get error statistics (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-stats"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/error-logs/cleanup',
+        'description' => 'Cleanup old error logs (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs/cleanup"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/images/prune',
+        'description' => 'Prune orphaned images (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/images/prune"
     ]
 ];
 
-// Sort endpoints by path
-usort($endpoints, function($a, $b) {
-    return strcmp($a['path'], $b['path']);
-});
+// Group endpoints by category
+$groupedEndpoints = [];
+foreach ($endpoints as $endpoint) {
+    $group = $endpoint['group'] ?? 'other';
+    if (!isset($groupedEndpoints[$group])) {
+        $groupedEndpoints[$group] = [];
+    }
+    $groupedEndpoints[$group][] = $endpoint;
+}
+
+// Define group metadata
+$groups = [
+    'public' => ['title' => 'Public Endpoints', 'description' => 'No authentication required', 'icon' => 'fa-globe'],
+    'auth' => ['title' => 'Authentication', 'description' => 'Login and session management', 'icon' => 'fa-key'],
+    'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management', 'icon' => 'fa-user'],
+    'engagement' => ['title' => 'Engagement', 'description' => 'Claps and comments', 'icon' => 'fa-heart'],
+    'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management', 'icon' => 'fa-image'],
+    'moderation' => ['title' => 'Moderation', 'description' => 'Content reporting and user muting', 'icon' => 'fa-shield-halved'],
+    'notifications' => ['title' => 'Notifications', 'description' => 'Real-time updates', 'icon' => 'fa-bell'],
+    'admin' => ['title' => 'Admin Endpoints', 'description' => 'Administrative functions', 'icon' => 'fa-crown']
+];
 
 ?>
 <!DOCTYPE html>
@@ -167,6 +567,541 @@ usort($endpoints, function($a, $b) {
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
+    <style>
+        /* API Docs Specific Styles - Aligned with main.css theme */
+        .page-api-docs {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .page-api-docs .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        /* Grid Layout */
+        .main-grid { 
+            display: grid; 
+            grid-template-columns: 280px 1fr; 
+            gap: 3rem; 
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 1024px) { 
+            .main-grid { 
+                grid-template-columns: 1fr; 
+                gap: 2rem;
+            } 
+            .toc { 
+                position: static !important; 
+                max-height: none !important;
+            } 
+        }
+        
+        /* Table of Contents */
+        .toc { 
+            position: sticky; 
+            top: 2rem; 
+            align-self: start;
+            background: var(--bg-secondary); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            max-height: calc(100vh - 4rem); 
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .toc h3 {
+            color: var(--text-primary);
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .toc-link { 
+            display: block; 
+            padding: 0.5rem 0.75rem; 
+            color: var(--text-secondary); 
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 0.9375rem;
+        }
+        
+        .toc-link:hover { 
+            color: var(--accent); 
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .toc-link.active { 
+            color: var(--accent); 
+            background: rgba(59, 130, 246, 0.15);
+            font-weight: 500;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 4rem;
+            max-width: 100%;
+        }
+        
+        .section > p,
+        .section > h3,
+        .section > ul {
+            max-width: 900px;
+        }
+        
+        .section h2 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 0.75rem;
+        }
+        
+        .section h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem 0;
+            font-weight: 600;
+        }
+        
+        .section h4 {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            margin: 1.5rem 0 0.75rem 0;
+            font-weight: 600;
+        }
+        
+        .section p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+        
+        .section ul {
+            color: var(--text-secondary);
+            margin: 1rem 0 1rem 1.5rem;
+            line-height: 1.8;
+        }
+        
+        .section li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .section code {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Stats Grid */
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 1rem; 
+            margin: 2rem 0;
+            max-width: 900px;
+        }
+        
+        .stat-card { 
+            background: var(--bg-secondary); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        
+        .stat-value { 
+            font-size: 2rem; 
+            font-weight: 700; 
+            color: var(--accent); 
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        
+        .stat-label { 
+            font-size: 0.875rem; 
+            color: var(--text-muted); 
+            margin-top: 0.5rem; 
+        }
+        
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+        
+        .stat-description {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            color: var(--text-muted);
+        }
+        
+        /* Capability List */
+        .capability-list { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 1rem; 
+            margin: 2rem 0;
+            max-width: 900px;
+        }
+        
+        .capability-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem; 
+            padding: 1.25rem; 
+            background: var(--bg-secondary); 
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .capability-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        
+        .capability-icon { 
+            font-size: 1.75rem; 
+            color: var(--accent); 
+            flex-shrink: 0;
+        }
+        
+        .capability-item strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        .capability-item div {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        /* Feature Cards */
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+            max-width: 900px;
+        }
+        
+        .feature-card h3,
+        .feature-card h4 {
+            color: var(--text-primary);
+            margin-top: 0;
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+        
+        .feature-card ul {
+            color: var(--text-secondary);
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .feature-card ul li {
+            margin: 0.5rem 0;
+        }
+        
+        .feature-card .code-block {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        
+        .feature-card .code-block code {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        /* Badges */
+        .auth-level-public { 
+            background: var(--success); 
+            color: white; 
+            padding: 0.25rem 0.6rem; 
+            border-radius: 6px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .auth-level-user { 
+            background: var(--accent); 
+            color: white; 
+            padding: 0.25rem 0.6rem; 
+            border-radius: 6px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .auth-level-admin { 
+            background: var(--error); 
+            color: white; 
+            padding: 0.25rem 0.6rem; 
+            border-radius: 6px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .rate-limit-badge { 
+            background: var(--warning); 
+            color: white; 
+            padding: 0.25rem 0.6rem; 
+            border-radius: 6px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
+        }
+        
+        /* Code Examples */
+        .code-example { 
+            background: var(--bg-tertiary); 
+            color: var(--text-secondary); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            overflow-x: auto; 
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+        }
+        
+        .code-example code { 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre;
+        }
+        
+        /* Endpoint Groups */
+        .group-header { 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem; 
+            margin: 3rem 0 1.5rem 0; 
+            padding-bottom: 0.75rem; 
+            border-bottom: 2px solid var(--accent); 
+        }
+        
+        .group-icon { 
+            font-size: 1.75rem; 
+            color: var(--accent); 
+        }
+        
+        .group-header h3 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+        
+        .group-header p {
+            margin: 0;
+            color: var(--text-muted);
+        }
+        
+        .endpoint-group { 
+            margin-bottom: 3rem; 
+        }
+        
+        /* Search Box */
+        .search-box { 
+            width: 100%; 
+            padding: 0.875rem 1rem; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            font-size: 1rem; 
+            margin-bottom: 2rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+        
+        .search-box:focus { 
+            outline: none; 
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Tables */
+        .section table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .section thead {
+            background: var(--bg-tertiary);
+        }
+        
+        .section th {
+            padding: 1rem;
+            text-align: left;
+            color: var(--text-primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .section td {
+            padding: 1rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .section tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Info Boxes */
+        .info-box {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent);
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            max-width: 900px;
+        }
+        
+        .info-box.success {
+            border-left-color: var(--success);
+        }
+        
+        .info-box strong {
+            color: var(--text-primary);
+        }
+        
+        /* Mermaid Diagrams - Hide raw text, show only rendered */
+        .mermaid {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+            text-align: center;
+            max-width: 900px;
+        }
+        
+        /* Hide mermaid source code */
+        .mermaid[data-processed="true"] {
+            font-size: 0;
+        }
+        
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Curl Container */
+        .curl-container {
+            position: relative;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .curl-header {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            z-index: 10;
+        }
+        
+        .copy-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .copy-btn:hover {
+            background: #2563eb;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .curl-code {
+            padding: 1rem;
+            padding-right: 5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .page-api-docs .container {
+                padding: 1rem;
+            }
+            
+            .section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .section h3 {
+                font-size: 1.25rem;
+            }
+            
+            .stats-grid,
+            .capability-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .code-example {
+                padding: 1rem;
+            }
+            
+            .code-example code {
+                font-size: 0.8125rem;
+            }
+        }
+    </style>
 </head>
 <body class="page-api-docs">
     <div class="header">
@@ -175,166 +1110,796 @@ usort($endpoints, function($a, $b) {
     </div>
     
     <div class="container">
-        <div class="quick-links">
-            <a href="/" class="quick-link">
-                <div class="icon"><i class="fa-solid fa-house"></i></div>
-                <div class="label">Home</div>
-            </a>
-            <a href="/api/rss" class="quick-link">
-                <div class="icon"><i class="fa-solid fa-rss"></i></div>
-                <div class="label">RSS Feed</div>
-            </a>
-            <a href="/api/health" class="quick-link">
-                <div class="icon"><i class="fa-solid fa-heart"></i></div>
-                <div class="label">Health Check</div>
-            </a>
-        </div>
-        
-        <div class="section">
-            <h2>API Endpoints</h2>
+        <div class="main-grid">
+            <!-- Table of Contents -->
+            <aside class="toc">
+                <h3 style="margin-top: 0;">Contents</h3>
+                <a href="#overview" class="toc-link">Overview</a>
+                <a href="#quick-start" class="toc-link">Quick Start</a>
+                <a href="#authentication" class="toc-link">Authentication</a>
+                <a href="#core-concepts" class="toc-link">Core Concepts</a>
+                <a href="#endpoints" class="toc-link">API Endpoints</a>
+                <?php foreach ($groups as $groupKey => $groupMeta): ?>
+                    <a href="#group-<?= $groupKey ?>" class="toc-link" style="padding-left: 1rem;">→ <?= $groupMeta['title'] ?></a>
+                <?php endforeach; ?>
+                <a href="#advanced-features" class="toc-link">Advanced Features</a>
+                <a href="#performance" class="toc-link">Performance & Limits</a>
+                <a href="#technical-reference" class="toc-link">Technical Reference</a>
+            </aside>
             
-            <?php foreach ($endpoints as $endpoint): ?>
-                <?php $methodClass = strtolower($endpoint['method']); ?>
-                <div class="endpoint-card">
-                    <div class="endpoint-header">
-                        <span class="method <?= $methodClass ?>"><?= $endpoint['method'] ?></span>
-                        <span class="path"><?= htmlspecialchars($endpoint['path']) ?></span>
-                        <?php if ($endpoint['auth']): ?>
-                            <span class="auth-badge"><i class="fa-solid fa-lock"></i> AUTH REQUIRED</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="description"><?= htmlspecialchars($endpoint['description']) ?></div>
-                    <div class="curl-container">
-                        <div class="curl-header">
-                            <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+            <!-- Main Content -->
+            <main>
+                <!-- Executive Overview Section -->
+                <section id="overview" class="section">
+                    <h2>Executive Overview</h2>
+                    <p><strong>Trail</strong> is a production-ready, multi-user link journaling API service that enables users to create, share, and engage with short-form content entries (140 characters) with optional media attachments and automatic URL preview enrichment.</p>
+                    
+                    <h3>Key Capabilities</h3>
+                    <div class="capability-list">
+                        <div class="capability-item">
+                            <i class="fa-solid fa-key capability-icon"></i>
+                            <div>
+                                <strong>Google OAuth 2.0</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Secure authentication with JWT tokens</div>
+                            </div>
                         </div>
-                        <div class="curl-code"><?= htmlspecialchars($endpoint['curl']) ?></div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-link capability-icon"></i>
+                            <div>
+                                <strong>Link Journaling</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">140-char posts with URL previews</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-image capability-icon"></i>
+                            <div>
+                                <strong>Media Upload</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">20MB images with WebP optimization</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-magnifying-glass capability-icon"></i>
+                            <div>
+                                <strong>Full-Text Search</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Fast search with relevance ranking</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-heart capability-icon"></i>
+                            <div>
+                                <strong>Engagement</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Claps and threaded comments</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-rss capability-icon"></i>
+                            <div>
+                                <strong>RSS Feeds</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Global and per-user feeds</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-bell capability-icon"></i>
+                            <div>
+                                <strong>Notifications</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Real-time updates for mentions & claps</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-shield-halved capability-icon"></i>
+                            <div>
+                                <strong>Moderation</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">User muting and content reporting</div>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <h3>System Architecture</h3>
+                    <div class="mermaid">
+graph LR
+    Client[Client Application]
+    API[Trail API]
+    Auth[Auth Middleware]
+    RateLimit[Rate Limiter]
+    DB[(MariaDB)]
+    Iframely[Iframely API]
+    
+    Client -->|HTTPS/JSON| API
+    API --> Auth
+    API --> RateLimit
+    Auth -->|JWT Verify| API
+    RateLimit -->|Throttle| API
+    API -->|SQL| DB
+    API -->|URL Preview| Iframely
+                    </div>
+                    
+                    <h3>Quick Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">30+</div>
+                            <div class="stat-label">API Endpoints</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value"><?= $rateLimitPerMinute ?>/min</div>
+                            <div class="stat-label">Rate Limit</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value"><?= $maxTextLength ?></div>
+                            <div class="stat-label">Max Characters</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">20MB</div>
+                            <div class="stat-label">Max Image Size</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">7 days</div>
+                            <div class="stat-label">JWT Expiry</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">RESTful</div>
+                            <div class="stat-label">API Design</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>Tech Stack:</strong> PHP <?= PHP_VERSION ?> • Slim Framework • MariaDB • JWT Authentication • Iframely URL Enrichment
+                    </div>
+                </section>
+                
+                <!-- Quick Start Section -->
+                <section id="quick-start" class="section">
+                    <h2>Quick Start Guide</h2>
+                    <p>Get started with Trail API in 5 minutes. Follow this integration path to create your first entry:</p>
+                    
+                    <h3>Authentication Flow</h3>
+                    <div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant Google
+    participant TrailAPI
+    participant Database
+    participant PHPSession
+    
+    Client->>Google: Request OAuth token
+    Google->>Client: Return id_token
+    Client->>TrailAPI: POST /api/auth/google {id_token}
+    TrailAPI->>Google: Verify token
+    Google->>TrailAPI: Token valid
+    TrailAPI->>Database: Create/update user + Generate JWT
+    TrailAPI->>Database: Store JWT in sessions table
+    TrailAPI->>PHPSession: Create PHP session
+    TrailAPI->>Client: Set session cookie
+    Client->>TrailAPI: API calls with session cookie
+    TrailAPI->>PHPSession: Verify session
+    PHPSession->>Database: Retrieve JWT from session
+    Database->>TrailAPI: Return JWT
+    TrailAPI->>TrailAPI: Verify JWT validity
+                    </div>
+                    
+                    <h3>Step 1: Authenticate</h3>
+                    <div class="code-example">
+                        <code># Authenticate with Google OAuth token
+# Server stores JWT in database and creates PHP session
+curl -X POST <?= $baseUrl ?>/api/auth/google \
+  -H "Content-Type: application/json" \
+  -d '{"id_token":"YOUR_GOOGLE_ID_TOKEN"}' \
+  -c cookies.txt
+
+# Response: {"jwt":"eyJ0eXAiOiJKV1QiLCJhbGc...", "user":{...}}
+# Session cookie is automatically set by server
+
+# Subsequent API calls use the session cookie
+curl -b cookies.txt <?= $baseUrl ?>/api/entries</code>
+                    </div>
+                    
+                    <h3>Step 2: Create an Entry</h3>
+                    <div class="code-example">
+                        <code># Use session cookie from authentication
+curl -X POST <?= $baseUrl ?>/api/entries \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Check out this amazing API! https://trail.services.kibotu.net/api 🚀"}'</code>
+                    </div>
+                    
+                    <h3>Step 3: List Entries</h3>
+                    <div class="code-example">
+                        <code># Public endpoint - no authentication required
+curl <?= $baseUrl ?>/api/entries?limit=20</code>
+                    </div>
+                    
+                    <h3>Step 4: Add Engagement</h3>
+                    <div class="code-example">
+                        <code># Use session cookie
+curl -X POST <?= $baseUrl ?>/api/entries/123/claps \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"count":5}'</code>
+                    </div>
+                    
+                    <div class="info-box success">
+                        <strong>Success!</strong> You've completed the quick start. Continue reading to learn about authentication, core concepts, and advanced features.
+                    </div>
+                </section>
+                
+                <!-- Authentication & Security Section -->
+                <section id="authentication" class="section">
+                    <h2>Authentication & Security</h2>
+                    
+                    <h3>Authentication Methods</h3>
+                    <div class="feature-card">
+                        <h4><i class="fa-brands fa-google"></i> Google OAuth 2.0 (Production)</h4>
+                        <p>Primary authentication method using Google Sign-In. The server handles JWT generation and storage:</p>
+                        <div class="code-block">
+                            <code>POST /api/auth/google
+Content-Type: application/json
+
+{"id_token": "GOOGLE_ID_TOKEN"}
+
+Server Process:
+1. Verifies Google id_token
+2. Creates/updates user in database
+3. Generates JWT token
+4. Stores JWT in trail_sessions table
+5. Creates PHP session
+6. Sets session cookie (trail_session)
+
+Response: {"jwt": "eyJ0eXAi...", "user": {...}}
+Cookie: trail_session=abc123...</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4><i class="fa-solid fa-key"></i> Session & JWT Lifecycle</h4>
+                        <ul>
+                            <li><strong>JWT Expiry:</strong> 7 days (168 hours)</li>
+                            <li><strong>Storage:</strong> JWT stored in database <code>trail_sessions</code> table</li>
+                            <li><strong>Session Cookie:</strong> PHP session cookie (<code>trail_session</code>) sent with each request</li>
+                            <li><strong>Verification:</strong> Server validates session → retrieves JWT from database → verifies JWT</li>
+                            <li><strong>Client Usage:</strong> No manual JWT handling - browser automatically sends session cookie</li>
+                            <li><strong>Refresh:</strong> Re-authenticate with Google when session expires</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>Security Model</h3>
+                    <div class="feature-card">
+                        <h4><i class="fa-solid fa-shield-halved"></i> Rate Limiting</h4>
+                        <ul>
+                            <li><strong>Authentication:</strong> 5 attempts per 5 minutes</li>
+                            <li><strong>General API:</strong> <?= $rateLimitPerMinute ?> requests per minute</li>
+                            <li><strong>Hourly Limit:</strong> <?= $rateLimitPerHour ?> requests per hour</li>
+                            <li><strong>Response:</strong> HTTP 429 when exceeded</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4><i class="fa-solid fa-lock"></i> Security Features</h4>
+                        <ul>
+                            <li><strong>CORS:</strong> Configurable cross-origin resource sharing</li>
+                            <li><strong>CSRF Protection:</strong> Token-based CSRF prevention</li>
+                            <li><strong>Content Sanitization:</strong> XSS prevention on all user input</li>
+                            <li><strong>Bot Protection:</strong> User-agent validation and pattern detection</li>
+                            <li><strong>SQL Injection:</strong> Prepared statements for all queries</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>Authorization Levels</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-globe"></i></div>
+                            <div class="stat-label"><strong>Public</strong></div>
+                            <div class="stat-description">No authentication required</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-user"></i></div>
+                            <div class="stat-label"><strong>User</strong></div>
+                            <div class="stat-description">Authenticated users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-crown"></i></div>
+                            <div class="stat-label"><strong>Admin</strong></div>
+                            <div class="stat-description">Administrative privileges</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Core Concepts Section -->
+                <section id="core-concepts" class="section">
+                    <h2>Core Concepts</h2>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-link"></i> Entries</h3>
+                        <p>Short-form posts (max <?= $maxTextLength ?> characters) that can include:</p>
+                        <ul>
+                            <li><strong>Text:</strong> UTF-8 text with emoji support</li>
+                            <li><strong>URLs:</strong> Automatic preview enrichment via Iframely</li>
+                            <li><strong>Media:</strong> Optional image attachments (up to 20MB)</li>
+                            <li><strong>Timestamps:</strong> Custom creation dates for imports</li>
+                            <li><strong>Hash IDs:</strong> Secure, obfuscated entry identifiers</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-user"></i> Users</h3>
+                        <p>User profiles with Google OAuth authentication:</p>
+                        <ul>
+                            <li><strong>Nickname:</strong> Unique @username for public profiles</li>
+                            <li><strong>Avatar:</strong> Google photo or Gravatar fallback</li>
+                            <li><strong>Bio:</strong> Optional profile description</li>
+                            <li><strong>Privacy:</strong> Public profile pages and RSS feeds</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-heart"></i> Engagement</h3>
+                        <p>Social interaction features:</p>
+                        <ul>
+                            <li><strong>Claps:</strong> 1-50 claps per user per entry/comment</li>
+                            <li><strong>Comments:</strong> Threaded discussions (max <?= $maxTextLength ?> chars)</li>
+                            <li><strong>Mentions:</strong> @username mentions with notifications</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-arrows-rotate"></i> Pagination</h3>
+                        <p>Cursor-based pagination for infinite scroll:</p>
+                        <ul>
+                            <li><strong>Parameters:</strong> <code>?limit=20&before=TIMESTAMP</code></li>
+                            <li><strong>Response:</strong> <code>has_more</code> and <code>next_cursor</code> fields</li>
+                            <li><strong>Default:</strong> 20 items per page</li>
+                            <li><strong>Maximum:</strong> 100 items per page (public), 50 (user-specific)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-magnifying-glass"></i> Search</h3>
+                        <p>Full-text search with relevance ranking:</p>
+                        <ul>
+                            <li><strong>Query:</strong> <code>?q=search+term</code> parameter</li>
+                            <li><strong>Full-text:</strong> 4+ characters (relevance ranked)</li>
+                            <li><strong>LIKE search:</strong> 1-3 characters (pattern matching)</li>
+                            <li><strong>Max length:</strong> 200 characters</li>
+                            <li><strong>Auth required:</strong> Search requires JWT token</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Moderation</h3>
+                        <p>User-controlled content filtering:</p>
+                        <ul>
+                            <li><strong>Muting:</strong> Hide all content from specific users</li>
+                            <li><strong>Reporting:</strong> Flag entries/comments for review</li>
+                            <li><strong>Hiding:</strong> Personally hide individual entries</li>
+                            <li><strong>Admin tools:</strong> Full moderation capabilities</li>
+                        </ul>
+                    </div>
+                </section>
+                
+                <!-- API Endpoints Section -->
+                <section id="endpoints" class="section">
+                    <h2>API Endpoints</h2>
+                    <p>All endpoints organized by user journey and functionality. Use the search box to quickly find specific endpoints.</p>
+                    
+                    <input type="text" id="endpoint-search" class="search-box" placeholder="Search endpoints..." onkeyup="filterEndpoints()">
+                    
+                    <?php foreach ($groups as $groupKey => $groupMeta): ?>
+                        <?php if (isset($groupedEndpoints[$groupKey])): ?>
+                            <div class="endpoint-group" id="group-<?= $groupKey ?>">
+                                <div class="group-header">
+                                    <i class="fa-solid <?= $groupMeta['icon'] ?> group-icon"></i>
+                                    <div>
+                                        <h3 style="margin: 0;"><?= $groupMeta['title'] ?></h3>
+                                        <p style="margin: 0; color: #6b7280; font-size: 0.875rem;"><?= $groupMeta['description'] ?></p>
+                                    </div>
+                                </div>
+                                
+                                <?php foreach ($groupedEndpoints[$groupKey] as $endpoint): ?>
+                                    <?php $methodClass = strtolower($endpoint['method']); ?>
+                                    <div class="endpoint-card" data-path="<?= htmlspecialchars($endpoint['path']) ?>" data-method="<?= htmlspecialchars($endpoint['method']) ?>" data-description="<?= htmlspecialchars($endpoint['description']) ?>">
+                                        <div class="endpoint-header">
+                                            <span class="method <?= $methodClass ?>"><?= $endpoint['method'] ?></span>
+                                            <span class="path"><?= htmlspecialchars($endpoint['path']) ?></span>
+                                            <span class="auth-level-<?= $endpoint['auth_level'] ?>"><?= strtoupper($endpoint['auth_level']) ?></span>
+                                            <?php if ($endpoint['rate_limit'] !== 'None'): ?>
+                                                <span class="rate-limit-badge"><?= htmlspecialchars($endpoint['rate_limit']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="description"><?= htmlspecialchars($endpoint['description']) ?></div>
+                                        <div class="curl-container">
+                                            <div class="curl-header">
+                                                <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                                            </div>
+                                            <div class="curl-code"><?= htmlspecialchars($endpoint['curl']) ?></div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </section>
+                
+                <!-- Advanced Features Section -->
+                <section id="advanced-features" class="section">
+                    <h2>Advanced Features</h2>
+                    <p>The <code>POST /api/entries</code> endpoint supports advanced features for importing content from other platforms (e.g., Twitter/X):</p>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-clock"></i> Custom Creation Dates</h3>
+                        <p>Import entries with their original timestamps using Twitter date format:</p>
+                        <div class="code-block">
+                            <code>"created_at": "Fri Nov 28 10:54:34 +0000 2025"</code>
+                        </div>
+                        <p class="note">Format: <code>Day Mon DD HH:MM:SS ±ZZZZ YYYY</code> (e.g., timezone +0000 for UTC, -0800 for PST)</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-image"></i> Inline Media Upload</h3>
+                        <p>Upload images directly in the request (base64 encoded):</p>
+                        <div class="code-block">
+                            <code>"media": [{
+  "data": "base64_encoded_image_data...",
+  "filename": "photo.jpg",
+  "mime_type": "image/jpeg",
+  "image_type": "post"
+}]</code>
+                        </div>
+                        <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-bolt"></i> Raw Upload Mode <span class="auth-level-admin">ADMIN</span></h3>
+                        <p>Skip image processing for faster imports (requires admin privileges):</p>
+                        <div class="code-block">
+                            <code>"raw_upload": true</code>
+                        </div>
+                        <p class="note">When enabled, images are saved without resizing or WebP conversion. Use for trusted sources only. <strong>Requires admin privileges.</strong></p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-hands-clapping"></i> Initial Claps</h3>
+                        <p>Set engagement metrics when importing:</p>
+                        <div class="code-block">
+                            <code>"initial_claps": 25</code>
+                        </div>
+                        <p class="note">Valid range: 1-50. Claps are attributed to the authenticated user (author).</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-circle-info"></i> Response Format</h3>
+                        <p>Successful entry creation returns:</p>
+                        <div class="code-block">
+                            <code>{
+  "id": 123,
+  "created_at": "2025-11-28 10:54:34",
+  "images": [{
+    "id": 456,
+    "url": "/uploads/images/1/1_1738246496_abc.webp",
+    "width": 1200,
+    "height": 800,
+    "file_size": 45678
+  }],
+  "clap_count": 25,
+  "user_clap_count": 25
+}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-magnifying-glass"></i> Full-Text Search</h3>
+                        <p>The <code>GET /api/entries</code> and <code>GET /api/users/{nickname}/entries</code> endpoints support full-text search:</p>
+                        <div class="code-block">
+                            <code>GET /api/entries?q=search+term&limit=20</code>
+                        </div>
+                        <ul>
+                            <li><strong>Full-text mode:</strong> 4+ characters with relevance ranking</li>
+                            <li><strong>LIKE mode:</strong> 1-3 characters with pattern matching</li>
+                            <li><strong>Max length:</strong> 200 characters</li>
+                            <li><strong>Auth required:</strong> JWT token needed for search</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-arrows-rotate"></i> Cursor-Based Pagination</h3>
+                        <p>Efficient pagination for infinite scroll implementations:</p>
+                        <div class="code-block">
+                            <code>// First page
+GET /api/entries?limit=20
+
+// Next page (use next_cursor from response)
+GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
+                        </div>
+                        <p><strong>Response format:</strong></p>
+                        <div class="code-block">
+                            <code>{
+  "entries": [...],
+  "has_more": true,
+  "next_cursor": "2025-01-15 10:30:00",
+  "limit": 20
+}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-link"></i> URL Preview Enrichment</h3>
+                        <p>Automatic link unfurling using Iframely API:</p>
+                        <ul>
+                            <li>Detects URLs in entry text automatically</li>
+                            <li>Fetches title, description, and thumbnail</li>
+                            <li>Caches previews to minimize API calls</li>
+                            <li>Graceful fallback if preview fails</li>
+                        </ul>
+                    </div>
+                </section>
+                
+                <!-- Performance & Limits Section -->
+                <section id="performance" class="section">
+                    <h2>Performance & Limits</h2>
+                    
+                    <h3>Rate Limits</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">5</div>
+                            <div class="stat-label">Auth attempts / 5 min</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value"><?= $rateLimitPerMinute ?></div>
+                            <div class="stat-label">Requests / minute</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value"><?= $rateLimitPerHour ?></div>
+                            <div class="stat-label">Requests / hour</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">429</div>
+                            <div class="stat-label">HTTP status on exceed</div>
+                        </div>
+                    </div>
+                    
+                    <h3>Content Limits</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Limit</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Entry text</td>
+                                <td><?= $maxTextLength ?> characters</td>
+                                <td>UTF-8, emoji supported</td>
+                            </tr>
+                            <tr>
+                                <td>Comment text</td>
+                                <td><?= $maxTextLength ?> characters</td>
+                                <td>UTF-8, emoji supported</td>
+                            </tr>
+                            <tr>
+                                <td>Image size</td>
+                                <td>20MB max</td>
+                                <td>Per image</td>
+                            </tr>
+                            <tr>
+                                <td>Image formats</td>
+                                <td>JPEG, PNG, GIF, WebP, SVG, AVIF</td>
+                                <td>Auto-converted to WebP</td>
+                            </tr>
+                            <tr>
+                                <td>Search query</td>
+                                <td>200 characters</td>
+                                <td>Auto-sanitized</td>
+                            </tr>
+                            <tr>
+                                <td>Initial claps</td>
+                                <td>1-50 range</td>
+                                <td>For imports only</td>
+                            </tr>
+                            <tr>
+                                <td>Claps per action</td>
+                                <td>1-50 range</td>
+                                <td>Per user per entry</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-list"></i> Pagination Limits</h3>
+                        <ul>
+                            <li><strong>Default limit:</strong> 20 items per page</li>
+                            <li><strong>Max limit (public):</strong> 100 items per page</li>
+                            <li><strong>Max limit (user-specific):</strong> 50 items per page</li>
+                            <li><strong>Cursor format:</strong> ISO 8601 timestamp</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-database"></i> Caching</h3>
+                        <ul>
+                            <li><strong>Image ETags:</strong> Browser caching for static images</li>
+                            <li><strong>No-cache headers:</strong> Session-dependent content</li>
+                            <li><strong>URL previews:</strong> Cached in database to reduce API calls</li>
+                        </ul>
+                    </div>
+                </section>
+                
+                <!-- Technical Reference Section -->
+                <section id="technical-reference" class="section">
+                    <h2>Technical Reference</h2>
+                    
+                    <h3>Response Formats</h3>
+                    <div class="feature-card">
+                        <h4>Success Response</h4>
+                        <div class="code-block">
+                            <code>{
+  "id": 123,
+  "text": "Entry text",
+  "created_at": "2025-02-09 12:00:00",
+  "user_id": 456,
+  "user_nickname": "alice",
+  "clap_count": 10,
+  "comment_count": 3
+}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>Error Response</h4>
+                        <div class="code-block">
+                            <code>{
+  "error": "Error message",
+  "code": "ERROR_CODE"  // Optional
+}</code>
+                        </div>
+                    </div>
+                    
+                    <h3>HTTP Status Codes</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Meaning</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>200</td>
+                                <td>OK</td>
+                                <td>Request successful</td>
+                            </tr>
+                            <tr>
+                                <td>201</td>
+                                <td>Created</td>
+                                <td>Resource created successfully</td>
+                            </tr>
+                            <tr>
+                                <td>400</td>
+                                <td>Bad Request</td>
+                                <td>Invalid request parameters</td>
+                            </tr>
+                            <tr>
+                                <td>401</td>
+                                <td>Unauthorized</td>
+                                <td>Authentication required or token expired</td>
+                            </tr>
+                            <tr>
+                                <td>403</td>
+                                <td>Forbidden</td>
+                                <td>Insufficient permissions</td>
+                            </tr>
+                            <tr>
+                                <td>404</td>
+                                <td>Not Found</td>
+                                <td>Resource not found</td>
+                            </tr>
+                            <tr>
+                                <td>429</td>
+                                <td>Too Many Requests</td>
+                                <td>Rate limit exceeded</td>
+                            </tr>
+                            <tr>
+                                <td>500</td>
+                                <td>Internal Server Error</td>
+                                <td>Server error occurred</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3>Error Codes</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>AUTH_REQUIRED</td>
+                                <td>Authentication required for this operation</td>
+                            </tr>
+                            <tr>
+                                <td>INVALID_TOKEN</td>
+                                <td>JWT token is invalid or expired</td>
+                            </tr>
+                            <tr>
+                                <td>RATE_LIMIT_EXCEEDED</td>
+                                <td>Too many requests, please slow down</td>
+                            </tr>
+                            <tr>
+                                <td>VALIDATION_ERROR</td>
+                                <td>Request validation failed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3>Date Formats</h3>
+                    <div class="feature-card">
+                        <h4>ISO 8601 (Default)</h4>
+                        <div class="code-block">
+                            <code>"2025-02-09 12:00:00"  // YYYY-MM-DD HH:MM:SS</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>Twitter Format (For Imports)</h4>
+                        <div class="code-block">
+                            <code>"Fri Nov 28 10:54:34 +0000 2025"  // Day Mon DD HH:MM:SS ±ZZZZ YYYY</code>
+                        </div>
+                        <p>Supported timezones: UTC (+0000), PST (-0800), EST (-0500), etc.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-hashtag"></i> Hash IDs</h3>
+                        <p>Entry IDs are obfuscated using hash IDs for security and aesthetics:</p>
+                        <ul>
+                            <li><strong>Format:</strong> Alphanumeric string (e.g., "abc123xyz")</li>
+                            <li><strong>Usage:</strong> Use in URLs and API calls instead of numeric IDs</li>
+                            <li><strong>Decoding:</strong> Automatically handled by API</li>
+                            <li><strong>Security:</strong> Prevents enumeration attacks</li>
+                        </ul>
+                    </div>
+                </section>
+                
+                        <div class="footer">
+                    <p><strong>Trail API</strong> - Link Journal Service</p>
+                    <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.875rem;">
+                        <a href="/" style="color: var(--accent); text-decoration: none;">Home</a> • 
+                        <a href="/api/rss" style="color: var(--accent); text-decoration: none;">RSS Feed</a> • 
+                        <a href="/api/health" style="color: var(--accent); text-decoration: none;">Health Check</a>
+                    </p>
                 </div>
-            <?php endforeach; ?>
-        </div>
-        
-        <div class="section">
-            <h2>Advanced Entry Creation</h2>
-            <p>The <code>POST /api/entries</code> endpoint supports advanced features for importing content from other platforms (e.g., Twitter/X):</p>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-clock"></i> Custom Creation Dates</h3>
-                <p>Import entries with their original timestamps using Twitter date format:</p>
-                <div class="code-block">
-                    <code>"created_at": "Fri Nov 28 10:54:34 +0000 2025"</code>
-                </div>
-                <p class="note">Format: <code>Day Mon DD HH:MM:SS ±ZZZZ YYYY</code> (e.g., timezone +0000 for UTC, -0800 for PST)</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-image"></i> Inline Media Upload</h3>
-                <p>Upload images directly in the request (base64 encoded):</p>
-                <div class="code-block">
-                    <code>"media": [{<br>
-                    &nbsp;&nbsp;"data": "base64_encoded_image_data...",<br>
-                    &nbsp;&nbsp;"filename": "photo.jpg",<br>
-                    &nbsp;&nbsp;"mime_type": "image/jpeg",<br>
-                    &nbsp;&nbsp;"image_type": "post"<br>
-                    }]</code>
-                </div>
-                <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-bolt"></i> Raw Upload Mode</h3>
-                <p>Skip image processing for faster imports:</p>
-                <div class="code-block">
-                    <code>"raw_upload": true</code>
-                </div>
-                <p class="note">When enabled, images are saved without resizing or WebP conversion. Use for trusted sources only.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-hands-clapping"></i> Initial Claps</h3>
-                <p>Set engagement metrics when importing:</p>
-                <div class="code-block">
-                    <code>"initial_claps": 25</code>
-                </div>
-                <p class="note">Valid range: 1-50. Claps are attributed to the authenticated user (author).</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-circle-info"></i> Response Format</h3>
-                <p>Successful entry creation returns:</p>
-                <div class="code-block">
-                    <code>{<br>
-                    &nbsp;&nbsp;"id": 123,<br>
-                    &nbsp;&nbsp;"created_at": "2025-11-28 10:54:34",<br>
-                    &nbsp;&nbsp;"images": [{<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;"id": 456,<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;"url": "/uploads/images/1/1_1738246496_abc.webp",<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;"width": 1200,<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;"height": 800,<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;"file_size": 45678<br>
-                    &nbsp;&nbsp;}],<br>
-                    &nbsp;&nbsp;"clap_count": 25,<br>
-                    &nbsp;&nbsp;"user_clap_count": 25<br>
-                    }</code>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Search Functionality</h2>
-            <p>The <code>GET /api/entries</code> and <code>GET /api/users/{nickname}/entries</code> endpoints support full-text search via the <code>?q=</code> query parameter:</p>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-magnifying-glass"></i> Search Query Parameter</h3>
-                <p>Add a search query to filter entries:</p>
-                <div class="code-block">
-                    <code>?q=search+term</code>
-                </div>
-                <p class="note">URL-encode the query parameter. Spaces can be encoded as <code>+</code> or <code>%20</code>.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-database"></i> Search Modes</h3>
-                <p>The API automatically selects the optimal search mode:</p>
-                <ul>
-                    <li><strong>Full-text search:</strong> Used for queries with 4+ characters. Provides relevance ranking and better performance.</li>
-                    <li><strong>LIKE search:</strong> Fallback for short queries (1-3 characters). Uses pattern matching.</li>
-                </ul>
-                <p class="note">Maximum query length: 200 characters. Queries are automatically sanitized for safety.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-shield-halved"></i> Authentication Requirement</h3>
-                <p>Search requires authentication with a valid JWT token:</p>
-                <div class="code-block">
-                    <code>Authorization: Bearer YOUR_JWT_TOKEN</code>
-                </div>
-                <p class="note">Obtain a JWT token via <code>POST /api/auth/google</code> endpoint.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3><i class="fa-solid fa-list"></i> Search Response Format</h3>
-                <p>Search results include the query in the response:</p>
-                <div class="code-block">
-                    <code>{<br>
-                    &nbsp;&nbsp;"entries": [...],<br>
-                    &nbsp;&nbsp;"has_more": true,<br>
-                    &nbsp;&nbsp;"next_cursor": "2025-01-15 10:30:00",<br>
-                    &nbsp;&nbsp;"limit": 20,<br>
-                    &nbsp;&nbsp;"search_query": "example"<br>
-                    }</code>
-                </div>
-                <p class="note">Pagination works the same as regular listing - use <code>before</code> parameter with <code>next_cursor</code> value.</p>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p><strong>Trail API</strong> - Link Journal Service</p>
-            <p>PHP <?= PHP_VERSION ?> • Slim Framework • MariaDB</p>
+            </main>
         </div>
     </div>
     
+    <script src="/assets/js/mermaid.min.js"></script>
     <script>
+        // Initialize Mermaid v11 with dark theme
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#3b82f6',
+                primaryTextColor: '#f8fafc',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#94a3b8',
+                secondaryColor: '#1e293b',
+                tertiaryColor: '#334155',
+                background: '#0f172a',
+                mainBkg: '#1e293b',
+                secondBkg: '#334155',
+                textColor: '#f8fafc',
+                border1: '#3b82f6',
+                border2: '#94a3b8',
+                fontSize: '16px'
+            },
+            securityLevel: 'loose',
+            fontFamily: 'Inter, sans-serif',
+            logLevel: 'error'
+        });
+        
+        // Copy to clipboard function
         function copyToClipboard(button) {
             const codeElement = button.closest('.curl-container').querySelector('.curl-code');
             const text = codeElement.textContent;
@@ -352,6 +1917,93 @@ usort($endpoints, function($a, $b) {
                 console.error('Failed to copy:', err);
             });
         }
+        
+        // Endpoint search filter
+        function filterEndpoints() {
+            const searchTerm = document.getElementById('endpoint-search').value.toLowerCase();
+            const endpointCards = document.querySelectorAll('.endpoint-card');
+            
+            endpointCards.forEach(card => {
+                const path = card.dataset.path.toLowerCase();
+                const method = card.dataset.method.toLowerCase();
+                const description = card.dataset.description.toLowerCase();
+                
+                const matches = path.includes(searchTerm) || 
+                               method.includes(searchTerm) || 
+                               description.includes(searchTerm);
+                
+                card.style.display = matches ? 'block' : 'none';
+            });
+            
+            // Hide empty groups
+            const groups = document.querySelectorAll('.endpoint-group');
+            groups.forEach(group => {
+                const visibleCards = group.querySelectorAll('.endpoint-card[style="display: block;"], .endpoint-card:not([style*="display: none"])');
+                group.style.display = visibleCards.length > 0 ? 'block' : 'none';
+            });
+        }
+        
+        // Smooth scroll for TOC links
+        document.querySelectorAll('.toc-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Update active link
+                    document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                }
+            });
+        });
+        
+        // Intersection Observer for TOC active state
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    document.querySelectorAll('.toc-link').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+        
+        // Observe all sections
+        document.querySelectorAll('section[id]').forEach(section => {
+            observer.observe(section);
+        });
+        
+        // Collapsible sections (if needed in future)
+        function toggleCollapsible(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+            
+            content.classList.toggle('active');
+            if (icon) {
+                icon.textContent = content.classList.contains('active') ? '−' : '+';
+            }
+        }
+        
+        // Initialize - set first TOC link as active
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstLink = document.querySelector('.toc-link');
+            if (firstLink) {
+                firstLink.classList.add('active');
+            }
+        });
     </script>
 </body>
 </html>

@@ -21,6 +21,7 @@ class EntryController
     public static function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $userId = $request->getAttribute('user_id');
+        $isAdmin = $request->getAttribute('is_admin') ?? false;
         $data = json_decode((string) $request->getBody(), true);
         
         $text = $data['text'] ?? '';
@@ -33,6 +34,15 @@ class EntryController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $maxTextLength = Config::getMaxTextLength($config);
+        
+        // Check if raw_upload requires admin privileges
+        if ($rawUpload && !$isAdmin) {
+            $response->getBody()->write(json_encode([
+                'error' => 'raw_upload requires admin privileges',
+                'code' => 'ADMIN_REQUIRED'
+            ]));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
 
         // Process inline media uploads if provided
         $uploadedImageIds = [];
