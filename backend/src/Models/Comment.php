@@ -148,6 +148,30 @@ class Comment
     }
 
     /**
+     * Count all comments by a specific user
+     */
+    public function countByUser(int $userId): int
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch();
+        
+        return (int) $result['count'];
+    }
+
+    /**
+     * Delete all comments by a specific user
+     * Returns the number of comments deleted
+     */
+    public function deleteByUser(int $userId): int
+    {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        
+        return $stmt->rowCount();
+    }
+
+    /**
      * Check if a user can modify a comment (creator or admin)
      */
     public function canModify(int $commentId, int $userId, bool $isAdmin): bool

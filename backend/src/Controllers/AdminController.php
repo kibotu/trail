@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Trail\Database\Database;
 use Trail\Models\Entry;
 use Trail\Models\User;
+use Trail\Models\Comment;
 use Trail\Config\Config;
 use Trail\Services\TextSanitizer;
 use Trail\Services\StorageService;
@@ -154,6 +155,34 @@ class AdminController
         $success = $userModel->delete($userId);
 
         $response->getBody()->write(json_encode(['success' => $success]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public static function deleteUserEntries(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $userId = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $deleted = $entryModel->deleteByUser($userId);
+
+        $response->getBody()->write(json_encode(['success' => true, 'deleted' => $deleted]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public static function deleteUserComments(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $userId = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $commentModel = new Comment($db);
+
+        $deleted = $commentModel->deleteByUser($userId);
+
+        $response->getBody()->write(json_encode(['success' => true, 'deleted' => $deleted]));
         return $response->withHeader('Content-Type', 'application/json');
     }
 

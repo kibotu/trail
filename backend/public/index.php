@@ -350,6 +350,8 @@ $app->group('/api/admin', function ($group) {
     $group->delete('/entries/{id}', [AdminController::class, 'deleteEntry']);
     $group->get('/users', [AdminController::class, 'users']);
     $group->delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    $group->delete('/users/{id}/entries', [AdminController::class, 'deleteUserEntries']);
+    $group->delete('/users/{id}/comments', [AdminController::class, 'deleteUserComments']);
     $group->post('/cache/clear', [AdminController::class, 'clearCache']);
     $group->get('/error-logs', [AdminController::class, 'errorLogs']);
     $group->get('/error-stats', [AdminController::class, 'errorStats']);

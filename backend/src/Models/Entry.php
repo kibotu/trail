@@ -293,6 +293,36 @@ class Entry
         return (int) $result['count'];
     }
 
+    /**
+     * Delete all entries by a specific user
+     * Returns the number of entries deleted
+     */
+    public function deleteByUser(int $userId): int
+    {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Get the most recent entry by a specific user
+     * Returns null if user has no entries
+     */
+    public function getLatestByUser(int $userId): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->table} 
+             WHERE user_id = ? 
+             ORDER BY COALESCE(custom_created_at, created_at) DESC 
+             LIMIT 1"
+        );
+        $stmt->execute([$userId]);
+        $entry = $stmt->fetch();
+        
+        return $entry ?: null;
+    }
+
     public function count(): int
     {
         $stmt = $this->db->query("SELECT COUNT(*) as count FROM {$this->table}");

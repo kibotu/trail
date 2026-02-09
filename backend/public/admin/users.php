@@ -14,6 +14,8 @@ require_once __DIR__ . '/../helpers/session.php';
 use Trail\Config\Config;
 use Trail\Database\Database;
 use Trail\Models\User;
+use Trail\Models\Entry;
+use Trail\Models\Comment;
 use Trail\Services\JwtService;
 
 // Security headers
@@ -65,9 +67,17 @@ try {
         error_log("WARNING: Duplicate user IDs found in query result!");
     }
 
-    // Add avatar URLs
+    // Add avatar URLs and statistics
+    $entryModel = new Entry($db);
+    $commentModel = new Comment($db);
+    
     foreach ($users as &$user) {
         $user['avatar_url'] = getUserAvatarFromData($user, 96);
+        $user['entry_count'] = $entryModel->countByUser($user['id']);
+        $user['comment_count'] = $commentModel->countByUser($user['id']);
+        
+        $latestEntry = $entryModel->getLatestByUser($user['id']);
+        $user['last_entry_at'] = $latestEntry ? $latestEntry['created_at'] : null;
     }
     unset($user); // Break the reference to avoid issues in subsequent loops
 
@@ -209,10 +219,39 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                             </div>
                         </div>
 
+                        <div class="user-stats">
+                            <div class="stat-item">
+                                <div class="stat-value"><?= $user['entry_count'] ?></div>
+                                <div class="stat-label">Entries</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value"><?= $user['comment_count'] ?></div>
+                                <div class="stat-label">Comments</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">
+                                    <?php if ($user['last_entry_at']): ?>
+                                        <?= date('M j, Y', strtotime($user['last_entry_at'])) ?>
+                                    <?php else: ?>
+                                        Never
+                                    <?php endif; ?>
+                                </div>
+                                <div class="stat-label">Last Entry</div>
+                            </div>
+                        </div>
+
                         <div class="user-actions">
                             <button class="action-button delete" onclick="deleteUser(<?= $user['id'] ?>)">
                                 <i class="fa-solid fa-trash"></i>
                                 <span>Delete User</span>
+                            </button>
+                            <button class="action-button warning" onclick="deleteUserEntries(<?= $user['id'] ?>, <?= $user['entry_count'] ?>)">
+                                <i class="fa-solid fa-file-slash"></i>
+                                <span>Remove All Entries</span>
+                            </button>
+                            <button class="action-button warning" onclick="deleteUserComments(<?= $user['id'] ?>, <?= $user['comment_count'] ?>)">
+                                <i class="fa-solid fa-comment-slash"></i>
+                                <span>Remove All Comments</span>
                             </button>
                         </div>
 
@@ -260,18 +299,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 return;
             }
 
-            const token = jwtToken || localStorage.getItem('trail_jwt');
-            if (!token) {
-                alert('Authentication token not found. Please refresh the page and log in again.');
-                return;
-            }
-
             try {
                 const response = await fetch(`/api/admin/users/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
+                    credentials: 'same-origin' // Session-based authentication (secure)
                 });
 
                 if (response.ok) {
@@ -293,6 +324,66 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 }
             } catch (error) {
                 console.error('Error deleting user:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteUserEntries(userId, count) {
+            if (count === 0) {
+                alert('This user has no entries to delete.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete all ${count} entries from this user? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/entries`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin' // Session-based authentication (secure)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Successfully deleted ${data.deleted} entries.`);
+                    location.reload();
+                } else {
+                    const data = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    alert('Failed to delete entries: ' + (data.error || `HTTP ${response.status}`));
+                }
+            } catch (error) {
+                console.error('Error deleting entries:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteUserComments(userId, count) {
+            if (count === 0) {
+                alert('This user has no comments to delete.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete all ${count} comments from this user? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/comments`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin' // Session-based authentication (secure)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Successfully deleted ${data.deleted} comments.`);
+                    location.reload();
+                } else {
+                    const data = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    alert('Failed to delete comments: ' + (data.error || `HTTP ${response.status}`));
+                }
+            } catch (error) {
+                console.error('Error deleting comments:', error);
                 alert('Error: ' + error.message);
             }
         }
