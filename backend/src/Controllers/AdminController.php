@@ -50,8 +50,18 @@ class AdminController
         $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
         $offset = $page * $limit;
 
+        // Get and validate source filter parameter
+        $sourceFilter = null;
+        if (isset($queryParams['source']) && !empty($queryParams['source'])) {
+            $allowedSources = ['iframely', 'embed', 'medium'];
+            $requestedSource = strtolower(trim($queryParams['source']));
+            if (in_array($requestedSource, $allowedSources, true)) {
+                $sourceFilter = $requestedSource;
+            }
+        }
+
         // Admin view includes clap counts (no user-specific counts needed)
-        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null);
+        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter);
 
         // Initialize HashIdService
         $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';

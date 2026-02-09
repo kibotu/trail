@@ -169,7 +169,7 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null): array
     {
         // Build SELECT with clap counts and comment counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
@@ -223,6 +223,12 @@ class Entry
             $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
             $whereConditions[] = "e.id NOT IN ($placeholders)";
             $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        // Filter by preview source
+        if ($sourceFilter !== null) {
+            $whereConditions[] = "e.preview_source = ?";
+            $params[] = $sourceFilter;
         }
         
         $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -288,6 +294,22 @@ class Entry
     public function countByUser(int $userId): int
     {
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch();
+        
+        return (int) $result['count'];
+    }
+
+    /**
+     * Count entries with preview URLs (links) by a specific user
+     * Returns the number of entries with preview_url not null
+     */
+    public function countLinksWithPreviewByUser(int $userId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) as count FROM {$this->table} 
+             WHERE user_id = ? AND preview_url IS NOT NULL"
+        );
         $stmt->execute([$userId]);
         $result = $stmt->fetch();
         
@@ -415,9 +437,9 @@ class Entry
     /**
      * Get all entries with image URLs attached
      */
-    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null): array
     {
-        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId);
+        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter);
         return array_map([$this, 'attachImageUrls'], $entries);
     }
     

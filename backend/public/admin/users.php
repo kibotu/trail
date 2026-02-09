@@ -74,6 +74,7 @@ try {
     foreach ($users as &$user) {
         $user['avatar_url'] = getUserAvatarFromData($user, 96);
         $user['entry_count'] = $entryModel->countByUser($user['id']);
+        $user['link_count'] = $entryModel->countLinksWithPreviewByUser($user['id']);
         $user['comment_count'] = $commentModel->countByUser($user['id']);
         
         $latestEntry = $entryModel->getLatestByUser($user['id']);
@@ -223,6 +224,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                             <div class="stat-item">
                                 <div class="stat-value"><?= $user['entry_count'] ?></div>
                                 <div class="stat-label">Entries</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value"><?= $user['link_count'] ?></div>
+                                <div class="stat-label">Links</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-value"><?= $user['comment_count'] ?></div>

@@ -201,6 +201,15 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
 
         <div class="section-header">
             <h2 class="section-title">All Entries</h2>
+            <div class="filter-controls">
+                <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Filter by source:</label>
+                <select id="source-filter" class="source-filter-select">
+                    <option value="">All Sources</option>
+                    <option value="iframely">Iframely</option>
+                    <option value="embed">Fallback</option>
+                    <option value="medium">Medium</option>
+                </select>
+            </div>
         </div>
 
         <div id="entries-container" class="entries-container">
@@ -227,10 +236,17 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         let currentPage = 0;
         let loading = false;
         let hasMore = true;
+        let currentSourceFilter = '';
         const pageSize = 20;
 
         // Load initial entries
         loadEntries();
+
+        // Source filter change handler
+        document.getElementById('source-filter').addEventListener('change', (e) => {
+            currentSourceFilter = e.target.value;
+            resetAndLoadEntries();
+        });
 
         // Infinite scroll
         window.addEventListener('scroll', () => {
@@ -244,6 +260,13 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             }
         });
 
+        function resetAndLoadEntries() {
+            currentPage = 0;
+            hasMore = true;
+            document.getElementById('entries-container').innerHTML = '';
+            loadEntries();
+        }
+
         async function loadEntries() {
             if (loading || !hasMore) return;
             
@@ -251,7 +274,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             document.getElementById('loading').style.display = 'block';
             
             try {
-                const response = await fetch(`/api/admin/entries?page=${currentPage}&limit=${pageSize}`, {
+                let url = `/api/admin/entries?page=${currentPage}&limit=${pageSize}`;
+                if (currentSourceFilter) {
+                    url += `&source=${encodeURIComponent(currentSourceFilter)}`;
+                }
+                const response = await fetch(url, {
                     credentials: 'same-origin' // Include httpOnly cookie with JWT
                 });
 
