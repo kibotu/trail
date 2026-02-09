@@ -108,6 +108,39 @@
                     </div>
                 </form>
 
+                <!-- API Token Section -->
+                <div class="api-token-section">
+                    <div class="api-token-header">
+                        <h3>API Token</h3>
+                        <button type="button" class="btn btn-icon" id="regenerate-token-btn" 
+                                title="Regenerate API token">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                    <div class="api-token-content">
+                        <p class="api-token-description">
+                            Use this token to authenticate API requests. Include it in the 
+                            <code>Authorization: Bearer &lt;token&gt;</code> header.
+                        </p>
+                        <div class="api-token-display">
+                            <code id="api-token-value" class="api-token-value">
+                                ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+                            </code>
+                            <button type="button" class="btn btn-icon" id="toggle-token-btn" 
+                                    title="Show/hide token">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-icon" id="copy-token-btn" 
+                                    title="Copy to clipboard">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="api-token-meta">
+                            Created: <span id="api-token-created">Loading...</span>
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Muted Users Section -->
                 <div class="muted-users-section">
                     <div class="muted-users-header">
@@ -128,6 +161,7 @@
     <!-- Core JavaScript Modules -->
     <script src="/js/snackbar.js"></script>
     <script src="/js/profile-manager.js"></script>
+    <script src="/js/api-token-manager.js"></script>
     
     <!-- Page Initialization -->
     <script src="/js/profile-page.js"></script>

@@ -70,7 +70,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/profile"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/profile"
     ],
     [
         'method' => 'PUT',
@@ -80,7 +80,27 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"nickname\":\"alice\",\"bio\":\"Hello world\"}' \\\n     {$baseUrl}/api/profile"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"nickname\":\"alice\",\"bio\":\"Hello world\"}' \\\n     {$baseUrl}/api/profile"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/token',
+        'description' => 'Get your API token - View your persistent API token for programmatic access',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/token"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/token/regenerate',
+        'description' => 'Regenerate API token - Creates a new token and invalidates the old one',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'core',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     {$baseUrl}/api/token/regenerate"
     ],
     [
         'method' => 'GET',
@@ -90,7 +110,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/users/alice"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/users/alice"
     ],
     [
         'method' => 'GET',
@@ -110,7 +130,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
     ],
     [
         'method' => 'GET',
@@ -140,7 +160,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/entries/123"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/entries/123"
     ],
     [
         'method' => 'DELETE',
@@ -150,7 +170,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries/123"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/entries/123"
     ],
     
     // ENGAGEMENT ENDPOINTS (Auth Required)
@@ -244,7 +264,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'media',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"filename\":\"photo.jpg\",\"total_size\":1024000}' \\\n     {$baseUrl}/api/images/upload/init"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"filename\":\"photo.jpg\",\"total_size\":1024000}' \\\n     {$baseUrl}/api/images/upload/init"
     ],
     [
         'method' => 'POST',
@@ -254,7 +274,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'media',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -F \"upload_id=abc123\" \\\n     -F \"chunk_index=0\" \\\n     -F \"chunk=@chunk0.bin\" \\\n     {$baseUrl}/api/images/upload/chunk"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -F \"upload_id=abc123\" \\\n     -F \"chunk_index=0\" \\\n     -F \"chunk=@chunk0.bin\" \\\n     {$baseUrl}/api/images/upload/chunk"
     ],
     [
         'method' => 'POST',
@@ -264,7 +284,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'media',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"upload_id\":\"abc123\"}' \\\n     {$baseUrl}/api/images/upload/complete"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"upload_id\":\"abc123\"}' \\\n     {$baseUrl}/api/images/upload/complete"
     ],
     [
         'method' => 'GET',
@@ -284,7 +304,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'media',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/images/789"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/images/789"
     ],
     
     // MODERATION ENDPOINTS (Auth Required)
@@ -296,7 +316,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"spam\"}' \\\n     {$baseUrl}/api/entries/123/report"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"spam\"}' \\\n     {$baseUrl}/api/entries/123/report"
     ],
     [
         'method' => 'POST',
@@ -306,7 +326,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"harassment\"}' \\\n     {$baseUrl}/api/comments/456/report"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"reason\":\"harassment\"}' \\\n     {$baseUrl}/api/comments/456/report"
     ],
     [
         'method' => 'POST',
@@ -316,7 +336,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
     ],
     [
         'method' => 'DELETE',
@@ -326,7 +346,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute"
     ],
     [
         'method' => 'GET',
@@ -336,7 +356,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute-status"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/users/789/mute-status"
     ],
     [
         'method' => 'GET',
@@ -346,7 +366,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'moderation',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/filters"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/filters"
     ],
     
     // NOTIFICATION ENDPOINTS (Auth Required)
@@ -358,7 +378,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/notifications"
     ],
     [
         'method' => 'PUT',
@@ -368,7 +388,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/123/read"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/notifications/123/read"
     ],
     [
         'method' => 'PUT',
@@ -378,7 +398,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/read-all"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/notifications/read-all"
     ],
     [
         'method' => 'DELETE',
@@ -388,7 +408,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/123"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/notifications/123"
     ],
     [
         'method' => 'GET',
@@ -398,7 +418,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/notifications/preferences"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/notifications/preferences"
     ],
     [
         'method' => 'PUT',
@@ -408,7 +428,7 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'notifications',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"email_mentions\":true}' \\\n     {$baseUrl}/api/notifications/preferences"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"email_mentions\":true}' \\\n     {$baseUrl}/api/notifications/preferences"
     ],
     
     // ADMIN ENDPOINTS (Admin Auth Required)
@@ -420,7 +440,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/entries"
     ],
     [
         'method' => 'POST',
@@ -430,7 +450,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/admin/entries/123"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/admin/entries/123"
     ],
     [
         'method' => 'DELETE',
@@ -440,7 +460,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/entries/123"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/entries/123"
     ],
     [
         'method' => 'GET',
@@ -450,7 +470,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/users"
     ],
     [
         'method' => 'DELETE',
@@ -460,7 +480,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123"
     ],
     [
         'method' => 'DELETE',
@@ -470,7 +490,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/entries"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/entries"
     ],
     [
         'method' => 'DELETE',
@@ -480,7 +500,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/comments"
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/users/123/comments"
     ],
     [
         'method' => 'POST',
@@ -490,7 +510,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/cache/clear"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/cache/clear"
     ],
     [
         'method' => 'GET',
@@ -500,7 +520,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs"
     ],
     [
         'method' => 'GET',
@@ -510,7 +530,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-stats"
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/error-stats"
     ],
     [
         'method' => 'POST',
@@ -520,7 +540,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs/cleanup"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/error-logs/cleanup"
     ],
     [
         'method' => 'POST',
@@ -530,7 +550,7 @@ $endpoints = [
         'auth_level' => 'admin',
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/admin/images/prune"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/images/prune"
     ]
 ];
 
@@ -700,6 +720,22 @@ $groups = [
             font-family: 'Courier New', monospace;
         }
         
+        /* Link Styles - Keep consistent color for visited links */
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        
+        a:visited {
+            color: var(--accent); /* Same as unvisited */
+        }
+        
         /* Stats Grid */
         .stats-grid { 
             display: grid; 
@@ -793,7 +829,7 @@ $groups = [
         /* Feature Cards */
         .feature-card {
             background: var(--bg-secondary);
-            padding: 1.5rem;
+            padding: 2rem;
             border-radius: 12px;
             margin: 1.5rem 0;
             border: 1px solid var(--border);
@@ -806,26 +842,38 @@ $groups = [
             margin-top: 0;
         }
         
-        .feature-card p {
-            color: var(--text-secondary);
+        .feature-card h5 {
+            color: var(--text-primary);
+            font-size: 1.125rem;
+            margin: 1.5rem 0 0.75rem 0;
+            font-weight: 600;
         }
         
-        .feature-card ul {
+        .feature-card p {
             color: var(--text-secondary);
-            padding-left: 1.5rem;
+            line-height: 1.7;
+        }
+        
+        .feature-card ul,
+        .feature-card ol {
+            color: var(--text-secondary);
+            padding-left: 1.75rem;
             margin: 1rem 0;
         }
         
-        .feature-card ul li {
-            margin: 0.5rem 0;
+        .feature-card ul li,
+        .feature-card ol li {
+            margin: 0.75rem 0;
+            line-height: 1.6;
         }
         
         .feature-card .code-block {
             background: var(--bg-tertiary);
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 8px;
             margin: 1rem 0;
             overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .feature-card .code-block code {
@@ -834,6 +882,7 @@ $groups = [
             padding: 0;
             white-space: pre-wrap;
             word-break: break-word;
+            line-height: 1.6;
         }
         
         /* Badges */
@@ -887,15 +936,29 @@ $groups = [
             border-radius: 12px; 
             overflow-x: auto; 
             margin: 1.5rem 0;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
         }
         
         .code-example code { 
             font-family: 'Courier New', monospace; 
             font-size: 0.875rem;
-            line-height: 1.6;
+            line-height: 1.7;
             color: var(--text-secondary);
             white-space: pre;
+            display: block;
+        }
+        
+        .code-example::before {
+            content: 'Shell';
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
         }
         
         /* Endpoint Groups */
@@ -987,7 +1050,7 @@ $groups = [
         .info-box {
             background: var(--bg-secondary);
             border-left: 4px solid var(--accent);
-            padding: 1rem 1.25rem;
+            padding: 1.5rem 2rem;
             margin: 1.5rem 0;
             border-radius: 8px;
             color: var(--text-secondary);
@@ -1000,6 +1063,17 @@ $groups = [
         
         .info-box strong {
             color: var(--text-primary);
+        }
+        
+        .info-box ol,
+        .info-box ul {
+            padding-left: 1.5rem;
+            margin: 0.75rem 0;
+        }
+        
+        .info-box li {
+            margin: 0.75rem 0;
+            line-height: 1.6;
         }
         
         /* Mermaid Diagrams - Hide raw text, show only rendered */
@@ -1220,24 +1294,24 @@ graph LR
                             <div class="stat-label">API Endpoints</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value"><?= $rateLimitPerMinute ?>/min</div>
-                            <div class="stat-label">Rate Limit</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value"><?= $maxTextLength ?></div>
-                            <div class="stat-label">Max Characters</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">20MB</div>
-                            <div class="stat-label">Max Image Size</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">7 days</div>
-                            <div class="stat-label">JWT Expiry</div>
-                        </div>
-                        <div class="stat-card">
                             <div class="stat-value">RESTful</div>
                             <div class="stat-label">API Design</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">JSON</div>
+                            <div class="stat-label">Data Format</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">HTTPS</div>
+                            <div class="stat-label">Secure Transport</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">OAuth 2.0</div>
+                            <div class="stat-label">Authentication</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">UTF-8</div>
+                            <div class="stat-label">Character Encoding</div>
                         </div>
                     </div>
                     
@@ -1249,75 +1323,47 @@ graph LR
                 <!-- Quick Start Section -->
                 <section id="quick-start" class="section">
                     <h2>Quick Start Guide</h2>
-                    <p>Get started with Trail API in 5 minutes. Follow this integration path to create your first entry:</p>
+                    <p>Get started with Trail API in 3 simple steps:</p>
                     
-                    <h3>Authentication Flow</h3>
-                    <div class="mermaid">
-sequenceDiagram
-    participant Client
-    participant Google
-    participant TrailAPI
-    participant Database
-    participant PHPSession
-    
-    Client->>Google: Request OAuth token
-    Google->>Client: Return id_token
-    Client->>TrailAPI: POST /api/auth/google {id_token}
-    TrailAPI->>Google: Verify token
-    Google->>TrailAPI: Token valid
-    TrailAPI->>Database: Create/update user + Generate JWT
-    TrailAPI->>Database: Store JWT in sessions table
-    TrailAPI->>PHPSession: Create PHP session
-    TrailAPI->>Client: Set session cookie
-    Client->>TrailAPI: API calls with session cookie
-    TrailAPI->>PHPSession: Verify session
-    PHPSession->>Database: Retrieve JWT from session
-    Database->>TrailAPI: Return JWT
-    TrailAPI->>TrailAPI: Verify JWT validity
+                    <h3>Step 1: Get Your API Token</h3>
+                    <div class="info-box">
+                        <ol style="margin: 0.5rem 0;">
+                            <li>Sign in to Trail at <a href="<?= $baseUrl ?>" target="_blank"><?= $baseUrl ?></a> using Google OAuth</li>
+                            <li>Navigate to your <a href="<?= $baseUrl ?>/profile" target="_blank">Profile page</a></li>
+                            <li>Find the <strong>API Token</strong> section (above Muted Users)</li>
+                            <li>Click the eye icon to reveal your token</li>
+                            <li>Click the copy icon to copy it to your clipboard</li>
+                        </ol>
                     </div>
                     
-                    <h3>Step 1: Authenticate</h3>
+                    <h3>Step 2: Create Your First Entry</h3>
                     <div class="code-example">
-                        <code># Authenticate with Google OAuth token
-# Server stores JWT in database and creates PHP session
-curl -X POST <?= $baseUrl ?>/api/auth/google \
-  -H "Content-Type: application/json" \
-  -d '{"id_token":"YOUR_GOOGLE_ID_TOKEN"}' \
-  -c cookies.txt
-
-# Response: {"jwt":"eyJ0eXAiOiJKV1QiLCJhbGc...", "user":{...}}
-# Session cookie is automatically set by server
-
-# Subsequent API calls use the session cookie
-curl -b cookies.txt <?= $baseUrl ?>/api/entries</code>
-                    </div>
-                    
-                    <h3>Step 2: Create an Entry</h3>
-                    <div class="code-example">
-                        <code># Use session cookie from authentication
+                        <code># Replace YOUR_API_TOKEN with your actual token
 curl -X POST <?= $baseUrl ?>/api/entries \
-  -b cookies.txt \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"text":"Check out this amazing API! https://trail.services.kibotu.net/api 🚀"}'</code>
+  -d '{"text":"Hello from Trail API! 🚀"}'</code>
                     </div>
                     
                     <h3>Step 3: List Entries</h3>
                     <div class="code-example">
-                        <code># Public endpoint - no authentication required
-curl <?= $baseUrl ?>/api/entries?limit=20</code>
-                    </div>
-                    
-                    <h3>Step 4: Add Engagement</h3>
-                    <div class="code-example">
-                        <code># Use session cookie
-curl -X POST <?= $baseUrl ?>/api/entries/123/claps \
-  -b cookies.txt \
-  -H "Content-Type: application/json" \
-  -d '{"count":5}'</code>
+                        <code># List your entries
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+     <?= $baseUrl ?>/api/entries?limit=20</code>
                     </div>
                     
                     <div class="info-box success">
-                        <strong>Success!</strong> You've completed the quick start. Continue reading to learn about authentication, core concepts, and advanced features.
+                        <strong>Success!</strong> You're now using the Trail API. Your API token never expires and can be regenerated anytime from your profile page.
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>💡 Pro Tips:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>Store your API token securely (e.g., environment variables)</li>
+                            <li>Never commit tokens to version control</li>
+                            <li>Regenerate your token if it's compromised</li>
+                            <li>Use the same token across all your applications</li>
+                        </ul>
                     </div>
                 </section>
                 
@@ -1325,38 +1371,52 @@ curl -X POST <?= $baseUrl ?>/api/entries/123/claps \
                 <section id="authentication" class="section">
                     <h2>Authentication & Security</h2>
                     
-                    <h3>Authentication Methods</h3>
+                    <h3>How to Authenticate</h3>
                     <div class="feature-card">
-                        <h4><i class="fa-brands fa-google"></i> Google OAuth 2.0 (Production)</h4>
-                        <p>Primary authentication method using Google Sign-In. The server handles JWT generation and storage:</p>
+                        <h4><i class="fa-solid fa-key"></i> API Token Authentication</h4>
+                        <p>All API requests require authentication using your personal API token. Each user has a unique, persistent token that never expires.</p>
+                        
+                        <h5>Getting Your Token:</h5>
+                        <ol>
+                            <li>Sign in at <a href="<?= $baseUrl ?>" target="_blank"><?= $baseUrl ?></a></li>
+                            <li>Go to your <a href="<?= $baseUrl ?>/profile" target="_blank">Profile page</a></li>
+                            <li>Find the <strong>API Token</strong> section</li>
+                            <li>Click the eye icon to reveal your token</li>
+                            <li>Copy the token to use in your requests</li>
+                        </ol>
+                        
+                        <h5>Using Your Token:</h5>
                         <div class="code-block">
-                            <code>POST /api/auth/google
-Content-Type: application/json
+                            <code># Include your token in the Authorization header
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+     <?= $baseUrl ?>/api/entries
 
-{"id_token": "GOOGLE_ID_TOKEN"}
-
-Server Process:
-1. Verifies Google id_token
-2. Creates/updates user in database
-3. Generates JWT token
-4. Stores JWT in trail_sessions table
-5. Creates PHP session
-6. Sets session cookie (trail_session)
-
-Response: {"jwt": "eyJ0eXAi...", "user": {...}}
-Cookie: trail_session=abc123...</code>
+# Example: Create a new entry
+curl -X POST \
+     -H "Authorization: Bearer YOUR_API_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"text":"Hello from API!"}' \
+     <?= $baseUrl ?>/api/entries</code>
                         </div>
+                        
+                        <h5>Token Properties:</h5>
+                        <ul>
+                            <li><strong>Format:</strong> 64-character hexadecimal string</li>
+                            <li><strong>Expiration:</strong> Never expires (until you regenerate it)</li>
+                            <li><strong>Regeneration:</strong> Available anytime from your profile page</li>
+                            <li><strong>Security:</strong> Treat like a password - never share or commit to version control</li>
+                            <li><strong>Scope:</strong> Full access to all API endpoints (same permissions as your account)</li>
+                        </ul>
                     </div>
                     
-                    <div class="feature-card">
-                        <h4><i class="fa-solid fa-key"></i> Session & JWT Lifecycle</h4>
-                        <ul>
-                            <li><strong>JWT Expiry:</strong> 7 days (168 hours)</li>
-                            <li><strong>Storage:</strong> JWT stored in database <code>trail_sessions</code> table</li>
-                            <li><strong>Session Cookie:</strong> PHP session cookie (<code>trail_session</code>) sent with each request</li>
-                            <li><strong>Verification:</strong> Server validates session → retrieves JWT from database → verifies JWT</li>
-                            <li><strong>Client Usage:</strong> No manual JWT handling - browser automatically sends session cookie</li>
-                            <li><strong>Refresh:</strong> Re-authenticate with Google when session expires</li>
+                    <div class="info-box">
+                        <strong>🔒 Security Best Practices:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>Store tokens in environment variables, not in code</li>
+                            <li>Never commit tokens to version control (add to .gitignore)</li>
+                            <li>Regenerate your token immediately if compromised</li>
+                            <li>Use HTTPS for all API requests (enforced by server)</li>
+                            <li>Keep your token private - it provides full account access</li>
                         </ul>
                     </div>
                     

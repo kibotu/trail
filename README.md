@@ -1,364 +1,321 @@
-# Trail - Share Links with the World
+# Trail - Link Journaling Service
 
-A modern Android app built with Jetpack Compose for sharing and managing links.
+Multi-user link journaling API service with Google OAuth authentication, media uploads, and social engagement features.
 
-## Features
+## Overview
 
-- 🔐 Google Sign-In authentication
-- 📝 Share links with text (max 280 characters)
-- 🔗 Rich URL preview cards powered by iframe.ly API (with embed library fallback)
-- 📱 Beautiful Material 3 UI
-- 🚀 Modern architecture with unidirectional data flow
-- 🧭 Type-safe navigation with Navigation 3
-- 🛠️ Developer mode for faster iteration
-
-## Architecture
-
-Trail follows modern Android development best practices:
-
-### Tech Stack
-
-- **UI**: Jetpack Compose with Material 3
-- **Navigation**: Navigation 3 (latest generation)
-- **Architecture**: MVVM with UDF (Unidirectional Data Flow)
-- **DI**: Koin
-- **Networking**: Ktor Client
-- **State Management**: Kotlin StateFlow
-- **Serialization**: Kotlin Serialization
-- **Authentication**: Google Credential Manager
-- **Analytics**: Firebase Crashlytics
-
-### Key Libraries
-
-```kotlin
-// Compose
-implementation("androidx.compose:compose-bom:2026.01.00")
-implementation("androidx.compose.material3:material3")
-
-// Navigation 3
-implementation("androidx.navigation3:navigation3-runtime:1.0.0")
-implementation("androidx.navigation3:navigation3-ui:1.0.0")
-
-// Ktor Client
-implementation("io.ktor:ktor-client-android:3.4.0")
-
-// Koin
-implementation("io.insert-koin:koin-androidx-compose:4.1.1")
-
-// Firebase
-implementation("com.google.firebase:firebase-crashlytics")
-```
-
-## Project Structure
-
-```
-app/
-├── ui/
-│   ├── auth/          # Authentication screen & ViewModel
-│   ├── list/          # Entry list screen & ViewModel
-│   ├── share/         # Share screen & ViewModel
-│   ├── navigation/    # Navigation 3 setup
-│   └── theme/         # Material 3 theme
-├── data/
-│   ├── api/           # API service
-│   ├── model/         # Data models
-│   └── repository/    # Repository pattern
-└── di/                # Dependency injection
-```
-
-## Navigation 3
-
-Trail uses **Navigation 3**, the next generation of Android navigation:
+Trail is a production-ready API service that enables users to create, share, and engage with short-form content entries (140 characters) with optional media attachments and automatic URL preview enrichment.
 
 ### Key Features
 
-- ✅ Direct back stack management
-- ✅ Type-safe navigation with Kotlin Serialization
-- ✅ No NavController needed
-- ✅ Pass complex objects directly
-- ✅ Simpler API
+- **Google OAuth 2.0 Authentication** - Secure user authentication
+- **API Token System** - Persistent, user-owned tokens for programmatic access
+- **Link Journaling** - 140-character posts with automatic URL previews
+- **Media Upload** - Image attachments up to 20MB with WebP optimization
+- **Full-Text Search** - Fast search with relevance ranking
+- **Social Engagement** - Claps and threaded comments
+- **RSS Feeds** - Global and per-user feeds
+- **Real-time Notifications** - Mentions and engagement updates
+- **Moderation Tools** - User muting and content reporting
 
-### Example
+## Architecture
 
-```kotlin
-// Define destinations
-sealed interface Screen : NavKey {
-    @Serializable
-    data object Auth : Screen
+### Tech Stack
+
+- **Backend:** PHP 8.4+ with Slim Framework
+- **Database:** MariaDB/MySQL
+- **Authentication:** Google OAuth 2.0 + JWT + API Tokens
+- **URL Enrichment:** Iframely API
+- **Image Processing:** GD Library with WebP support
+
+### Authentication System
+
+Trail uses a dual authentication system:
+
+1. **API Tokens** (Recommended for API clients)
+   - Persistent, user-owned tokens
+   - Never expire (until regenerated)
+   - Managed from user profile page
+   - Used with `Authorization: Bearer <token>` header
+
+2. **Session-based JWT** (Web browsers)
+   - Automatic session management
+   - Auto-refreshed every 18 hours
+   - Stored in database with PHP sessions
+
+## Internal: Google OAuth 2.0 Flow
+
+This section documents the internal authentication flow for developers working on the Trail backend.
+
+### Authentication Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Google
+    participant TrailAPI
+    participant Database
+    participant PHPSession
     
-    @Serializable
-    data class Share(val url: String) : Screen
+    Client->>Google: Request OAuth token
+    Google->>Client: Return id_token
+    Client->>TrailAPI: POST /api/auth/google {id_token}
+    TrailAPI->>Google: Verify token
+    Google->>TrailAPI: Token valid
+    TrailAPI->>Database: Create/update user + Generate JWT
+    TrailAPI->>Database: Store JWT in sessions table
+    TrailAPI->>PHPSession: Create PHP session
+    TrailAPI->>Client: Set session cookie
+    
+    Client->>TrailAPI: API calls with session cookie
+    TrailAPI->>PHPSession: Verify session
+    PHPSession->>Database: Retrieve JWT from session
+    Database->>TrailAPI: Return JWT
+    TrailAPI->>TrailAPI: Verify JWT validity
+```
+
+### Google OAuth Endpoint
+
+**Endpoint:** `POST /api/auth/google`
+
+**Request:**
+```json
+{
+  "id_token": "GOOGLE_ID_TOKEN_FROM_OAUTH_FLOW"
 }
-
-// Navigate
-navigationViewModel.navigate(Screen.Share(url = "https://example.com"))
-
-// Back stack is directly accessible
-val currentScreen = navigationViewModel.backStack.last()
 ```
 
-See [NAVIGATION_3_MIGRATION.md](NAVIGATION_3_MIGRATION.md) for details.
+**Server Process:**
+1. Verifies Google `id_token` using Google's token verification API
+2. Extracts user information (email, name, photo)
+3. Creates or updates user in `trail_users` table
+4. Generates JWT token with 7-day expiration
+5. Stores JWT in `trail_sessions` table
+6. Creates PHP session
+7. Sets secure, httpOnly session cookie (`trail_session`)
 
-## Developer Mode
-
-Trail includes a developer mode to skip authentication during development:
-
-### Enable Developer Mode
-
-In `src/debug/res/values/config.xml`:
-```xml
-<bool name="skip_auth_in_dev">true</bool>
+**Response:**
+```json
+{
+  "jwt": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "user": {
+    "id": 123,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "nickname": "johndoe",
+    "is_admin": false
+  }
+}
 ```
 
-When enabled:
-- Authentication is automatically bypassed
-- Mock user credentials are used
-- Faster development iteration
-- No need for Google OAuth setup
+**Cookie Set:**
+- Name: `trail_session`
+- Value: 64-character session ID
+- Attributes: `httpOnly`, `secure`, `SameSite=Lax`
+- Expiration: 1 year
 
-### Disable for Production
+### Session & JWT Lifecycle
 
-In `src/main/res/values/config.xml`:
-```xml
-<bool name="skip_auth_in_dev">false</bool>
+**JWT Properties:**
+- **Algorithm:** HS256
+- **Expiration:** 7 days (168 hours)
+- **Storage:** `trail_sessions.jwt_token` column
+- **Refresh:** Auto-refreshed after 18 hours (sliding window)
+
+**Session Properties:**
+- **Session ID:** 64-character random hex string
+- **Storage:** `trail_sessions` table
+- **Expiration:** 1 year
+- **Cookie:** httpOnly, secure, SameSite=Lax
+
+### Authentication Middleware
+
+**File:** `backend/src/Middleware/AuthMiddleware.php`
+
+**Authentication Priority:**
+1. **API Token** (from `Authorization: Bearer` header)
+   - Queries `trail_users.api_token`
+   - No expiration, no refresh
+   - Direct user lookup
+
+2. **Session JWT** (from session cookie)
+   - Validates session cookie
+   - Retrieves JWT from `trail_sessions` table
+   - Verifies JWT signature and expiration
+   - Auto-refreshes if older than 18 hours
+
+**User Attributes Set:**
+- `user_id` - User's database ID
+- `email` - User's email address
+- `is_admin` - Admin flag (boolean)
+
+### Database Schema
+
+**Users Table (`trail_users`):**
+```sql
+CREATE TABLE trail_users (
+  id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  google_id VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  nickname VARCHAR(50) UNIQUE,
+  bio VARCHAR(160),
+  gravatar_hash VARCHAR(64),
+  photo_url TEXT,
+  profile_image_id INT UNSIGNED,
+  header_image_id INT UNSIGNED,
+  api_token VARCHAR(64) UNIQUE NOT NULL,
+  api_token_created_at TIMESTAMP,
+  is_admin BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_email (email),
+  INDEX idx_google_id (google_id),
+  INDEX idx_nickname (nickname),
+  INDEX idx_api_token (api_token)
+);
 ```
 
-## Building the App
+**Sessions Table (`trail_sessions`):**
+```sql
+CREATE TABLE trail_sessions (
+  id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  session_id VARCHAR(64) UNIQUE NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  photo_url TEXT,
+  is_admin BOOLEAN DEFAULT FALSE,
+  jwt_token TEXT,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES trail_users(id) ON DELETE CASCADE,
+  INDEX idx_session_id (session_id),
+  INDEX idx_expires_at (expires_at),
+  INDEX idx_user_id (user_id)
+);
+```
+
+### Security Features
+
+**Token Security:**
+- API tokens: 256 bits of entropy using `random_bytes(32)`
+- JWT secret: 256-bit secret key (configured in `secrets.yml`)
+- Session IDs: 64-character random hex strings
+
+**HTTP Security:**
+- HTTPS enforced (secure cookies)
+- CORS middleware with configurable origins
+- CSRF protection for state-changing operations
+- XSS prevention via content sanitization
+- SQL injection prevention via prepared statements
+
+**Rate Limiting:**
+- Authentication: 5 attempts per 5 minutes
+- General API: 180 requests per minute
+- Hourly limit: 3000 requests per hour
+- Response: HTTP 429 when exceeded
+
+## Development
 
 ### Prerequisites
 
-- Android Studio Ladybug or later
-- JDK 17
-- Android SDK 36
-- Kotlin 2.3.0
+- PHP 8.4+
+- Composer
+- MariaDB/MySQL
+- Google OAuth credentials
 
-### Build Commands
+### Setup
 
-```bash
-# Debug build (with developer mode)
-./gradlew assembleDebug
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   cd backend
+   composer install
+   ```
 
-# Release build
-./gradlew assembleRelease
+3. Configure `backend/secrets.yml`:
+   ```yaml
+   google_oauth:
+     client_id: YOUR_CLIENT_ID
+     client_secret: YOUR_CLIENT_SECRET
+     redirect_uri: https://your-domain.com/admin/callback.php
+   
+   jwt:
+     secret: YOUR_256_BIT_SECRET
+     expiry_hours: 168
+   
+   database:
+     host: localhost
+     port: 3306
+     name: trail_db
+     user: trail_user
+     password: YOUR_PASSWORD
+   ```
 
-# Run tests
-./gradlew test
+4. Run database migrations:
+   ```bash
+   ./sync.sh
+   ```
 
-# Run instrumented tests
-./gradlew connectedAndroidTest
-```
+### Deployment
 
-## Configuration
-
-### Google OAuth Setup
-
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable Google Sign-In API
-3. Create OAuth 2.0 credentials
-4. Add SHA-1 fingerprint of your signing key
-5. Update `google_oauth_2_client` in `config.xml`
-
-### Firebase Setup
-
-1. Create a project in [Firebase Console](https://console.firebase.google.com/)
-2. Add Android app
-3. Download `google-services.json`
-4. Place in `app/` directory
-5. Enable Crashlytics
-
-## Testing
-
-Trail includes comprehensive tests:
-
-### Unit Tests
-
-```bash
-./gradlew test
-```
-
-Tests include:
-- ViewModel logic
-- Repository operations
-- Navigation flows
-- State management
-
-### UI Tests
-
-```bash
-./gradlew connectedAndroidTest
-```
-
-Tests include:
-- Screen rendering
-- User interactions
-- Navigation transitions
-- Error states
-
-## Backend Deployment
-
-Deploy the backend to production via FTP:
+Deploy to production using the sync script:
 
 ```bash
 ./sync.sh
 ```
 
-The script automatically:
-- Installs production dependencies
-- Uploads only necessary files
-- Excludes development/test files
-- **Runs database migrations** from `migrations/` directory
+This script:
+1. Installs Composer dependencies
+2. Uploads files via FTP
+3. Runs pending database migrations
+4. Verifies deployment
 
-### Database Migrations
+## API Documentation
 
-The sync script automatically detects and runs pending SQL migrations:
+Full API documentation is available at: https://trail.services.kibotu.net/api
 
-1. Add new `.sql` files to `migrations/` directory (e.g., `007_add_feature.sql`)
-2. Run `./sync.sh`
-3. Migrations are executed in order and tracked in the database
+### Quick Start
 
-See [MIGRATIONS.md](MIGRATIONS.md) for complete migration guide.
+1. Sign in at https://trail.services.kibotu.net
+2. Get your API token from your profile page
+3. Use the token in API requests:
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment guide.
-
-## Security
-
-The backend is protected with multiple security layers:
-
-- 🔒 `.htaccess` protection on all sensitive directories
-- 🛡️ Comprehensive security headers (XSS, Clickjacking, CSP)
-- 🚫 Bad bot & scanner blocking
-- 🔐 JWT token authentication
-- 🔑 Google OAuth integration
-- ⚡ Rate limiting
-
-**Verify security (local):**
 ```bash
-cd backend
-./verify-security.sh
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+     https://trail.services.kibotu.net/api/entries
 ```
 
-**Test production server:**
-```bash
-./test-security.sh
+## Project Structure
+
 ```
-
-The security test performs 37 checks including:
-- Directory access protection
-- Sensitive file blocking
-- Security headers validation
-- Attack vector protection
-- HTTPS configuration
-
-See [SECURITY.md](SECURITY.md) for complete security documentation.
-
-## Documentation
-
-### Backend & Deployment
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Backend deployment guide (use `./sync.sh`)
-- [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) - Database migration guide
-- [SECURITY.md](SECURITY.md) - Security guide and best practices
-- [TEST_SECURITY_GUIDE.md](TEST_SECURITY_GUIDE.md) - Production security testing guide
-
-### API Documentation
-- [API_EXAMPLES.md](API_EXAMPLES.md) - Complete API usage examples
-- [CUSTOM_DATE_FEATURE_README.md](CUSTOM_DATE_FEATURE_README.md) - Custom date entry creation feature
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical implementation details
-
-### Architecture & Navigation
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture overview and patterns
-- [NAVIGATION_3_MIGRATION.md](NAVIGATION_3_MIGRATION.md) - Navigation 3 migration guide
-- [NAVIGATION_GUIDE.md](NAVIGATION_GUIDE.md) - Navigation patterns and best practices
-
-### Features
-- [PREVIEW_CARD_IMPROVEMENTS.md](PREVIEW_CARD_IMPROVEMENTS.md) - URL preview card implementation
-- [MEDIUM_PREVIEW_IMPROVEMENTS.md](MEDIUM_PREVIEW_IMPROVEMENTS.md) - Medium article preview support
-- [QUICK_START_MEDIUM_PREVIEWS.md](QUICK_START_MEDIUM_PREVIEWS.md) - Quick start guide for Medium previews
-
-### Other
-- [CHANGES.md](CHANGES.md) - Detailed changelog
-
-## Code Style
-
-Trail follows idiomatic Kotlin and Jetpack Compose best practices:
-
-### Principles
-
-- **Idiomatic**: Modern Kotlin patterns (sealed interfaces, data objects)
-- **Pragmatic**: Practical solutions over theoretical purity
-- **Excellent**: High-quality, production-ready code
-- **Concise**: Clear and minimal code
-- **Positive**: Optimistic error handling
-- **Humble**: Documented trade-offs and improvements
-
-### Examples
-
-```kotlin
-// ✅ Idiomatic Kotlin
-sealed interface State {
-    data object Loading : State
-    data class Success(val data: Data) : State
-}
-
-// ✅ Unidirectional Data Flow
-class MyViewModel : ViewModel() {
-    private val _state = MutableStateFlow<State>(State.Loading)
-    val state: StateFlow<State> = _state.asStateFlow()
-    
-    fun onEvent(event: Event) {
-        viewModelScope.launch {
-            // Handle event
-        }
-    }
-}
-
-// ✅ Type-safe Navigation
-navigationViewModel.navigate(Screen.Detail(item))
+trail/
+├── backend/
+│   ├── public/              # Web root
+│   │   ├── index.php        # Main API router
+│   │   ├── api-docs.php     # API documentation
+│   │   ├── js/              # Frontend JavaScript
+│   │   ├── assets/          # CSS, fonts, images
+│   │   └── helpers/         # Helper functions
+│   ├── src/
+│   │   ├── Controllers/     # API controllers
+│   │   ├── Middleware/      # Authentication, CORS, etc.
+│   │   ├── Models/          # Database models
+│   │   ├── Services/        # Business logic (JWT, Google Auth)
+│   │   ├── Config/          # Configuration loader
+│   │   └── Database/        # Database connection
+│   ├── templates/           # HTML templates
+│   ├── vendor/              # Composer dependencies
+│   └── secrets.yml          # Configuration (not in git)
+├── migrations/              # Database migrations
+├── android/                 # Android app
+└── sync.sh                  # Deployment script
 ```
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-1. Follow the existing code style
-2. Write tests for new features
-3. Update documentation
-4. Use conventional commits
-5. Keep PRs focused and small
+This is a private project. For questions or issues, contact the maintainer.
 
 ## License
 
-Copyright 2026 Kibotu
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-## Resources
-
-### Official Documentation
-- [Jetpack Compose](https://developer.android.com/jetpack/compose)
-- [Navigation 3](https://developer.android.com/guide/navigation/navigation-3)
-- [Architecture Guide](https://developer.android.com/topic/architecture)
-- [Kotlin Coroutines](https://kotlinlang.org/docs/coroutines-overview.html)
-
-### Sample Apps
-- [Now in Android](https://github.com/android/nowinandroid) - Google's official sample
-- [Navigation 3 Recipes](https://github.com/android/nav3-recipes) - Navigation 3 examples
-
-## Contact
-
-For questions or feedback:
-- Create an issue on GitHub
-- Email: [your-email@example.com]
-
----
-
-Built with ❤️ using Jetpack Compose and Navigation 3
+Proprietary - All rights reserved.

@@ -293,4 +293,38 @@ class User
             return $this->findById($id);
         }
     }
+
+    /**
+     * Find user by API token
+     */
+    public function findByApiToken(string $apiToken): ?array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE api_token = ?");
+        $stmt->execute([$apiToken]);
+        $user = $stmt->fetch();
+        
+        return $user ?: null;
+    }
+
+    /**
+     * Update user's API token
+     */
+    public function updateApiToken(int $userId, string $apiToken): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET api_token = ?, api_token_created_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$apiToken, $userId]);
+    }
+
+    /**
+     * Generate a cryptographically secure API token
+     */
+    public function generateApiToken(): string
+    {
+        return bin2hex(random_bytes(32)); // 64 hex characters
+    }
 }

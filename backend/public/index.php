@@ -16,6 +16,7 @@ use Trail\Controllers\RssController;
 use Trail\Controllers\ProfileController;
 use Trail\Controllers\ImageUploadController;
 use Trail\Controllers\TokenController;
+use Trail\Controllers\ApiTokenController;
 use Trail\Controllers\ReportController;
 use Trail\Controllers\ClapController;
 use Trail\Controllers\CommentController;
@@ -296,6 +297,10 @@ $app->post('/api/auth/logout', function ($request, $response) use ($config) {
 // Profile routes (authenticated)
 $app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
 $app->put('/api/profile', [ProfileController::class, 'updateProfile'])->add(new AuthMiddleware($config));
+
+// API Token routes (authenticated)
+$app->get('/api/token', [\Trail\Controllers\ApiTokenController::class, 'getToken'])->add(new AuthMiddleware($config));
+$app->post('/api/token/regenerate', [\Trail\Controllers\ApiTokenController::class, 'regenerateToken'])->add(new AuthMiddleware($config));
 
 // Public profile route
 $app->get('/api/users/{nickname}', [ProfileController::class, 'getPublicProfile']);
