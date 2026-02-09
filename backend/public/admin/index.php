@@ -231,9 +231,5 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script src="/js/admin-dashboard.js"></script>
-    <script>
-        // Initialize admin dashboard with JWT token
-        initAdminDashboard('<?= htmlspecialchars($jwtToken ?? '', ENT_QUOTES, 'UTF-8') ?>');
-    </script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 /**
  * Admin Dashboard JavaScript
  * Handles entry loading, editing, deletion, and admin operations
+ * 
+ * Authentication: All requests use session cookies (credentials: 'same-origin')
+ * No JWT tokens are sent in Authorization headers from the admin dashboard.
  */
-
-// JWT token for admin operations (will be set by the page)
-let jwtToken = '';
 
 // Load max text length from config
 let MAX_TEXT_LENGTH = 140; // default
@@ -21,9 +21,7 @@ const pageSize = 20;
 /**
  * Initialize admin dashboard
  */
-function initAdminDashboard(token) {
-    jwtToken = token;
-    
+function initAdminDashboard() {
     // Load initial entries
     loadEntries();
 
@@ -55,6 +53,14 @@ function initAdminDashboard(token) {
             allMenus.forEach(m => m.classList.remove('active'));
         }
     });
+}
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminDashboard);
+} else {
+    // DOM is already ready
+    initAdminDashboard();
 }
 
 /**
@@ -214,19 +220,13 @@ async function saveEdit(entryId) {
         return;
     }
 
-    const token = jwtToken || localStorage.getItem('trail_jwt');
-    if (!token) {
-        alert('You must be logged in to edit entries');
-        return;
-    }
-
     try {
         const response = await fetch(`/api/admin/entries/${entryId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'same-origin', // Use session cookie for authentication
             body: JSON.stringify({ text: newText })
         });
 
@@ -278,18 +278,10 @@ async function deleteEntry(id) {
         return;
     }
 
-    const token = jwtToken || localStorage.getItem('trail_jwt');
-    if (!token) {
-        alert('Authentication token not found. Please refresh the page and log in again.');
-        return;
-    }
-
     try {
         const response = await fetch(`/api/admin/entries/${id}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + token
-            }
+            credentials: 'same-origin' // Use session cookie for authentication
         });
 
         if (response.ok) {
@@ -319,11 +311,6 @@ async function deleteEntry(id) {
  * Clear temporary cache files
  */
 async function clearCache() {
-    if (!jwtToken) {
-        alert('Authentication token not found. Please refresh the page and log in again.');
-        return;
-    }
-    
     if (!confirm('Clear all temporary upload cache files older than 1 hour?')) {
         return;
     }
@@ -331,9 +318,7 @@ async function clearCache() {
     try {
         const response = await fetch('/api/admin/cache/clear', {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + jwtToken
-            }
+            credentials: 'same-origin' // Use session cookie for authentication
         });
         
         const data = await response.json();
@@ -354,11 +339,6 @@ async function clearCache() {
  * Prune orphaned images
  */
 async function pruneImages() {
-    if (!jwtToken) {
-        alert('Authentication token not found. Please refresh the page and log in again.');
-        return;
-    }
-    
     if (!confirm('Prune orphaned images?\n\nThis will:\n• Delete orphaned image files not referenced by entries, comments, or users\n• Remove database records for images where files no longer exist\n\nThis action cannot be undone.')) {
         return;
     }
@@ -371,9 +351,7 @@ async function pruneImages() {
     try {
         const response = await fetch('/api/admin/images/prune', {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + jwtToken
-            }
+            credentials: 'same-origin' // Use session cookie for authentication
         });
         
         const data = await response.json();
@@ -396,4 +374,12 @@ async function pruneImages() {
         button.disabled = false;
         button.innerHTML = originalHTML;
     }
+}
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminDashboard);
+} else {
+    // DOM is already ready
+    initAdminDashboard();
 }
