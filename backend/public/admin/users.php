@@ -70,6 +70,7 @@ try {
     // Add avatar URLs and statistics
     $entryModel = new Entry($db);
     $commentModel = new Comment($db);
+    $jwtService = new JwtService($config);
     
     foreach ($users as &$user) {
         $user['avatar_url'] = getUserAvatarFromData($user, 96);
@@ -79,6 +80,40 @@ try {
         
         $latestEntry = $entryModel->getLatestByUser($user['id']);
         $user['last_entry_at'] = $latestEntry ? $latestEntry['created_at'] : null;
+        
+        // Get active session info for this user
+        $stmt = $db->prepare("
+            SELECT jwt_token, expires_at, created_at 
+            FROM trail_sessions 
+            WHERE user_id = ? AND expires_at > NOW() 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        ");
+        $stmt->execute([$user['id']]);
+        $userSession = $stmt->fetch();
+        
+        $user['session'] = null;
+        if ($userSession && !empty($userSession['jwt_token'])) {
+            $payload = $jwtService->verify($userSession['jwt_token']);
+            
+            if ($payload && isset($payload['iat']) && isset($payload['exp'])) {
+                $now = time();
+                $jwtAge = $now - $payload['iat'];
+                $jwtExpiry = $payload['exp'] - $now;
+                $timeUntilRefresh = max(0, (18 * 3600) - $jwtAge);
+                
+                $user['session'] = [
+                    'jwt_age_seconds' => $jwtAge,
+                    'jwt_age_hours' => round($jwtAge / 3600, 1),
+                    'jwt_expiry_seconds' => $jwtExpiry,
+                    'jwt_expiry_hours' => round($jwtExpiry / 3600, 1),
+                    'time_until_refresh_seconds' => $timeUntilRefresh,
+                    'time_until_refresh_hours' => round($timeUntilRefresh / 3600, 1),
+                    'session_expires_at' => $userSession['expires_at'],
+                    'is_valid' => $jwtExpiry > 0
+                ];
+            }
+        }
     }
     unset($user); // Break the reference to avoid issues in subsequent loops
 
@@ -244,6 +279,52 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                                 <div class="stat-label">Last Entry</div>
                             </div>
                         </div>
+
+                        <?php if ($user['session']): ?>
+                        <div class="session-info">
+                            <div class="session-header">
+                                <i class="fa-solid fa-clock"></i>
+                                <span>Active Session</span>
+                            </div>
+                            <div class="session-stats">
+                                <div class="session-stat">
+                                    <div class="session-label">JWT Age</div>
+                                    <div class="session-value <?= $user['session']['jwt_age_hours'] > 18 ? 'warning' : '' ?>">
+                                        <?= $user['session']['jwt_age_hours'] ?>h
+                                    </div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-label">Until Refresh</div>
+                                    <div class="session-value <?= $user['session']['time_until_refresh_hours'] <= 0 ? 'warning' : '' ?>">
+                                        <?php if ($user['session']['time_until_refresh_hours'] > 0): ?>
+                                            <?= $user['session']['time_until_refresh_hours'] ?>h
+                                        <?php else: ?>
+                                            <span style="color: var(--warning);">Will refresh</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-label">JWT Expires</div>
+                                    <div class="session-value <?= $user['session']['jwt_expiry_hours'] < 24 ? 'error' : '' ?>">
+                                        <?= $user['session']['jwt_expiry_hours'] ?>h
+                                    </div>
+                                </div>
+                                <div class="session-stat">
+                                    <div class="session-label">Session Expires</div>
+                                    <div class="session-value" style="font-size: 0.7rem;">
+                                        <?= date('M j, Y', strtotime($user['session']['session_expires_at'])) ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="session-info inactive">
+                            <div class="session-header">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                <span>No Active Session</span>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <div class="user-actions">
                             <button class="action-button delete" onclick="deleteUser(<?= $user['id'] ?>)">

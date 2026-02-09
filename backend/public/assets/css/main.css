@@ -3161,6 +3161,66 @@ main {
     margin-bottom: 1rem;
 }
 
+.page-admin-users .session-info {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.page-admin-users .session-info.inactive {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--error);
+}
+
+.page-admin-users .session-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.page-admin-users .session-info.inactive .session-header {
+    color: var(--error);
+    margin-bottom: 0;
+}
+
+.page-admin-users .session-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.page-admin-users .session-stat {
+    text-align: center;
+}
+
+.page-admin-users .session-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.page-admin-users .session-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.page-admin-users .session-value.warning {
+    color: var(--warning);
+}
+
+.page-admin-users .session-value.error {
+    color: var(--error);
+}
+
 .page-admin-users .stat-item {
     text-align: center;
     min-width: 0;
@@ -3915,6 +3975,19 @@ main {
 
     .page-admin-users .stat-label {
         font-size: 0.65rem;
+    }
+
+    .page-admin-users .session-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .page-admin-users .session-value {
+        font-size: 0.9rem;
+    }
+
+    .page-admin-users .session-label {
+        font-size: 0.6rem;
     }
 
     .page-admin-users .user-actions {
