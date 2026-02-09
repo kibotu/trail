@@ -33,6 +33,16 @@ class CommentController
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $maxTextLength = Config::getMaxTextLength($config);
+        $maxImagesPerEntry = Config::getMaxImagesPerEntry($config);
+
+        // Validation: Check image count limit
+        if (is_array($imageIds) && count($imageIds) > $maxImagesPerEntry) {
+            $response->getBody()->write(json_encode([
+                'error' => "Maximum {$maxImagesPerEntry} images per entry allowed",
+                'max_images' => $maxImagesPerEntry
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
 
         $sanitizedText = '';
         
@@ -255,6 +265,16 @@ class CommentController
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $maxTextLength = Config::getMaxTextLength($config);
+        $maxImagesPerEntry = Config::getMaxImagesPerEntry($config);
+
+        // Validation: Check image count limit
+        if (is_array($imageIds) && count($imageIds) > $maxImagesPerEntry) {
+            $response->getBody()->write(json_encode([
+                'error' => "Maximum {$maxImagesPerEntry} images per entry allowed",
+                'max_images' => $maxImagesPerEntry
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
 
         // Validation: Check length before sanitization
         if (mb_strlen($text) > $maxTextLength) {

@@ -34,7 +34,8 @@ async function loadConfig() {
         
         // Return default config as fallback
         const defaultConfig = {
-            max_text_length: 140
+            max_text_length: 140,
+            max_images_per_entry: 3
         };
         
         window.appConfig = defaultConfig;

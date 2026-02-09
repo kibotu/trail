@@ -34,4 +34,15 @@ class Config
     {
         return (int) ($config['app']['max_text_length'] ?? 140);
     }
+
+    /**
+     * Get the maximum number of images per entry/comment from config
+     * 
+     * @param array $config Configuration array
+     * @return int Maximum images per entry (defaults to 3 if not set)
+     */
+    public static function getMaxImagesPerEntry(array $config): int
+    {
+        return (int) ($config['app']['max_images_per_entry'] ?? 3);
+    }
 }

@@ -199,8 +199,13 @@ class ImageUploader {
 
 /**
  * Create image upload UI component
+ * @param {string} imageType - Type of image (e.g., 'post', 'profile')
+ * @param {string} containerId - DOM container ID
+ * @param {Function} onUploadComplete - Callback when upload completes
+ * @param {Object} options - Additional options
+ * @param {number} options.maxImages - Maximum number of images allowed (defaults to config value)
  */
-function createImageUploadUI(imageType, containerId, onUploadComplete) {
+function createImageUploadUI(imageType, containerId, onUploadComplete, options = {}) {
     const container = document.getElementById(containerId);
     if (!container) {
         console.error('Container not found:', containerId);
@@ -349,6 +354,18 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
     
     // Store uploaded images
     const uploadedImages = [];
+    const maxImages = options.maxImages || getConfigSync('max_images_per_entry', 3);
+    
+    // Function to update button state based on image count
+    function updateButtonState() {
+        if (uploadedImages.length >= maxImages) {
+            button.disabled = true;
+            button.title = `Maximum ${maxImages} images allowed`;
+        } else {
+            button.disabled = false;
+            button.title = 'Upload image';
+        }
+    }
     
     // Function to add image preview
     function addImagePreview(imageUrl, imageId) {
@@ -373,6 +390,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
             if (preview.children.length === 0) {
                 preview.style.display = 'none';
             }
+            updateButtonState();
             // Notify about removal
             if (onUploadComplete) {
                 onUploadComplete({ removed: true, image_id: imageId, all_images: uploadedImages });
@@ -394,7 +412,6 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
         },
         (result) => {
             progressContainer.style.display = 'none';
-            button.disabled = false;
             button.innerHTML = '<i class="fa-solid fa-image"></i>';
             
             // Add to uploaded images array
@@ -403,14 +420,16 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
             // Add preview of uploaded image
             addImagePreview(result.url, result.image_id);
             
+            updateButtonState();
+            
             if (onUploadComplete) {
                 onUploadComplete(result);
             }
         },
         (error) => {
             progressContainer.style.display = 'none';
-            button.disabled = false;
             button.innerHTML = '<i class="fa-solid fa-image"></i>';
+            updateButtonState();
             errorContainer.textContent = error;
             errorContainer.style.display = 'block';
         }
@@ -427,6 +446,14 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
     input.addEventListener('change', async () => {
         const file = input.files[0];
         if (!file) return;
+        
+        // Check image limit before uploading
+        if (uploadedImages.length >= maxImages) {
+            errorContainer.textContent = `Maximum ${maxImages} images allowed`;
+            errorContainer.style.display = 'block';
+            input.value = '';
+            return;
+        }
         
         // Hide error
         errorContainer.style.display = 'none';
@@ -458,6 +485,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete) {
             preview.innerHTML = '';
             preview.style.display = 'none';
             uploadedImages.length = 0;
+            updateButtonState();
         },
         elements: {
             input,

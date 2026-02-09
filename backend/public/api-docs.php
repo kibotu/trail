@@ -26,6 +26,7 @@ $baseUrl = $protocol . '://' . $host;
 $rateLimitPerMinute = $config['security']['rate_limit']['requests_per_minute'] ?? 180;
 $rateLimitPerHour = $config['security']['rate_limit']['requests_per_hour'] ?? 3000;
 $maxTextLength = $config['app']['max_text_length'] ?? 140;
+$maxImagesPerEntry = $config['app']['max_images_per_entry'] ?? 3;
 
 // Define all API endpoints with enhanced metadata
 $endpoints = [
@@ -43,7 +44,7 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/config',
-        'description' => 'Get public configuration values (e.g., max_text_length)',
+        'description' => 'Get public configuration values (e.g., max_text_length, max_images_per_entry)',
         'auth' => false,
         'auth_level' => 'public',
         'group' => 'public',
@@ -135,7 +136,7 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/entries',
-        'description' => 'Create a new entry - Max 140 characters',
+        'description' => "Create a new entry - Max {$maxTextLength} characters, max {$maxImagesPerEntry} images",
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'core',
@@ -648,7 +649,7 @@ $groups = [
                             <i class="fa-solid fa-image capability-icon"></i>
                             <div>
                                 <strong>Media Upload</strong>
-                                <div style="font-size: 0.875rem; color: #6b7280;">20MB images with WebP optimization</div>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Up to <?= $maxImagesPerEntry ?> images (20MB each, WebP optimized)</div>
                             </div>
                         </div>
                         <div class="capability-item">
@@ -916,7 +917,7 @@ curl -X POST \
                         <ul>
                             <li><strong>Text:</strong> UTF-8 text with emoji support</li>
                             <li><strong>URLs:</strong> Automatic preview enrichment via Iframely</li>
-                            <li><strong>Media:</strong> Optional image attachments (up to 20MB)</li>
+                            <li><strong>Media:</strong> Optional image attachments (up to <?= $maxImagesPerEntry ?> images, 20MB each)</li>
                             <li><strong>Timestamps:</strong> Custom creation dates for imports</li>
                             <li><strong>Hash IDs:</strong> Secure, obfuscated entry identifiers</li>
                         </ul>
@@ -1067,7 +1068,7 @@ curl -X POST \
   "image_type": "post"
 }]</code>
                         </div>
-                        <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image.</p>
+                        <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image. Maximum <?= $maxImagesPerEntry ?> images per entry.</p>
                     </div>
                     
                     <div class="feature-card">
@@ -1203,6 +1204,11 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                                 <td>Comment text</td>
                                 <td><?= $maxTextLength ?> characters</td>
                                 <td>UTF-8, emoji supported</td>
+                            </tr>
+                            <tr>
+                                <td>Images per entry</td>
+                                <td><?= $maxImagesPerEntry ?> max</td>
+                                <td>Per entry or comment</td>
                             </tr>
                             <tr>
                                 <td>Image size</td>

@@ -260,8 +260,10 @@ $app->get('/api/health', function ($request, $response) {
 // Config endpoint - exposes public configuration values
 $app->get('/api/config', function ($request, $response) use ($config) {
     $maxTextLength = \Trail\Config\Config::getMaxTextLength($config);
+    $maxImagesPerEntry = \Trail\Config\Config::getMaxImagesPerEntry($config);
     $response->getBody()->write(json_encode([
-        'max_text_length' => $maxTextLength
+        'max_text_length' => $maxTextLength,
+        'max_images_per_entry' => $maxImagesPerEntry
     ]));
     return $response->withHeader('Content-Type', 'application/json');
 });

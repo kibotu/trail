@@ -107,31 +107,29 @@
 
         // Initialize post image uploader
         window.postImageIds = [];
-        window.addEventListener('DOMContentLoaded', () => {
-            window.postImageUploader = createImageUploadUI(
-                'post',
-                'post-image-upload',
-                (result) => {
-                    if (result.removed) {
-                        const index = window.postImageIds.indexOf(result.image_id);
-                        if (index > -1) {
-                            window.postImageIds.splice(index, 1);
-                        }
-                    } else {
-                        if (!window.postImageIds) {
-                            window.postImageIds = [];
-                        }
-                        window.postImageIds.push(result.image_id);
+        window.postImageUploader = createImageUploadUI(
+            'post',
+            'post-image-upload',
+            (result) => {
+                if (result.removed) {
+                    const index = window.postImageIds.indexOf(result.image_id);
+                    if (index > -1) {
+                        window.postImageIds.splice(index, 1);
                     }
-                    
-                    // Trigger character counter update
-                    const postText = document.getElementById('postText');
-                    if (postText) {
-                        postText.dispatchEvent(new Event('input'));
+                } else {
+                    if (!window.postImageIds) {
+                        window.postImageIds = [];
                     }
+                    window.postImageIds.push(result.image_id);
                 }
-            );
-        });
+                
+                // Trigger character counter update
+                const postText = document.getElementById('postText');
+                if (postText) {
+                    postText.dispatchEvent(new Event('input'));
+                }
+            }
+        );
     }
 
     // Setup infinite scroll for entries

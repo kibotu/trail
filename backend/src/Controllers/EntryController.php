@@ -34,6 +34,7 @@ class EntryController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $maxTextLength = Config::getMaxTextLength($config);
+        $maxImagesPerEntry = Config::getMaxImagesPerEntry($config);
         
         // Check if raw_upload requires admin privileges
         if ($rawUpload && !$isAdmin) {
@@ -42,6 +43,17 @@ class EntryController
                 'code' => 'ADMIN_REQUIRED'
             ]));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Validate total image count before processing
+        $existingImageCount = is_array($imageIds) ? count($imageIds) : 0;
+        $incomingMediaCount = is_array($media) ? count($media) : 0;
+        if (($existingImageCount + $incomingMediaCount) > $maxImagesPerEntry) {
+            $response->getBody()->write(json_encode([
+                'error' => "Maximum {$maxImagesPerEntry} images per entry allowed",
+                'max_images' => $maxImagesPerEntry
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
         // Process inline media uploads if provided
@@ -132,6 +144,15 @@ class EntryController
         // Merge uploaded image IDs with provided image IDs
         if (!empty($uploadedImageIds)) {
             $imageIds = array_merge($imageIds ?? [], $uploadedImageIds);
+        }
+
+        // Final validation: enforce image limit after merge
+        if (is_array($imageIds) && count($imageIds) > $maxImagesPerEntry) {
+            $response->getBody()->write(json_encode([
+                'error' => "Maximum {$maxImagesPerEntry} images per entry allowed",
+                'max_images' => $maxImagesPerEntry
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
         // Validation: Either text or images must be provided
@@ -445,6 +466,16 @@ class EntryController
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $maxTextLength = Config::getMaxTextLength($config);
+        $maxImagesPerEntry = Config::getMaxImagesPerEntry($config);
+
+        // Validation: Check image count limit
+        if (is_array($imageIds) && count($imageIds) > $maxImagesPerEntry) {
+            $response->getBody()->write(json_encode([
+                'error' => "Maximum {$maxImagesPerEntry} images per entry allowed",
+                'max_images' => $maxImagesPerEntry
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
 
         // Validation: Check length before sanitization
         if (mb_strlen($text) > $maxTextLength) {
