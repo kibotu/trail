@@ -42,90 +42,91 @@
     </header>
 
     <div class="container">
-        <div class="profile-card">
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>Loading profile...</p>
-            </div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading profile...</p>
+        </div>
 
-            <div id="profile-content" style="display: none;">
-                <div class="profile-header">
-                    <img id="profile-avatar" class="profile-avatar" src="" alt="Profile">
-                    <div class="profile-info">
-                        <h1 id="profile-name"></h1>
-                        <p class="email" id="profile-email"></p>
+        <div id="profile-content" class="profile-layout" style="display: none;">
+            <!-- Identity Sidebar -->
+            <aside class="profile-sidebar">
+                <div class="identity-card">
+                    <div class="identity-avatar-container">
+                        <img id="identity-avatar" class="identity-avatar" src="" alt="Profile">
                     </div>
+                    <h1 id="identity-name" class="identity-name"></h1>
+                    <a id="identity-nickname" class="identity-nickname" href="#" style="display: none;">
+                        <i class="fa-solid fa-at"></i>
+                        <span id="identity-nickname-text"></span>
+                    </a>
+                    <p id="identity-email" class="identity-email"></p>
+                    <p id="identity-member-since" class="identity-member-since"></p>
                 </div>
+            </aside>
 
-                <div id="alert-container"></div>
-
-                <form id="profile-form">
-                    <div class="form-group">
-                        <label for="nickname">Nickname</label>
-                        <input 
-                            type="text" 
-                            id="nickname" 
-                            name="nickname" 
-                            placeholder="Enter your nickname"
-                            pattern="[a-zA-Z0-9_\-]{3,50}"
-                            minlength="3"
-                            maxlength="50"
-                            required
-                        >
-                        <p class="form-hint">3-50 characters. Letters, numbers, underscore, and hyphen only.</p>
+            <!-- Main Content -->
+            <main class="profile-main">
+                <!-- Account Settings Section -->
+                <section class="profile-section">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-user-pen"></i>
+                        <h2>Account Settings</h2>
                     </div>
 
-                    <div class="form-group">
-                        <label for="bio">Bio</label>
-                        <textarea 
-                            id="bio" 
-                            name="bio" 
-                            placeholder="Tell us about yourself"
-                            maxlength="160"
-                            rows="3"
-                        ></textarea>
-                        <p class="form-hint">
-                            <span id="bio-counter">0</span>/160 characters
-                        </p>
+                    <form id="profile-form">
+                        <div class="form-group">
+                            <label for="nickname">Nickname</label>
+                            <div class="input-with-validation">
+                                <input 
+                                    type="text" 
+                                    id="nickname" 
+                                    name="nickname" 
+                                    placeholder="Enter your nickname"
+                                    pattern="[a-zA-Z0-9_\-]{3,50}"
+                                    minlength="3"
+                                    maxlength="50"
+                                    required
+                                >
+                                <span id="nickname-validation" class="validation-icon" style="display: none;"></span>
+                            </div>
+                            <p class="form-hint">3-50 characters. Letters, numbers, underscore, and hyphen only.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bio">Bio</label>
+                            <textarea 
+                                id="bio" 
+                                name="bio" 
+                                placeholder="Tell us about yourself"
+                                maxlength="160"
+                                rows="5"
+                            ></textarea>
+                            <div class="bio-counter-bar">
+                                <div id="bio-counter-fill" class="bio-counter-fill"></div>
+                            </div>
+                            <div class="bio-counter-text">
+                                <span class="form-hint">
+                                    <span id="bio-counter">0</span>/160 characters • Auto-saved
+                                </span>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Developer Tools Section -->
+                <section class="profile-section">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-code"></i>
+                        <h2>Developer Tools</h2>
                     </div>
 
-                    <div class="form-group" id="profile-link-group" style="display: none;">
-                        <label>Your Profile URL</label>
-                        <a id="profile-url" class="profile-link" href="#" target="_blank">
-                            <i class="fa-solid fa-link"></i>
-                            <span id="profile-url-text"></span>
-                        </a>
-                        <p class="form-hint">Visit your profile to change your avatar and header image.</p>
-                    </div>
-
-                    <div class="button-group">
-                        <button type="submit" class="btn btn-primary" id="save-btn">
-                            Save Changes
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-
-                <!-- API Token Section -->
-                <div class="api-token-section">
-                    <div class="api-token-header">
-                        <h3>API Token</h3>
-                        <button type="button" class="btn btn-icon" id="regenerate-token-btn" 
-                                title="Regenerate API token">
-                            <i class="fa-solid fa-rotate"></i>
-                        </button>
-                    </div>
-                    <div class="api-token-content">
-                        <p class="api-token-description">
-                            Use this token to authenticate API requests. Include it in the 
-                            <code>Authorization: Bearer &lt;token&gt;</code> header.
-                        </p>
-                        <div class="api-token-display">
-                            <code id="api-token-value" class="api-token-value">
+                    <div class="token-display">
+                        <div class="token-value-row">
+                            <code id="api-token-value" class="token-value">
                                 ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
                             </code>
+                        </div>
+                        <div class="token-actions">
                             <button type="button" class="btn btn-icon" id="toggle-token-btn" 
                                     title="Show/hide token">
                                 <i class="fa-solid fa-eye"></i>
@@ -134,27 +135,44 @@
                                     title="Copy to clipboard">
                                 <i class="fa-solid fa-copy"></i>
                             </button>
+                            <button type="button" class="btn btn-icon" id="regenerate-token-btn" 
+                                    title="Regenerate API token">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
                         </div>
-                        <p class="api-token-meta">
+                        <p class="token-meta">
                             Created: <span id="api-token-created">Loading...</span>
                         </p>
                     </div>
-                </div>
 
-                <!-- Muted Users Section -->
-                <div class="muted-users-section">
-                    <div class="muted-users-header">
-                        <h3>Muted Users</h3>
-                        <span class="muted-count" id="muted-count">0</span>
+                    <div class="token-hint">
+                        <strong>How to use:</strong> Include your API token in the Authorization header
+                        <code>curl -H "Authorization: Bearer YOUR_TOKEN" https://trail.services.kibotu.net/api/profile</code>
                     </div>
+
+                    <a href="/api" class="api-docs-link">
+                        <i class="fa-solid fa-book"></i>
+                        <span>View Full API Documentation</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </section>
+
+                <!-- Privacy Section -->
+                <section class="profile-section">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <h2>Privacy</h2>
+                        <span class="section-badge" id="muted-count">0</span>
+                    </div>
+
                     <div id="muted-users-list" class="muted-users-list">
                         <div class="loading">
                             <div class="spinner"></div>
                             <p>Loading muted users...</p>
                         </div>
                     </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </div>
     </div>
 

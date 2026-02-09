@@ -10,23 +10,26 @@ class ProfileManager {
         this.apiBase = options.apiBase || '/api';
         this.currentProfile = null;
         this.mutedUsersData = [];
+        this.initialValues = {};
+        this.bioSaveTimeout = null;
         
         // Element IDs
         this.elements = {
             loading: options.loadingId || 'loading',
             profileContent: options.profileContentId || 'profile-content',
-            profileName: options.profileNameId || 'profile-name',
-            profileEmail: options.profileEmailId || 'profile-email',
             nickname: options.nicknameId || 'nickname',
             bio: options.bioId || 'bio',
             bioCounter: options.bioCounterId || 'bio-counter',
-            profileAvatar: options.profileAvatarId || 'profile-avatar',
-            profileUrl: options.profileUrlId || 'profile-url',
-            profileUrlText: options.profileUrlTextId || 'profile-url-text',
-            profileLinkGroup: options.profileLinkGroupId || 'profile-link-group',
-            alertContainer: options.alertContainerId || 'alert-container',
+            bioCounterFill: options.bioCounterFillId || 'bio-counter-fill',
             mutedCount: options.mutedCountId || 'muted-count',
-            mutedUsersList: options.mutedUsersListId || 'muted-users-list'
+            mutedUsersList: options.mutedUsersListId || 'muted-users-list',
+            // Sidebar elements
+            identityAvatar: 'identity-avatar',
+            identityName: 'identity-name',
+            identityNickname: 'identity-nickname',
+            identityNicknameText: 'identity-nickname-text',
+            identityEmail: 'identity-email',
+            identityMemberSince: 'identity-member-since'
         };
     }
 
@@ -65,19 +68,14 @@ class ProfileManager {
      * @param {Object} profile - Profile data
      */
     displayProfile(profile) {
-        const nameEl = document.getElementById(this.elements.profileName);
-        const emailEl = document.getElementById(this.elements.profileEmail);
+        // Populate sidebar
+        this.displaySidebar(profile);
+        
+        // Populate form fields
         const nicknameEl = document.getElementById(this.elements.nickname);
         const bioEl = document.getElementById(this.elements.bio);
-        const bioCounterEl = document.getElementById(this.elements.bioCounter);
-        const avatarEl = document.getElementById(this.elements.profileAvatar);
-        const urlEl = document.getElementById(this.elements.profileUrl);
-        const urlTextEl = document.getElementById(this.elements.profileUrlText);
-        const linkGroupEl = document.getElementById(this.elements.profileLinkGroup);
         const rssLinkEl = document.getElementById('profileRssLink');
 
-        if (nameEl) nameEl.textContent = profile.name || 'User';
-        if (emailEl) emailEl.textContent = profile.email;
         if (nicknameEl) nicknameEl.value = profile.nickname || '';
         
         // Set bio
@@ -86,21 +84,11 @@ class ProfileManager {
             this.updateBioCounter();
         }
 
-        // Set avatar
-        if (avatarEl) {
-            const avatarUrl = profile.profile_image_url ||
-                profile.photo_url || 
-                `https://www.gravatar.com/avatar/${profile.gravatar_hash}?s=160&d=mp`;
-            avatarEl.src = avatarUrl;
-        }
-
-        // Show profile link if nickname exists
-        if (profile.nickname && urlEl && urlTextEl && linkGroupEl) {
-            const profileUrl = `${window.location.origin}/@${profile.nickname}`;
-            urlEl.href = profileUrl;
-            urlTextEl.textContent = `@${profile.nickname}`;
-            linkGroupEl.style.display = 'block';
-        }
+        // Store initial values for dirty tracking
+        this.initialValues = {
+            nickname: profile.nickname || '',
+            bio: profile.bio || ''
+        };
 
         // Show RSS link if nickname exists
         if (profile.nickname && rssLinkEl) {
@@ -110,6 +98,59 @@ class ProfileManager {
         } else if (rssLinkEl) {
             rssLinkEl.style.display = 'none';
         }
+    }
+
+    /**
+     * Display profile data in the sidebar
+     * @param {Object} profile - Profile data
+     */
+    displaySidebar(profile) {
+        const avatarEl = document.getElementById(this.elements.identityAvatar);
+        const nameEl = document.getElementById(this.elements.identityName);
+        const nicknameEl = document.getElementById(this.elements.identityNickname);
+        const nicknameTextEl = document.getElementById(this.elements.identityNicknameText);
+        const emailEl = document.getElementById(this.elements.identityEmail);
+        const memberSinceEl = document.getElementById(this.elements.identityMemberSince);
+        const viewProfileEl = document.getElementById(this.elements.viewProfileLink);
+
+        // Set avatar
+        if (avatarEl) {
+            const avatarUrl = profile.profile_image_url ||
+                profile.photo_url || 
+                `https://www.gravatar.com/avatar/${profile.gravatar_hash}?s=240&d=mp`;
+            avatarEl.src = avatarUrl;
+        }
+
+        // Set name
+        if (nameEl) nameEl.textContent = profile.name || 'User';
+
+        // Set nickname badge
+        if (profile.nickname && nicknameEl && nicknameTextEl) {
+            const profileUrl = `${window.location.origin}/@${profile.nickname}`;
+            nicknameEl.href = profileUrl;
+            nicknameTextEl.textContent = profile.nickname;
+            nicknameEl.style.display = 'inline-flex';
+        }
+
+        // Set email
+        if (emailEl) emailEl.textContent = profile.email;
+
+        // Set member since
+        if (memberSinceEl && profile.created_at) {
+            memberSinceEl.textContent = `Member since ${this.formatDate(profile.created_at)}`;
+        }
+
+    }
+
+    /**
+     * Format date for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date
+     */
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const options = { year: 'numeric', month: 'long' };
+        return date.toLocaleDateString('en-US', options);
     }
 
     /**
@@ -136,7 +177,11 @@ class ProfileManager {
 
             this.currentProfile = result;
             this.displayProfile(result);
-            this.showAlert('Profile updated successfully!', 'success');
+            
+            // Only show alert for nickname changes (bio auto-saves silently)
+            if (data.nickname && data.nickname !== this.initialValues.nickname) {
+                this.showAlert('Nickname updated successfully!', 'success');
+            }
             return result;
 
         } catch (error) {
@@ -147,24 +192,143 @@ class ProfileManager {
     }
 
     /**
-     * Update bio character counter
+     * Update bio character counter and visual bar
      */
     updateBioCounter() {
         const bioEl = document.getElementById(this.elements.bio);
         const counterEl = document.getElementById(this.elements.bioCounter);
+        const fillEl = document.getElementById(this.elements.bioCounterFill);
         
         if (bioEl && counterEl) {
             const length = bioEl.value.length;
+            const percentage = (length / 160) * 100;
+            
             counterEl.textContent = length;
             
-            // Change color if approaching or exceeding limit
-            if (length > 160) {
-                counterEl.style.color = 'var(--error)';
-            } else if (length > 140) {
-                counterEl.style.color = 'var(--warning, orange)';
-            } else {
-                counterEl.style.color = '';
+            // Update visual bar
+            if (fillEl) {
+                fillEl.style.width = `${Math.min(100, percentage)}%`;
+                
+                // Change color based on usage
+                fillEl.classList.remove('warning', 'error');
+                if (length > 160) {
+                    fillEl.classList.add('error');
+                    counterEl.style.color = 'var(--error)';
+                } else if (length > 140) {
+                    fillEl.classList.add('warning');
+                    counterEl.style.color = 'var(--warning)';
+                } else {
+                    counterEl.style.color = '';
+                }
             }
+        }
+    }
+
+    /**
+     * Handle nickname change on blur
+     */
+    async handleNicknameBlur() {
+        const nicknameEl = document.getElementById(this.elements.nickname);
+        if (!nicknameEl) return;
+        
+        const currentNickname = nicknameEl.value.trim();
+        
+        // Don't save if nickname hasn't changed
+        if (currentNickname === this.initialValues.nickname) return;
+        
+        // Validate nickname
+        const validation = this.validateNickname(currentNickname);
+        if (!validation.valid) {
+            this.showAlert(validation.error, 'error');
+            // Revert to original value
+            nicknameEl.value = this.initialValues.nickname;
+            return;
+        }
+        
+        // Confirm nickname change
+        const confirmed = confirm(
+            `Change your nickname to "${currentNickname}"?\n\n` +
+            'This will update your profile URL and how others see you. ' +
+            'Are you sure you want to continue?'
+        );
+        
+        if (!confirmed) {
+            // Revert to original value
+            nicknameEl.value = this.initialValues.nickname;
+            return;
+        }
+        
+        // Disable input during save
+        nicknameEl.disabled = true;
+        
+        try {
+            const bioEl = document.getElementById(this.elements.bio);
+            const currentBio = bioEl ? bioEl.value.trim() : '';
+            
+            await this.updateProfile({ 
+                nickname: currentNickname, 
+                bio: currentBio 
+            });
+            
+            // Update initial value after successful save
+            this.initialValues.nickname = currentNickname;
+        } catch (error) {
+            // Error already handled by updateProfile
+            // Revert to original value on error
+            nicknameEl.value = this.initialValues.nickname;
+        } finally {
+            nicknameEl.disabled = false;
+        }
+    }
+
+    /**
+     * Auto-save bio after user stops typing (debounced)
+     */
+    autoSaveBio() {
+        const bioEl = document.getElementById(this.elements.bio);
+        if (!bioEl) return;
+        
+        const currentBio = bioEl.value.trim();
+        
+        // Don't save if bio hasn't changed
+        if (currentBio === this.initialValues.bio) return;
+        
+        // Clear existing timeout
+        if (this.bioSaveTimeout) {
+            clearTimeout(this.bioSaveTimeout);
+        }
+        
+        // Set new timeout to save after 1 second of no typing
+        this.bioSaveTimeout = setTimeout(async () => {
+            try {
+                await this.updateProfile({ 
+                    nickname: this.initialValues.nickname, 
+                    bio: currentBio 
+                });
+                // Update initial value after successful save
+                this.initialValues.bio = currentBio;
+            } catch (error) {
+                // Error already handled by updateProfile
+            }
+        }, 1000);
+    }
+
+    /**
+     * Setup form change listeners
+     */
+    setupDirtyTracking() {
+        const nicknameEl = document.getElementById(this.elements.nickname);
+        const bioEl = document.getElementById(this.elements.bio);
+        
+        if (nicknameEl) {
+            nicknameEl.addEventListener('blur', () => this.handleNicknameBlur());
+        }
+        
+        if (bioEl) {
+            bioEl.addEventListener('input', () => {
+                this.updateBioCounter();
+                this.autoSaveBio();
+            });
         }
     }
 
@@ -280,7 +444,7 @@ class ProfileManager {
                         <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="muted-user-avatar" loading="lazy">
                         <div class="muted-user-details">
                             <span class="muted-user-name">${escapeHtml(displayName)}</span>
-                            ${user.nickname ? `<span class="muted-user-date">@${escapeHtml(user.nickname)}</span>` : ''}
+                            ${user.nickname ? `<span class="muted-user-nickname">@${escapeHtml(user.nickname)}</span>` : ''}
                         </div>
                     </div>
                     <button class="btn-unmute" data-user-id="${user.id}">
@@ -353,25 +517,15 @@ class ProfileManager {
     }
 
     /**
-     * Show alert message
+     * Show alert message using snackbar
      * @param {string} message - Alert message
      * @param {string} type - Alert type: 'success' or 'error'
      */
     showAlert(message, type = 'info') {
-        const alertContainer = document.getElementById(this.elements.alertContainer);
-        if (!alertContainer) return;
-
-        alertContainer.innerHTML = `
-            <div class="alert alert-${type}">
-                ${escapeHtml(message)}
-            </div>
-        `;
-
-        // Auto-hide success messages after 5 seconds
-        if (type === 'success') {
-            setTimeout(() => {
-                alertContainer.innerHTML = '';
-            }, 5000);
+        if (typeof showSnackbar === 'function') {
+            showSnackbar(message, type);
+        } else {
+            console.log(`[${type}] ${message}`);
         }
     }
 

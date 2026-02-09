@@ -2122,100 +2122,257 @@ main {
    PAGE-SPECIFIC: PROFILE
    ============================================ */
 
-.page-profile .profile-card {
+/* Override main element styles for profile page */
+.page-profile main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    padding-top: 1.5rem;
+}
+
+/* Single column layout matching create-post-section width */
+.page-profile .profile-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Identity sidebar */
+.page-profile .profile-sidebar {
+    height: fit-content;
+}
+
+.page-profile .identity-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 2rem;
-    margin-bottom: 2rem;
+    text-align: center;
 }
 
-.page-profile .profile-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border);
+.page-profile .identity-avatar-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1.5rem;
 }
 
-.page-profile .profile-avatar {
-    width: 80px;
-    height: 80px;
+.page-profile .identity-avatar {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     border: 3px solid var(--accent);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    object-fit: cover;
 }
 
-.page-profile .profile-info h1 {
+.page-profile .identity-name {
     font-size: 1.5rem;
-    margin-bottom: 0.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
 }
 
-.page-profile .profile-info .email {
-    color: var(--text-muted);
+.page-profile .identity-nickname {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 1rem;
+    color: var(--accent);
     font-size: 0.875rem;
-}
-
-.page-profile .button-group {
-    display: flex;
-    gap: 1rem;
-}
-
-.page-profile .btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1rem;
     font-weight: 500;
-    cursor: pointer;
+    text-decoration: none;
+    margin-bottom: 0.75rem;
     transition: all 0.2s;
 }
 
-.page-profile .btn-primary {
-    background: var(--accent);
-    color: white;
+.page-profile .identity-nickname:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent);
+}
+
+.page-profile .identity-email {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    word-break: break-word;
+}
+
+.page-profile .identity-member-since {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-profile .view-profile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.page-profile .view-profile-btn:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Main content area */
+.page-profile .profile-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Section card component */
+.page-profile .profile-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2rem;
+}
+
+.page-profile .profile-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-profile .profile-section-header i {
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+.page-profile .profile-section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
     flex: 1;
 }
 
-.page-profile .btn-primary:hover {
-    background: var(--accent-hover);
-}
-
-.page-profile .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.page-profile .btn-secondary {
+.page-profile .section-badge {
     background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-}
-
-.page-profile .btn-secondary:hover {
-    background: var(--bg-primary);
-}
-
-.page-profile .alert {
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
     font-size: 0.875rem;
+    font-weight: 500;
 }
 
-.page-profile .alert-success {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid var(--success);
+/* Form styles */
+.page-profile .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.page-profile .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.page-profile .form-group input,
+.page-profile .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.page-profile .form-group input:focus,
+.page-profile .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.page-profile .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.page-profile .form-hint {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.page-profile .input-with-validation {
+    position: relative;
+}
+
+.page-profile .validation-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.page-profile .validation-icon.valid {
     color: var(--success);
 }
 
-.page-profile .alert-error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid var(--error);
+.page-profile .validation-icon.invalid {
     color: var(--error);
 }
 
-.page-profile .profile-link {
+/* Bio character counter bar */
+.page-profile .bio-counter-bar {
+    height: 3px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.page-profile .bio-counter-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: all 0.3s;
+    border-radius: 2px;
+}
+
+.page-profile .bio-counter-fill.warning {
+    background: var(--warning);
+}
+
+.page-profile .bio-counter-fill.error {
+    background: var(--error);
+}
+
+.page-profile .bio-counter-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+/* Profile URL chip */
+.page-profile .profile-url-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -2226,84 +2383,50 @@ main {
     color: var(--accent);
     text-decoration: none;
     font-size: 0.875rem;
+    font-family: 'Courier New', monospace;
     transition: all 0.2s;
 }
 
-.page-profile .profile-link:hover {
+.page-profile .profile-url-chip:hover {
     background: var(--bg-primary);
     border-color: var(--accent);
 }
 
-/* API Token Section */
-.page-profile .api-token-section {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.page-profile .api-token-header {
-    display: flex;
-    justify-content: space-between;
+/* Button styles */
+.page-profile .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
     align-items: center;
-    margin-bottom: 1rem;
-}
-
-.page-profile .api-token-header h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.page-profile .api-token-description {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-    line-height: 1.5;
-}
-
-.page-profile .api-token-description code {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.25rem;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    color: #4ade80;
-}
-
-.page-profile .api-token-display {
-    display: flex;
+    justify-content: center;
     gap: 0.5rem;
-    align-items: center;
-    padding: 0.75rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.page-profile .api-token-value {
-    flex: 1;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    word-break: break-all;
-    color: #4ade80;
-    background: transparent;
-    padding: 0;
-    line-height: 1.5;
+.page-profile .btn-primary {
+    background: var(--accent);
+    color: white;
 }
 
-.page-profile .api-token-meta {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 0.5rem;
+.page-profile .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.page-profile .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .page-profile .btn-icon {
     padding: 0.5rem;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--border);
     border-radius: 0.375rem;
     color: var(--text-secondary);
     cursor: pointer;
@@ -2321,38 +2444,91 @@ main {
     color: var(--accent);
 }
 
+.page-profile .btn-icon.success {
+    color: var(--success);
+    border-color: var(--success);
+}
+
 .page-profile .btn-icon i {
     font-size: 1rem;
 }
 
-.page-profile .muted-users-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-}
-
-.page-profile .muted-users-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+/* Developer Tools Section */
+.page-profile .token-display {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 1rem;
     margin-bottom: 1rem;
 }
 
-.page-profile .muted-users-header h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
+.page-profile .token-value-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
-.page-profile .muted-count {
-    background: var(--bg-tertiary);
+.page-profile .token-value {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    color: #4ade80;
+    line-height: 1.5;
+}
+
+.page-profile .token-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.page-profile .token-meta {
+    font-size: 0.85rem;
     color: var(--text-muted);
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
+}
+
+.page-profile .token-hint {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.page-profile .token-hint code {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #4ade80;
+    overflow-x: auto;
+}
+
+.page-profile .api-docs-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    color: var(--accent);
+    text-decoration: none;
     font-size: 0.875rem;
     font-weight: 500;
+    transition: all 0.2s;
 }
 
+.page-profile .api-docs-link:hover {
+    color: var(--accent-hover);
+    gap: 0.75rem;
+}
+
+/* Privacy Section - Muted Users */
 .page-profile .muted-users-list {
     display: flex;
     flex-direction: column;
@@ -2372,6 +2548,7 @@ main {
 
 .page-profile .muted-user-item:hover {
     background: rgba(51, 65, 85, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .page-profile .muted-user-info {
@@ -2398,7 +2575,7 @@ main {
     color: var(--text-primary);
 }
 
-.page-profile .muted-user-date {
+.page-profile .muted-user-nickname {
     font-size: 0.875rem;
     color: var(--text-muted);
 }
@@ -2426,14 +2603,35 @@ main {
 
 .page-profile .empty-muted {
     text-align: center;
-    padding: 2rem;
+    padding: 3rem 2rem;
     color: var(--text-muted);
 }
 
 .page-profile .empty-muted i {
-    font-size: 2rem;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+    color: var(--text-muted);
+}
+
+.page-profile .empty-muted p {
     margin-bottom: 0.5rem;
-    opacity: 0.5;
+}
+
+.page-profile .empty-muted p:first-of-type {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Loading state */
+.page-profile .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-muted);
 }
 
 /* ============================================
@@ -4500,17 +4698,48 @@ main {
         padding: 2rem 1rem;
     }
 
-    .page-profile .profile-card {
+    .page-profile .profile-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .page-profile .profile-sidebar {
+        position: static;
+    }
+
+    .page-profile .identity-card {
         padding: 1.5rem;
     }
 
-    .page-profile .profile-header {
-        flex-direction: column;
-        text-align: center;
+    .page-profile .identity-avatar-container {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
     }
 
-    .page-profile .button-group {
+    .page-profile .identity-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .page-profile .identity-name {
+        font-size: 1.25rem;
+    }
+
+    .page-profile .profile-section {
+        padding: 1.5rem;
+    }
+
+    .page-profile .btn {
+        width: 100%;
+    }
+
+    .page-profile .token-actions {
         flex-direction: column;
+    }
+
+    .page-profile .token-actions .btn-icon {
+        width: 100%;
     }
 
     /* User page mobile */

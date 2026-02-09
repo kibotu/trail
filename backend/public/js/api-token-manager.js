@@ -97,6 +97,23 @@ class ApiTokenManager {
 
             await navigator.clipboard.writeText(this.tokenValue);
             
+            // Show checkmark animation on copy button
+            const copyBtn = document.getElementById('copy-token-btn');
+            if (copyBtn) {
+                const icon = copyBtn.querySelector('i');
+                const originalClass = icon.className;
+                
+                // Change to checkmark
+                icon.className = 'fa-solid fa-check';
+                copyBtn.classList.add('success');
+                
+                // Revert after 2 seconds
+                setTimeout(() => {
+                    icon.className = originalClass;
+                    copyBtn.classList.remove('success');
+                }, 2000);
+            }
+            
             // Show success message using the global snackbar function
             if (typeof showSnackbar === 'function') {
                 showSnackbar('API token copied to clipboard', 'success');
