@@ -157,10 +157,10 @@ class ProfileManager {
             const length = bioEl.value.length;
             counterEl.textContent = length;
             
-            // Change color if approaching limit
-            if (length > 140) {
+            // Change color if approaching or exceeding limit
+            if (length > 160) {
                 counterEl.style.color = 'var(--error)';
-            } else if (length > 120) {
+            } else if (length > 140) {
                 counterEl.style.color = 'var(--warning, orange)';
             } else {
                 counterEl.style.color = '';

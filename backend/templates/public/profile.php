@@ -67,7 +67,7 @@
                             id="nickname" 
                             name="nickname" 
                             placeholder="Enter your nickname"
-                            pattern="[a-zA-Z0-9_-]{3,50}"
+                            pattern="[a-zA-Z0-9_\-]{3,50}"
                             minlength="3"
                             maxlength="50"
                             required
