@@ -465,17 +465,20 @@ class Entry
      */
     public function searchAll(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
-        // Temporarily disable FULLTEXT until index is confirmed working
-        // Use LIKE search for all queries for now
-        $useFulltext = false; // mb_strlen($searchQuery) >= 4;
+        // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
+        $useFulltext = mb_strlen($searchQuery) >= 4;
         
         // Build SELECT with clap counts, comment counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count";
         
+        // Params must be added in the exact order of ? placeholders in the SQL
+        $params = [];
+        
         if ($useFulltext) {
             $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
+            $params[] = $searchQuery; // Bind for SELECT relevance score
         }
         
         if ($currentUserId !== null) {
@@ -497,20 +500,15 @@ class Entry
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+            $params[] = $currentUserId; // Bind for JOIN
         }
         
         // Build WHERE clause
         $whereConditions = [];
-        $params = [];
-        
-        if ($currentUserId !== null) {
-            $params[] = $currentUserId;
-        }
         
         // Add search condition
         if ($useFulltext) {
-            // FULLTEXT search for longer queries with LIKE fallback
-            // Use FULLTEXT first for relevance ranking, but also include LIKE for broader matching
+            // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
             $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
             $params[] = $searchQuery;
@@ -578,17 +576,20 @@ class Entry
      */
     public function searchByUser(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
-        // Temporarily disable FULLTEXT until index is confirmed working
-        // Use LIKE search for all queries for now
-        $useFulltext = false; // mb_strlen($searchQuery) >= 4;
+        // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
+        $useFulltext = mb_strlen($searchQuery) >= 4;
         
         // Build SELECT with clap counts, comment counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count";
         
+        // Params must be added in the exact order of ? placeholders in the SQL
+        $params = [];
+        
         if ($useFulltext) {
             $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
+            $params[] = $searchQuery; // Bind for SELECT relevance score
         }
         
         if ($currentUserId !== null) {
@@ -610,15 +611,11 @@ class Entry
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+            $params[] = $currentUserId; // Bind for JOIN
         }
         
         // Build WHERE clause
         $whereConditions = [];
-        $params = [];
-        
-        if ($currentUserId !== null) {
-            $params[] = $currentUserId;
-        }
         
         // Filter by user
         $whereConditions[] = "e.user_id = ?";
@@ -626,8 +623,7 @@ class Entry
         
         // Add search condition
         if ($useFulltext) {
-            // FULLTEXT search for longer queries with LIKE fallback
-            // Use FULLTEXT first for relevance ranking, but also include LIKE for broader matching
+            // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
             $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
             $params[] = $searchQuery;
