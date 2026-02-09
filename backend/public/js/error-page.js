@@ -7,8 +7,12 @@
  * - Character counter
  */
 
-(function() {
+(async function() {
     'use strict';
+
+    // Load configuration first
+    const config = await loadConfig();
+    const maxTextLength = config.max_text_length || 140;
 
     // Get session state from body attributes
     const body = document.body;
@@ -28,12 +32,18 @@
         const submitButton = document.getElementById('postBtn');
 
         if (postText && charCounter && submitButton) {
+            // Set maxlength attribute dynamically
+            postText.setAttribute('maxlength', maxTextLength);
+            
+            // Update initial counter display
+            charCounter.textContent = maxTextLength;
+            
             // Setup character counter
             setupCharacterCounter({
                 textarea: postText,
                 counter: charCounter,
                 submitButton: submitButton
-            }, 280);
+            }, maxTextLength);
 
             // Handle button click
             submitButton.addEventListener('click', async (e) => {
@@ -41,7 +51,7 @@
                 
                 const text = postText.value.trim();
                 
-                if (!text || text.length > 280) {
+                if (!text || text.length > maxTextLength) {
                     return;
                 }
 
@@ -82,4 +92,6 @@
             window.location.href = '/';
         });
     }
-})();
+})().catch(error => {
+    console.error('Failed to initialize error page:', error);
+});

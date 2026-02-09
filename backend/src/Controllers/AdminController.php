@@ -106,9 +106,12 @@ class AdminController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $maxTextLength = Config::getMaxTextLength($config);
+
         // Validation: Check length before sanitization
-        if (mb_strlen($text) > 280) {
-            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+        if (mb_strlen($text) > $maxTextLength) {
+            $response->getBody()->write(json_encode(['error' => "Text must be {$maxTextLength} characters or less"]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -121,7 +124,6 @@ class AdminController
         // Security: Sanitize text to remove scripts while preserving URLs and emojis
         $sanitizedText = TextSanitizer::sanitize($text);
 
-        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 

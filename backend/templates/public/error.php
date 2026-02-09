@@ -50,9 +50,9 @@ $errorMessage = $errorInfo['message'];
 
   <?php if ($isLoggedIn): ?>
   <div class="card composer-card">
-    <textarea id="postBox" maxlength="280" placeholder="What's happening on your trail?"></textarea>
+    <textarea id="postBox" placeholder="What's happening on your trail?"></textarea>
     <div class="composer-footer">
-      <span id="count">280</span>
+      <span id="count">...</span>
       <button id="postBtn">Post</button>
     </div>
   </div>
@@ -83,6 +83,7 @@ $errorMessage = $errorInfo['message'];
 </div>
 
 <!-- Core JavaScript Modules -->
+<script src="/js/config.js"></script>
 <script src="/js/snackbar.js"></script>
 <script src="/js/celebrations.js"></script>
 <script src="/js/ui-interactions.js"></script>

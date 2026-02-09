@@ -23,4 +23,15 @@ class Config
         $content = file_get_contents($secretsPath);
         return Yaml::parse($content);
     }
+
+    /**
+     * Get the maximum text length for entries and comments from config
+     * 
+     * @param array $config Configuration array
+     * @return int Maximum text length (defaults to 140 if not set)
+     */
+    public static function getMaxTextLength(array $config): int
+    {
+        return (int) ($config['app']['max_text_length'] ?? 140);
+    }
 }

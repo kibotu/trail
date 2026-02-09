@@ -31,6 +31,9 @@ class CommentController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $maxTextLength = Config::getMaxTextLength($config);
+
         $sanitizedText = '';
         
         // Only validate and sanitize text if provided
@@ -42,8 +45,8 @@ class CommentController
             }
 
             // Validation: Check length before sanitization
-            if (mb_strlen($text) > 280) {
-                $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+            if (mb_strlen($text) > $maxTextLength) {
+                $response->getBody()->write(json_encode(['error' => "Text must be {$maxTextLength} characters or less"]));
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
 
@@ -57,13 +60,12 @@ class CommentController
             $sanitizedText = TextSanitizer::sanitize($text);
 
             // Double-check length after sanitization
-            if (mb_strlen($sanitizedText) > 280) {
-                $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+            if (mb_strlen($sanitizedText) > $maxTextLength) {
+                $response->getBody()->write(json_encode(['error' => "Text must be {$maxTextLength} characters or less"]));
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
         }
 
-        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         
         // Decode hash to get real entry ID
@@ -251,9 +253,12 @@ class CommentController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $maxTextLength = Config::getMaxTextLength($config);
+
         // Validation: Check length before sanitization
-        if (mb_strlen($text) > 280) {
-            $response->getBody()->write(json_encode(['error' => 'Text must be 280 characters or less']));
+        if (mb_strlen($text) > $maxTextLength) {
+            $response->getBody()->write(json_encode(['error' => "Text must be {$maxTextLength} characters or less"]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -266,7 +271,6 @@ class CommentController
         // Security: Sanitize text to remove scripts while preserving URLs and emojis
         $sanitizedText = TextSanitizer::sanitize($text);
 
-        $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         $commentModel = new Comment($db);
 

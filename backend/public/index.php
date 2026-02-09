@@ -256,6 +256,15 @@ $app->get('/api/health', function ($request, $response) {
     return $response->withHeader('Content-Type', 'application/json');
 });
 
+// Config endpoint - exposes public configuration values
+$app->get('/api/config', function ($request, $response) use ($config) {
+    $maxTextLength = \Trail\Config\Config::getMaxTextLength($config);
+    $response->getBody()->write(json_encode([
+        'max_text_length' => $maxTextLength
+    ]));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
 // Authentication routes with rate limiting
 $rateLimitEnabled = $config['security']['rate_limit']['enabled'] ?? true;
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth'])

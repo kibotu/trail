@@ -8,8 +8,12 @@
  * - Shader background
  */
 
-(function() {
+(async function() {
     'use strict';
+
+    // Load configuration first
+    const config = await loadConfig();
+    const maxTextLength = config.max_text_length || 140;
 
     // Get session state from data attributes
     const body = document.body;
@@ -35,12 +39,18 @@
         const postMessage = document.getElementById('postMessage');
 
         if (postText && charCounter && submitButton && createPostForm) {
+            // Set maxlength attribute dynamically
+            postText.setAttribute('maxlength', maxTextLength);
+            
+            // Update initial counter display
+            charCounter.textContent = `0 / ${maxTextLength}`;
+            
             // Setup character counter
             setupCharacterCounter({
                 textarea: postText,
                 counter: charCounter,
                 submitButton: submitButton
-            }, 280, {
+            }, maxTextLength, {
                 allowEmpty: true,
                 hasImages: () => window.postImageIds && window.postImageIds.length > 0
             });
@@ -53,7 +63,11 @@
                 const hasImages = window.postImageIds && window.postImageIds.length > 0;
                 
                 // Validate
-                const validation = validateEntryText(text, { allowEmpty: true, hasImages });
+                const validation = validateEntryText(text, { 
+                    maxLength: maxTextLength,
+                    allowEmpty: true, 
+                    hasImages 
+                });
                 if (!validation.valid) {
                     showMessage(postMessage, validation.error, 'error');
                     return;
@@ -67,7 +81,7 @@
                     
                     // Clear form
                     postText.value = '';
-                    charCounter.textContent = '0 / 280';
+                    charCounter.textContent = `0 / ${maxTextLength}`;
                     window.postImageIds = [];
                     
                     if (window.postImageUploader && typeof window.postImageUploader.clearPreviews === 'function') {
@@ -181,4 +195,6 @@
     if (shaderCanvas) {
         initShaderBackground('shader-canvas');
     }
-})();
+})().catch(error => {
+    console.error('Failed to initialize landing page:', error);
+});

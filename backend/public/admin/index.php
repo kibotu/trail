@@ -227,11 +227,18 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         </div>
     </div>
 
+    <script src="/js/config.js"></script>
     <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script>
         // JWT token for admin operations
         const jwtToken = '<?= htmlspecialchars($jwtToken ?? '', ENT_QUOTES, 'UTF-8') ?>';
+        
+        // Load max text length from config
+        let MAX_TEXT_LENGTH = 140; // default
+        loadConfig().then(config => {
+            MAX_TEXT_LENGTH = config.max_text_length || 140;
+        });
         
         let currentPage = 0;
         let loading = false;
@@ -356,8 +363,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             const editForm = document.createElement('div');
             editForm.className = 'edit-form';
             editForm.innerHTML = `
-                <textarea id="edit-text-${entryId}" class="edit-textarea" maxlength="280">${escapeHtml(entryText)}</textarea>
-                <div class="char-counter" id="char-count-${entryId}">${entryText.length}/280 characters</div>
+                <textarea id="edit-text-${entryId}" class="edit-textarea" maxlength="${MAX_TEXT_LENGTH}">${escapeHtml(entryText)}</textarea>
+                <div class="char-counter" id="char-count-${entryId}">${entryText.length}/${MAX_TEXT_LENGTH} characters</div>
                 <div class="edit-actions">
                     <button class="cancel-button" onclick="cancelEdit(${entryId})">Cancel</button>
                     <button class="save-button" onclick="saveEdit(${entryId})">Save</button>
@@ -383,12 +390,12 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             const textarea = document.getElementById(`edit-text-${entryId}`);
             const charCount = document.getElementById(`char-count-${entryId}`);
             const length = textarea.value.length;
-            charCount.textContent = `${length}/280 characters`;
+            charCount.textContent = `${length}/${MAX_TEXT_LENGTH} characters`;
             
             charCount.className = 'char-counter';
-            if (length > 260) {
+            if (length > MAX_TEXT_LENGTH - 20) {
                 charCount.classList.add('error');
-            } else if (length > 240) {
+            } else if (length > MAX_TEXT_LENGTH - 40) {
                 charCount.classList.add('warning');
             }
         }

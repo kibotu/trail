@@ -82,7 +82,7 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/entries',
-        'description' => 'Create a new entry (authenticated) - Max 280 characters. Supports custom dates, inline media upload, and initial claps.',
+        'description' => 'Create a new entry (authenticated) - Max 140 characters. Supports custom dates, inline media upload, and initial claps.',
         'auth' => true,
         'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Check this out! https://example.com 🎉\"}' \\\n     {$baseUrl}/api/entries"
     ],

@@ -179,10 +179,13 @@ class EntriesManager {
         // Add edit-textarea styles if not already present
         this._injectEditStyles();
 
+        // Get max text length from config
+        const maxTextLength = getConfigSync('max_text_length', 140);
+        
         // Create edit form with images and preview shown
         contentDiv.innerHTML = `
             <div class="edit-form">
-                <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="280">${escapeHtml(currentText)}</textarea>
+                <textarea class="edit-textarea" id="edit-text-${entryId}" maxlength="${maxTextLength}">${escapeHtml(currentText)}</textarea>
                 ${imagesHtml}
                 ${previewHtml}
                 <div class="edit-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem;">

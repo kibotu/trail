@@ -64,7 +64,7 @@ fun EntriesScreen(
     onReportComment: (Int, Int) -> Unit = { _, _ -> }
 ) {
     var entryText by remember { mutableStateOf("") }
-    val maxCharacters = 280
+    val maxCharacters = 140
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Entry?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -593,7 +593,7 @@ fun EditEntryDialog(
     onConfirm: (String) -> Unit
 ) {
     var editedText by remember { mutableStateOf(entry.text) }
-    val maxCharacters = 280
+    val maxCharacters = 140
     
     AlertDialog(
         onDismissRequest = onDismiss,

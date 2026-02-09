@@ -108,6 +108,7 @@ class CommentsManager {
         section.dataset.hashId = hashId;
         
         const isLoggedIn = document.body.dataset.isLoggedIn === 'true';
+        const maxTextLength = getConfigSync('max_text_length', 140);
         
         section.innerHTML = `
             ${isLoggedIn ? `
@@ -115,13 +116,13 @@ class CommentsManager {
                     <textarea 
                         class="comment-input" 
                         placeholder="Add a comment..."
-                        maxlength="280"
+                        maxlength="${maxTextLength}"
                         rows="2"
                         data-entry-id="${entryId}"
                     ></textarea>
                     <div id="comment-image-upload-${entryId}" class="comment-image-upload-container"></div>
                     <div class="comment-input-footer">
-                        <span class="char-counter">0 / 280</span>
+                        <span class="char-counter">0 / ${maxTextLength}</span>
                         <button class="comment-submit-button" data-entry-id="${entryId}" disabled>
                             <i class="fa-solid fa-paper-plane"></i>
                             Comment
@@ -148,6 +149,7 @@ class CommentsManager {
     initializeImageUploader(section, entryId) {
         const textarea = section.querySelector('.comment-input');
         const submitButton = section.querySelector('.comment-submit-button');
+        const maxTextLength = getConfigSync('max_text_length', 140);
         
         // Initialize image uploader
         window[`commentImageIds_${entryId}`] = [];
@@ -165,7 +167,7 @@ class CommentsManager {
                     // Update submit button state
                     const hasImages = window[`commentImageIds_${entryId}`].length > 0;
                     const length = textarea.value.length;
-                    submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+                    submitButton.disabled = (length === 0 && !hasImages) || length > maxTextLength;
                 },
                 (imageId) => {
                     const ids = window[`commentImageIds_${entryId}`];
@@ -174,7 +176,7 @@ class CommentsManager {
                     // Update submit button state
                     const hasImages = window[`commentImageIds_${entryId}`].length > 0;
                     const length = textarea.value.length;
-                    submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+                    submitButton.disabled = (length === 0 && !hasImages) || length > maxTextLength;
                 }
             );
             window[`commentImageUploader_${entryId}`] = imageUploader;
@@ -309,13 +311,14 @@ class CommentsManager {
         const textarea = section.querySelector('.comment-input');
         const submitButton = section.querySelector('.comment-submit-button');
         const charCounter = section.querySelector('.char-counter');
+        const maxTextLength = getConfigSync('max_text_length', 140);
         
         // Character counter
         textarea.addEventListener('input', () => {
             const length = textarea.value.length;
             const hasImages = (window[`commentImageIds_${entryId}`] || []).length > 0;
-            charCounter.textContent = `${length} / 280`;
-            submitButton.disabled = (length === 0 && !hasImages) || length > 280;
+            charCounter.textContent = `${length} / ${maxTextLength}`;
+            submitButton.disabled = (length === 0 && !hasImages) || length > maxTextLength;
         });
         
         // Submit comment
@@ -327,7 +330,7 @@ class CommentsManager {
         textarea.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 const hasImages = (window[`commentImageIds_${entryId}`] || []).length > 0;
-                if ((textarea.value.trim().length > 0 || hasImages) && textarea.value.length <= 280) {
+                if ((textarea.value.trim().length > 0 || hasImages) && textarea.value.length <= maxTextLength) {
                     submitButton.click();
                 }
             }
@@ -452,8 +455,9 @@ class CommentsManager {
             }
             
             // Clear input
+            const maxTextLength = getConfigSync('max_text_length', 140);
             textarea.value = '';
-            section.querySelector('.char-counter').textContent = '0 / 280';
+            section.querySelector('.char-counter').textContent = `0 / ${maxTextLength}`;
             
             // Clear images
             window[`commentImageIds_${entryId}`] = [];
@@ -485,13 +489,14 @@ class CommentsManager {
     async editComment(commentId, currentText, entryId, hashId, commentCard) {
         const commentBody = commentCard.querySelector('.comment-body');
         const originalHtml = commentBody.innerHTML;
+        const maxTextLength = getConfigSync('max_text_length', 140);
         
         // Replace with edit form
         commentBody.innerHTML = `
             <div class="comment-edit-form">
-                <textarea class="comment-input" maxlength="280" rows="3">${escapeHtml(currentText)}</textarea>
+                <textarea class="comment-input" maxlength="${maxTextLength}" rows="3">${escapeHtml(currentText)}</textarea>
                 <div class="comment-input-footer">
-                    <span class="char-counter">${currentText.length} / 280</span>
+                    <span class="char-counter">${currentText.length} / ${maxTextLength}</span>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="comment-cancel-button">Cancel</button>
                         <button class="comment-save-button">
@@ -507,12 +512,13 @@ class CommentsManager {
         const saveButton = commentBody.querySelector('.comment-save-button');
         const cancelButton = commentBody.querySelector('.comment-cancel-button');
         const charCounter = commentBody.querySelector('.char-counter');
+        const maxTextLength = getConfigSync('max_text_length', 140);
         
         // Character counter
         textarea.addEventListener('input', () => {
             const length = textarea.value.length;
-            charCounter.textContent = `${length} / 280`;
-            saveButton.disabled = length === 0 || length > 280 || textarea.value === currentText;
+            charCounter.textContent = `${length} / ${maxTextLength}`;
+            saveButton.disabled = length === 0 || length > maxTextLength || textarea.value === currentText;
         });
         
         // Focus textarea

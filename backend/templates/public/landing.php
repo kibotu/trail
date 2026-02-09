@@ -116,13 +116,12 @@
                 <textarea 
                     id="postText" 
                     class="post-textarea" 
-                    placeholder="Share a link, thought, or update... (optional, max 280 characters)"
-                    maxlength="280"
+                    placeholder="Share a link, thought, or update... (optional)"
                     rows="3"
                 ></textarea>
                 <div id="post-image-upload" style="margin: 1rem 0;"></div>
                 <div class="post-form-footer">
-                    <span class="char-counter" id="charCounter">0 / 280</span>
+                    <span class="char-counter" id="charCounter">0 / ...</span>
                     <button type="submit" class="submit-button" id="submitButton">
                         <i class="fa-solid fa-paper-plane"></i>
                         <span>Post</span>
@@ -146,6 +145,7 @@
     </main>
 
     <!-- Core JavaScript Modules -->
+    <script src="/js/config.js"></script>
     <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script src="/js/ui-interactions.js"></script>
