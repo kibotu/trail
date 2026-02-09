@@ -71,43 +71,11 @@ $endpoints = [
         'curl' => "curl {$baseUrl}/api/users/alice/rss"
     ],
     
-    // AUTHENTICATION ENDPOINTS
-    [
-        'method' => 'POST',
-        'path' => '/api/auth/google',
-        'description' => 'Authenticate with Google OAuth - Exchange Google ID token for session',
-        'auth' => false,
-        'auth_level' => 'public',
-        'group' => 'auth',
-        'rate_limit' => '5/5min',
-        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"id_token\":\"GOOGLE_ID_TOKEN\"}' \\\n     {$baseUrl}/api/auth/google"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/auth/session',
-        'description' => 'Get current session info and JWT token',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'auth',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/auth/session"
-    ],
-    [
-        'method' => 'POST',
-        'path' => '/api/auth/logout',
-        'description' => 'Logout and invalidate session',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'auth',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST -b cookies.txt {$baseUrl}/api/auth/logout"
-    ],
-    
     // CORE USER ENDPOINTS (Auth Required)
     [
         'method' => 'GET',
         'path' => '/api/profile',
-        'description' => 'Get own profile',
+        'description' => 'Get own profile - Includes stats (entry_count, link_count, comment_count, last_entry_at, previous_login_at)',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'core',
@@ -147,7 +115,7 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/users/{nickname}',
-        'description' => 'Get public profile by nickname',
+        'description' => 'Get public profile by nickname - Includes stats (entry_count, link_count, comment_count, last_entry_at, previous_login_at)',
         'auth' => false,
         'auth_level' => 'public',
         'group' => 'public',
@@ -609,7 +577,6 @@ foreach ($endpoints as $endpoint) {
 // Define group metadata (order matters for display)
 $groups = [
     'public' => ['title' => 'Public Endpoints', 'description' => 'No authentication required', 'icon' => 'fa-globe'],
-    'auth' => ['title' => 'Authentication', 'description' => 'Login and session management', 'icon' => 'fa-key'],
     'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management (requires auth)', 'icon' => 'fa-user'],
     'engagement' => ['title' => 'Engagement', 'description' => 'Claps and comments (write requires auth)', 'icon' => 'fa-heart'],
     'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management (requires auth)', 'icon' => 'fa-image'],
@@ -963,6 +930,26 @@ curl -X POST \
                             <li><strong>Avatar:</strong> Google photo or Gravatar fallback</li>
                             <li><strong>Bio:</strong> Optional profile description</li>
                             <li><strong>Privacy:</strong> Public profile pages and RSS feeds</li>
+                            <li><strong>Statistics:</strong> Entry, comment counts, last activity, and login history</li>
+                        </ul>
+                        <p style="margin-top: 0.75rem;"><strong>Profile stats object:</strong></p>
+                        <div class="code-block">
+                            <code>{
+  "stats": {
+    "entry_count": 42,
+    "link_count": 18,
+    "comment_count": 7,
+    "last_entry_at": "2026-02-09 14:30:00",
+    "previous_login_at": "2026-02-08 09:15:22"
+  }
+}</code>
+                        </div>
+                        <ul>
+                            <li><strong>entry_count:</strong> Total entries by the user</li>
+                            <li><strong>link_count:</strong> Entries containing a URL preview</li>
+                            <li><strong>comment_count:</strong> Total comments by the user</li>
+                            <li><strong>last_entry_at:</strong> Timestamp of the most recent entry (null if none)</li>
+                            <li><strong>previous_login_at:</strong> Timestamp of the login before the current session (null if first login)</li>
                         </ul>
                     </div>
                     
@@ -1271,7 +1258,7 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                     
                     <h3>Response Formats</h3>
                     <div class="feature-card">
-                        <h4>Success Response</h4>
+                        <h4>Entry Response</h4>
                         <div class="code-block">
                             <code>{
   "id": 123,
@@ -1281,6 +1268,26 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
   "user_nickname": "alice",
   "clap_count": 10,
   "comment_count": 3
+}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>Profile Response (GET /api/profile, GET /api/users/{nickname})</h4>
+                        <div class="code-block">
+                            <code>{
+  "id": 456,
+  "nickname": "alice",
+  "name": "Alice",
+  "bio": "Hello world",
+  "created_at": "2025-06-15 08:00:00",
+  "stats": {
+    "entry_count": 42,
+    "link_count": 18,
+    "comment_count": 7,
+    "last_entry_at": "2026-02-09 14:30:00",
+    "previous_login_at": "2026-02-08 09:15:22"
+  }
 }</code>
                         </div>
                     </div>
