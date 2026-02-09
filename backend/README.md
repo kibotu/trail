@@ -129,11 +129,22 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 
 ## API Endpoints
 
-### Public Endpoints
+### Public Endpoints (No Authentication Required)
 
+**Pages:**
 - `GET /` - Landing page
-- `GET /api/entries/public` - List all entries (paginated)
 - `GET /rss` - RSS feed
+
+**Entries (Read):**
+- `GET /api/entries` - List all public entries (paginated)
+- `GET /api/entries/{id}` - Get specific entry by ID
+- `GET /api/users/{nickname}/entries` - Get entries by user nickname
+- `GET /api/users/{nickname}` - Get public user profile
+
+**Engagement (Read):**
+- `GET /api/entries/{id}/claps` - Get claps for an entry
+- `GET /api/entries/{id}/comments` - Get comments for an entry
+- `GET /api/comments/{id}/claps` - Get claps for a comment
 
 ### Authentication
 
@@ -142,10 +153,28 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 
 ### Protected Endpoints (Requires JWT)
 
-- `GET /api/entries` - List user's entries
+**Entries (Write):**
 - `POST /api/entries` - Create entry (supports custom dates, inline media, initial claps)
 - `PUT /api/entries/{id}` - Update entry
 - `DELETE /api/entries/{id}` - Delete entry
+
+**Engagement (Write):**
+- `POST /api/entries/{id}/claps` - Add clap to entry
+- `POST /api/comments/{id}/claps` - Add clap to comment
+
+**Comments (Write):**
+- `POST /api/entries/{id}/comments` - Create comment
+- `PUT /api/comments/{id}` - Update comment
+- `DELETE /api/comments/{id}` - Delete comment
+
+**Reports & Moderation:**
+- `POST /api/entries/{id}/report` - Report entry
+- `POST /api/comments/{id}/report` - Report comment
+- `POST /api/users/{id}/mute` - Mute user
+- `DELETE /api/users/{id}/mute` - Unmute user
+- `GET /api/users/{id}/mute-status` - Check mute status
+- `GET /api/users/{id}/info` - Get user info
+- `GET /api/filters` - Get content filters
 
 ### Admin Endpoints
 

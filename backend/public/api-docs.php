@@ -106,21 +106,21 @@ $endpoints = [
         'method' => 'GET',
         'path' => '/api/users/{nickname}',
         'description' => 'Get public profile by nickname',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'core',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/users/alice"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/users/alice"
     ],
     [
         'method' => 'GET',
         'path' => '/api/users/{nickname}/entries',
         'description' => 'List entries by user nickname - Supports cursor-based pagination',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'core',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/users/alice/entries?limit=20"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/users/alice/entries?limit=20"
     ],
     [
         'method' => 'POST',
@@ -136,21 +136,21 @@ $endpoints = [
         'method' => 'GET',
         'path' => '/api/entries',
         'description' => 'List all entries with optional search - Supports cursor-based pagination',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'core',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries?limit=20\n\n# With search:\ncurl -b cookies.txt {$baseUrl}/api/entries?q=example&limit=20"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/entries?limit=20\n\n# With search:\ncurl {$baseUrl}/api/entries?q=example&limit=20"
     ],
     [
         'method' => 'GET',
         'path' => '/api/entries/{id}',
         'description' => 'Get a single entry by hash ID',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'core',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/abc123"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/entries/abc123"
     ],
     [
         'method' => 'PUT',
@@ -188,11 +188,11 @@ $endpoints = [
         'method' => 'GET',
         'path' => '/api/entries/{id}/claps',
         'description' => 'Get clap count for entry',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'engagement',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/123/claps"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/entries/123/claps"
     ],
     [
         'method' => 'POST',
@@ -208,11 +208,11 @@ $endpoints = [
         'method' => 'GET',
         'path' => '/api/entries/{id}/comments',
         'description' => 'List comments for entry',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'engagement',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/entries/123/comments"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/entries/123/comments"
     ],
     [
         'method' => 'PUT',
@@ -248,11 +248,11 @@ $endpoints = [
         'method' => 'GET',
         'path' => '/api/comments/{id}/claps',
         'description' => 'Get clap count for comment',
-        'auth' => true,
-        'auth_level' => 'user',
-        'group' => 'engagement',
-        'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/comments/456/claps"
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/comments/456/claps"
     ],
     
     // MEDIA ENDPOINTS (Auth Required)

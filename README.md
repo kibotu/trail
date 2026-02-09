@@ -275,15 +275,44 @@ This script:
 
 Full API documentation is available at: https://trail.services.kibotu.net/api
 
-### Quick Start
+### Public API Access
+
+View public content without authentication:
+
+```bash
+# List all public entries
+curl https://trail.services.kibotu.net/api/entries
+
+# Get specific entry
+curl https://trail.services.kibotu.net/api/entries/123
+
+# Get user's entries
+curl https://trail.services.kibotu.net/api/users/johndoe/entries
+
+# Get comments on an entry
+curl https://trail.services.kibotu.net/api/entries/123/comments
+```
+
+### Authenticated API Access
+
+For creating and modifying content:
 
 1. Sign in at https://trail.services.kibotu.net
 2. Get your API token from your profile page
 3. Use the token in API requests:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+# Create an entry
+curl -X POST \
+     -H "Authorization: Bearer YOUR_API_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Hello world!"}' \
      https://trail.services.kibotu.net/api/entries
+
+# Add a clap
+curl -X POST \
+     -H "Authorization: Bearer YOUR_API_TOKEN" \
+     https://trail.services.kibotu.net/api/entries/123/claps
 ```
 
 ## Project Structure

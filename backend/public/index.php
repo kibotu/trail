@@ -310,26 +310,26 @@ $app->post('/api/entries', [EntryController::class, 'create'])->add(new AuthMidd
 $app->put('/api/entries/{id}', [EntryController::class, 'update'])->add(new AuthMiddleware($config));
 $app->delete('/api/entries/{id}', [EntryController::class, 'delete'])->add(new AuthMiddleware($config));
 
-// Entry routes (require authentication)
-$app->get('/api/entries', [EntryController::class, 'listPublic'])->add(new AuthMiddleware($config));
-$app->get('/api/entries/{id}', [EntryController::class, 'getById'])->add(new AuthMiddleware($config));
+// Entry routes (public read, authenticated write)
+$app->get('/api/entries', [EntryController::class, 'listPublic']);
+$app->get('/api/entries/{id}', [EntryController::class, 'getById']);
 
-// User entries by nickname (require authentication)
-$app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname'])->add(new AuthMiddleware($config));
+// User entries by nickname (public read)
+$app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
 
-// Clap routes (require authentication)
+// Clap routes (authenticated write, public read)
 $app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
-$app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps'])->add(new AuthMiddleware($config));
+$app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps']);
 
-// Comment routes (require authentication)
+// Comment routes (authenticated write, public read)
 $app->post('/api/entries/{id}/comments', [CommentController::class, 'create'])->add(new AuthMiddleware($config));
-$app->get('/api/entries/{id}/comments', [CommentController::class, 'list'])->add(new AuthMiddleware($config));
+$app->get('/api/entries/{id}/comments', [CommentController::class, 'list']);
 $app->put('/api/comments/{id}', [CommentController::class, 'update'])->add(new AuthMiddleware($config));
 $app->delete('/api/comments/{id}', [CommentController::class, 'delete'])->add(new AuthMiddleware($config));
 
-// Comment clap routes (require authentication)
+// Comment clap routes (authenticated write, public read)
 $app->post('/api/comments/{id}/claps', [CommentClapController::class, 'addClap'])->add(new AuthMiddleware($config));
-$app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps'])->add(new AuthMiddleware($config));
+$app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps']);
 
 // Comment report route
 $app->post('/api/comments/{id}/report', [CommentReportController::class, 'reportComment'])->add(new AuthMiddleware($config));
