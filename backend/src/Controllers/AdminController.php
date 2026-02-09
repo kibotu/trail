@@ -53,9 +53,19 @@ class AdminController
         // Admin view includes clap counts (no user-specific counts needed)
         $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null);
 
-        // Add avatar URLs with Google photo fallback to Gravatar
+        // Initialize HashIdService
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+
+        // Add avatar URLs and hash IDs
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                error_log("Failed to encode entry ID {$entry['id']}: " . $e->getMessage());
+                $entry['hash_id'] = (string) $entry['id'];
+            }
         }
 
         $response->getBody()->write(json_encode([
