@@ -1,0 +1,21 @@
+[project]
+name = "twitter-archive-importer"
+version = "1.0.0"
+description = "Import Twitter archive to Trail API"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "requests>=2.31.0",
+    "urllib3>=2.0.0",
+]
+
+[project.scripts]
+import-twitter = "import_twitter_archive:main"
+test-api = "test_api:main"
+
+[tool.uv]
+dev-dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,10 @@
+# Note: This project uses uv for dependency management
+# Dependencies are embedded in script files using PEP 723 inline metadata
+# 
+# To run scripts:
+#   uv run import_twitter_archive.py --jwt YOUR_TOKEN
+#   uv run test_api.py --jwt YOUR_TOKEN
+#
+# If you prefer traditional pip:
+requests>=2.31.0
+urllib3>=2.0.0
