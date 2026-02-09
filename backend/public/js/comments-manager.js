@@ -512,7 +512,6 @@ class CommentsManager {
         const saveButton = commentBody.querySelector('.comment-save-button');
         const cancelButton = commentBody.querySelector('.comment-cancel-button');
         const charCounter = commentBody.querySelector('.char-counter');
-        const maxTextLength = getConfigSync('max_text_length', 140);
         
         // Character counter
         textarea.addEventListener('input', () => {

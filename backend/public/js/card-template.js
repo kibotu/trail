@@ -223,11 +223,6 @@ function createEntryCard(entry, options = {}) {
         return document.createElement('div'); // Return empty div if no ID
     }
     
-    // Log entry ID for debugging (can be removed after testing)
-    if (canModify) {
-        console.log(`Creating card for entry ID: ${entry.id} (type: ${typeof entry.id})`);
-    }
-    
     const card = document.createElement('div');
     card.className = 'entry-card';
     card.dataset.entryId = entry.id;
