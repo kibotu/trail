@@ -45,6 +45,7 @@
     </main>
 
     <!-- Core JavaScript Modules -->
+    <script src="/js/config.js"></script>
     <script src="/js/snackbar.js"></script>
     <script src="/js/card-template.js"></script>
     <script src="/js/ui-interactions.js"></script>
