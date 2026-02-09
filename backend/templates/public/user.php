@@ -102,6 +102,11 @@
 
         <div id="errorContainer"></div>
 
+        <!-- Search Section -->
+        <div class="search-section" id="searchSection">
+            <!-- Populated by SearchManager -->
+        </div>
+
         <div class="entries-container" id="entriesContainer">
             <!-- Entries will be loaded here -->
         </div>
@@ -122,6 +127,7 @@
     <script src="/js/infinite-scroll.js"></script>
     <script src="/js/image-upload.js"></script>
     <script src="/js/comments-manager.js"></script>
+    <script src="/js/search-manager.js"></script>
     <script src="/js/shader-who.js"></script>
     <script src="/js/user-profile-manager.js"></script>
     

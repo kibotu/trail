@@ -451,4 +451,238 @@ class Entry
         $entries = $this->getByUser($userId, $limit, $before, $currentUserId);
         return array_map([$this, 'attachImageUrls'], $entries);
     }
+
+    /**
+     * Search all entries with FULLTEXT or LIKE fallback
+     * 
+     * @param string $searchQuery Search query (already sanitized)
+     * @param int $limit Maximum number of entries to return
+     * @param string|null $before Cursor for pagination (created_at timestamp)
+     * @param int|null $excludeUserId User ID to exclude muted users for
+     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
+     * @param int|null $currentUserId Current user ID for clap counts
+     * @return array Array of entries matching search query
+     */
+    public function searchAll(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    {
+        // Temporarily disable FULLTEXT until index is confirmed working
+        // Use LIKE search for all queries for now
+        $useFulltext = false; // mb_strlen($searchQuery) >= 4;
+        
+        // Build SELECT with clap counts, comment counts, and relevance score
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count";
+        
+        if ($useFulltext) {
+            $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
+        }
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
+        // Build WHERE clause
+        $whereConditions = [];
+        $params = [];
+        
+        if ($currentUserId !== null) {
+            $params[] = $currentUserId;
+        }
+        
+        // Add search condition
+        if ($useFulltext) {
+            // FULLTEXT search for longer queries with LIKE fallback
+            // Use FULLTEXT first for relevance ranking, but also include LIKE for broader matching
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $params[] = $searchQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        } else {
+            // LIKE search for short queries
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        }
+        
+        // Add cursor-based pagination
+        if ($before !== null) {
+            $whereConditions[] = "e.created_at < ?";
+            $params[] = $before;
+        }
+        
+        // Exclude muted users
+        if ($excludeUserId !== null) {
+            $whereConditions[] = "e.user_id NOT IN (
+                SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?
+            )";
+            $params[] = $excludeUserId;
+        }
+        
+        // Exclude hidden entries
+        if (!empty($excludeEntryIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
+            $whereConditions[] = "e.id NOT IN ($placeholders)";
+            $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+        $sql .= " $whereClause";
+        
+        // Order by relevance (if FULLTEXT) then created_at
+        if ($useFulltext) {
+            $sql .= " ORDER BY relevance DESC, e.created_at DESC LIMIT ?";
+        } else {
+            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+        }
+        $params[] = $limit;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Search entries by specific user with FULLTEXT or LIKE fallback
+     * 
+     * @param int $userId User ID to search within
+     * @param string $searchQuery Search query (already sanitized)
+     * @param int $limit Maximum number of entries to return
+     * @param string|null $before Cursor for pagination (created_at timestamp)
+     * @param int|null $currentUserId Current user ID for clap counts
+     * @return array Array of entries matching search query for this user
+     */
+    public function searchByUser(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
+    {
+        // Temporarily disable FULLTEXT until index is confirmed working
+        // Use LIKE search for all queries for now
+        $useFulltext = false; // mb_strlen($searchQuery) >= 4;
+        
+        // Build SELECT with clap counts, comment counts, and relevance score
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count";
+        
+        if ($useFulltext) {
+            $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
+        }
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
+        // Build WHERE clause
+        $whereConditions = [];
+        $params = [];
+        
+        if ($currentUserId !== null) {
+            $params[] = $currentUserId;
+        }
+        
+        // Filter by user
+        $whereConditions[] = "e.user_id = ?";
+        $params[] = $userId;
+        
+        // Add search condition
+        if ($useFulltext) {
+            // FULLTEXT search for longer queries with LIKE fallback
+            // Use FULLTEXT first for relevance ranking, but also include LIKE for broader matching
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $params[] = $searchQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        } else {
+            // LIKE search for short queries
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        }
+        
+        // Add cursor-based pagination
+        if ($before !== null) {
+            $whereConditions[] = "e.created_at < ?";
+            $params[] = $before;
+        }
+        
+        $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
+        $sql .= " $whereClause";
+        
+        // Order by relevance (if FULLTEXT) then created_at
+        if ($useFulltext) {
+            $sql .= " ORDER BY relevance DESC, e.created_at DESC LIMIT ?";
+        } else {
+            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+        }
+        $params[] = $limit;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Search all entries with images attached
+     */
+    public function searchAllWithImages(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    {
+        $entries = $this->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
+        return array_map([$this, 'attachImageUrls'], $entries);
+    }
+
+    /**
+     * Search user entries with images attached
+     */
+    public function searchByUserWithImages(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
+    {
+        $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId);
+        return array_map([$this, 'attachImageUrls'], $entries);
+    }
 }

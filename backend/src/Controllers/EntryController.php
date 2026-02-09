@@ -274,6 +274,7 @@ class EntryController
         
         $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
+        $searchQuery = $queryParams['q'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
@@ -291,7 +292,22 @@ class EntryController
             $excludeEntryIds = $reportModel->getHiddenEntryIds($userId);
         }
 
-        $entries = $entryModel->getAllWithImages($limit, $before, null, $excludeUserId, $excludeEntryIds, $userId);
+        // Handle search if query provided
+        if ($searchQuery !== null && trim($searchQuery) !== '') {
+            // Sanitize and validate search query
+            $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
+            
+            if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
+                $entries = $entryModel->searchAllWithImages($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
+            } else {
+                // Invalid or unsafe query - return empty results
+                $entries = [];
+            }
+        } else {
+            // No search query - use regular listing
+            $entries = $entryModel->getAllWithImages($limit, $before, null, $excludeUserId, $excludeEntryIds, $userId);
+        }
+        
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
@@ -331,12 +347,19 @@ class EntryController
             $nextCursor = $lastEntry['created_at'];
         }
 
-        $response->getBody()->write(json_encode([
+        $responseData = [
             'entries' => $entries,
             'has_more' => $hasMore,
             'next_cursor' => $nextCursor,
             'limit' => $limit,
-        ]));
+        ];
+        
+        // Include search query in response if searching
+        if (isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+            $responseData['search_query'] = $searchQuery;
+        }
+
+        $response->getBody()->write(json_encode($responseData));
         
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -574,12 +597,29 @@ class EntryController
         $queryParams = $request->getQueryParams();
         $limit = min(100, max(1, (int) ($queryParams['limit'] ?? 20)));
         $before = $queryParams['before'] ?? null;
+        $searchQuery = $queryParams['q'] ?? null;
 
         // Get optional user ID for clap counts
         $userId = self::getOptionalUserId($request, $config);
         
         $entryModel = new Entry($db);
-        $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before, $userId);
+        
+        // Handle search if query provided
+        if ($searchQuery !== null && trim($searchQuery) !== '') {
+            // Sanitize and validate search query
+            $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
+            
+            if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
+                $entries = $entryModel->searchByUserWithImages($user['id'], $searchQuery, $limit, $before, $userId);
+            } else {
+                // Invalid or unsafe query - return empty results
+                $entries = [];
+            }
+        } else {
+            // No search query - use regular listing
+            $entries = $entryModel->getByUserWithImages($user['id'], $limit, $before, $userId);
+        }
+        
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
@@ -604,7 +644,7 @@ class EntryController
             $nextCursor = $lastEntry['created_at'];
         }
 
-        $response->getBody()->write(json_encode([
+        $responseData = [
             'entries' => $entries,
             'has_more' => $hasMore,
             'next_cursor' => $nextCursor,
@@ -615,7 +655,14 @@ class EntryController
                 'photo_url' => $user['photo_url'],
                 'gravatar_hash' => $user['gravatar_hash']
             ]
-        ]));
+        ];
+        
+        // Include search query in response if searching
+        if (isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+            $responseData['search_query'] = $searchQuery;
+        }
+
+        $response->getBody()->write(json_encode($responseData));
         
         return $response->withHeader('Content-Type', 'application/json');
     }

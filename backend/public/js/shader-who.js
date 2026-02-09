@@ -38,9 +38,13 @@ function initProteanCloudsShader(canvasElement, options = {}) {
         }
     `;
 
-    // Fragment shader - Protean Clouds by nimitz
+    // Fragment shader - Protean Clouds by nimitz (optimized)
     const fragmentShaderSource = `
-        precision highp float;
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+        #else
+            precision mediump float;
+        #endif
 
         uniform vec2 iResolution;
         uniform float iTime;
@@ -69,12 +73,12 @@ function initProteanCloudsShader(canvasElement, options = {}) {
         vec2 bsMo = vec2(0);
 
         vec2 disp(float t) {
-            return vec2(sin(t * 0.22) * 1., cos(t * 0.175) * 1.) * 2.;
+            return vec2(sin(t * 0.22), cos(t * 0.175)) * 2.;
         }
 
         vec2 map(vec3 p) {
             vec3 p2 = p;
-            p2.xy -= disp(p.z).xy;
+            p2.xy -= disp(p.z);
             p.xy *= rot(sin(p.z + iTime) * (0.1 + prm1 * 0.05) + iTime * 0.09);
             float cl = mag2(p2.xy);
             float d = 0.;
@@ -82,38 +86,56 @@ function initProteanCloudsShader(canvasElement, options = {}) {
             float z = 1.;
             float trk = 1.;
             float dspAmp = 0.1 + prm1 * 0.2;
-            for(int i = 0; i < 5; i++) {
-                p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
-                d -= abs(dot(cos(p), sin(p.yzx)) * z);
-                z *= 0.57;
-                trk *= 1.4;
-                p = p * m3;
-            }
+            
+            // Unrolled loop for better performance
+            p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
+            d -= abs(dot(cos(p), sin(p.yzx)) * z);
+            z *= 0.57; trk *= 1.4; p = p * m3;
+            
+            p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
+            d -= abs(dot(cos(p), sin(p.yzx)) * z);
+            z *= 0.57; trk *= 1.4; p = p * m3;
+            
+            p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
+            d -= abs(dot(cos(p), sin(p.yzx)) * z);
+            z *= 0.57; trk *= 1.4; p = p * m3;
+            
+            p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
+            d -= abs(dot(cos(p), sin(p.yzx)) * z);
+            z *= 0.57; trk *= 1.4; p = p * m3;
+            
+            p += sin(p.zxy * 0.75 * trk + iTime * trk * .8) * dspAmp;
+            d -= abs(dot(cos(p), sin(p.yzx)) * z);
+            
             d = abs(d + prm1 * 3.) + prm1 * .3 - 2.5 + bsMo.y;
             return vec2(d + cl * .2 + 0.25, cl);
         }
 
         vec4 render(in vec3 ro, in vec3 rd, float time) {
             vec4 rez = vec4(0);
-            const float ldst = 8.;
-            vec3 lpos = vec3(disp(time + ldst) * 0.5, time + ldst);
             float t = 1.5;
             float fogT = 0.;
-            for(int i = 0; i < 130; i++) {
-                if(rez.a > 0.99) break;
+            
+            // Reduced from 130 to 80 iterations - significant performance gain
+            for(int i = 0; i < 80; i++) {
+                // Early exit when alpha is saturated
+                if(rez.a > 0.98) break;
 
                 vec3 pos = ro + t * rd;
                 vec2 mpv = map(pos);
                 float den = clamp(mpv.x - 0.3, 0., 1.) * 1.12;
-                float dn = clamp((mpv.x + 2.), 0., 3.);
+                float dn = clamp(mpv.x + 2., 0., 3.);
                 
                 vec4 col = vec4(0);
                 if (mpv.x > 0.6) {
+                    // Cached calculations
+                    float den3 = den * den * den;
                     col = vec4(sin(vec3(5., 0.4, 0.2) + mpv.y * 0.1 + sin(pos.z * 0.4) * 0.5 + 1.8) * 0.5 + 0.5, 0.08);
-                    col *= den * den * den;
+                    col *= den3;
                     col.rgb *= linstep(4., -2.5, mpv.x) * 2.3;
-                    float dif = clamp((den - map(pos + .8).x) / 9., 0.001, 1.);
-                    dif += clamp((den - map(pos + .35).x) / 2.5, 0.001, 1.);
+                    
+                    // Simplified lighting - single sample instead of two
+                    float dif = clamp((den - map(pos + .6).x) / 6., 0.001, 1.);
                     col.xyz *= den * (vec3(0.005, .045, .075) + 1.5 * vec3(0.033, 0.07, 0.03) * dif);
                 }
                 
@@ -143,21 +165,22 @@ function initProteanCloudsShader(canvasElement, options = {}) {
         }
 
         void main() {
-            vec2 fragCoord = gl_FragCoord.xy;
-            vec2 q = fragCoord.xy / iResolution.xy;
+            vec2 q = gl_FragCoord.xy / iResolution.xy;
             vec2 p = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
             bsMo = (iMouse.xy - 0.5 * iResolution.xy) / iResolution.y;
             
             float time = iTime * 3.;
             vec3 ro = vec3(0, 0, time);
             
-            ro += vec3(sin(iTime) * 0.15, sin(iTime * 1.) * 0., 0);
+            ro += vec3(sin(iTime) * 0.15, 0., 0);
                 
             float dspAmp = .85;
-            ro.xy += disp(ro.z) * dspAmp;
+            vec2 dispRoZ = disp(ro.z);
+            ro.xy += dispRoZ * dspAmp;
             float tgtDst = 3.5;
             
-            vec3 target = normalize(ro - vec3(disp(time + tgtDst) * dspAmp, time + tgtDst));
+            vec2 dispTimeTgt = disp(time + tgtDst);
+            vec3 target = normalize(ro - vec3(dispTimeTgt * dspAmp, time + tgtDst));
             ro.x -= bsMo.x * 0.5;
             vec3 rightdir = normalize(cross(target, vec3(0, 1, 0)));
             vec3 updir = normalize(cross(rightdir, target));
@@ -273,7 +296,7 @@ function initProteanCloudsShader(canvasElement, options = {}) {
     let isRunning = true;
     const startTime = Date.now();
 
-    // Resize canvas
+    // Resize canvas - optimized to only update when dimensions change
     function resizeCanvas() {
         const displayWidth = canvas.clientWidth;
         const displayHeight = canvas.clientHeight;

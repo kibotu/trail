@@ -21,6 +21,7 @@ class EntriesManager {
      * @param {number} options.limit - Number of entries to load
      * @param {HTMLElement} options.container - Container to append entries
      * @param {Object} options.cardOptions - Options for createEntryCard
+     * @param {string} options.searchQuery - Optional search query
      * @returns {Promise<Object>} Response with entries, next_cursor, and has_more
      */
     async loadEntries(apiUrl, options = {}) {
@@ -28,7 +29,8 @@ class EntriesManager {
             cursor = null,
             limit = 100,
             container = null,
-            cardOptions = {}
+            cardOptions = {},
+            searchQuery = null
         } = options;
 
         try {
@@ -36,6 +38,9 @@ class EntriesManager {
             url.searchParams.set('limit', limit.toString());
             if (cursor) {
                 url.searchParams.set('before', cursor);
+            }
+            if (searchQuery) {
+                url.searchParams.set('q', searchQuery);
             }
 
             const response = await fetch(url, {

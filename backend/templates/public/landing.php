@@ -106,6 +106,11 @@
             </div>
         <?php endif; ?>
         
+        <!-- Search Section -->
+        <div class="search-section" id="searchSection">
+            <!-- Populated by SearchManager -->
+        </div>
+        
         <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
         <div class="create-post-section">
             <div class="create-post-header">
@@ -154,6 +159,7 @@
     <script src="/js/celebrations.js"></script>
     <script src="/js/image-upload.js"></script>
     <script src="/js/comments-manager.js"></script>
+    <script src="/js/search-manager.js"></script>
     <script src="/js/shader-background.js"></script>
     <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
     <script src="/js/notifications.js"></script>
