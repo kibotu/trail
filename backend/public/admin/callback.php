@@ -98,7 +98,7 @@ try {
 
     // Create new session with JWT token
     $sessionId = generateSessionId();
-    $expiresAt = (new DateTime())->modify('+24 hours');
+    $expiresAt = (new DateTime())->modify('+1 year');
 
     createSession($db, $sessionId, $userId, $email, $photoUrl, $isAdmin, $expiresAt, $jwtToken);
 

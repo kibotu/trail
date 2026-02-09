@@ -9,7 +9,7 @@ declare(strict_types=1);
  */
 
 // Session Constants
-const SESSION_EXPIRY_HOURS = 24;
+const SESSION_EXPIRY_HOURS = 8760; // 1 year (365 days * 24 hours)
 const SESSION_COOKIE_NAME = 'trail_session_id';
 
 /**

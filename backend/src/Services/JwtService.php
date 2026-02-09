@@ -40,4 +40,25 @@ class JwtService
             return null;
         }
     }
+
+    /**
+     * Check if JWT should be refreshed based on age.
+     * Returns true if the token is older than 18 hours.
+     * 
+     * @param array $payload Decoded JWT payload with 'iat' claim
+     * @return bool True if token should be refreshed
+     */
+    public function shouldRefresh(array $payload): bool
+    {
+        if (!isset($payload['iat'])) {
+            return false;
+        }
+
+        $issuedAt = $payload['iat'];
+        $now = time();
+        $age = $now - $issuedAt;
+
+        // Refresh if token is older than 18 hours (64800 seconds)
+        return $age > (18 * 3600);
+    }
 }

@@ -25,6 +25,9 @@ class AuthMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $token = null;
+        $fromSession = false;
+        $session = null;
+        $db = null;
 
         // Try to get token from Authorization header first
         $authHeader = $request->getHeaderLine('Authorization');
@@ -39,6 +42,7 @@ class AuthMiddleware implements MiddlewareInterface
             $session = getAuthenticatedUser($db);
             if ($session && !empty($session['jwt_token'])) {
                 $token = $session['jwt_token'];
+                $fromSession = true;
             }
         }
 
@@ -48,6 +52,40 @@ class AuthMiddleware implements MiddlewareInterface
 
         $jwtService = new JwtService($this->config);
         $payload = $jwtService->verify($token);
+
+        // Handle JWT refresh for session-based authentication
+        if ($fromSession && $session) {
+            $shouldRefresh = false;
+
+            // Case 1: JWT is expired or invalid - must refresh
+            if (!$payload) {
+                $shouldRefresh = true;
+            }
+            // Case 2: JWT is valid but should be refreshed (sliding window)
+            elseif ($jwtService->shouldRefresh($payload)) {
+                $shouldRefresh = true;
+            }
+
+            // Regenerate JWT if needed
+            if ($shouldRefresh) {
+                $token = $jwtService->generate(
+                    (int)$session['user_id'],
+                    $session['email'],
+                    (bool)$session['is_admin']
+                );
+                
+                // Update session with new JWT token and extend expiration
+                $sessionId = $_COOKIE[SESSION_COOKIE_NAME] ?? null;
+                if ($sessionId && $db) {
+                    $newExpiresAt = date('Y-m-d H:i:s', strtotime('+1 year'));
+                    $stmt = $db->prepare("UPDATE trail_sessions SET jwt_token = ?, expires_at = ? WHERE session_id = ?");
+                    $stmt->execute([$token, $newExpiresAt, $sessionId]);
+                }
+                
+                // Verify the new token
+                $payload = $jwtService->verify($token);
+            }
+        }
 
         if (!$payload) {
             return $this->unauthorized('Invalid or expired token');
