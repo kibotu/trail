@@ -161,6 +161,7 @@
     <script src="/js/comments-manager.js"></script>
     <script src="/js/search-manager.js"></script>
     <script src="/js/shader-background.js"></script>
+    <script src="/js/scroll-to-top.js"></script>
     <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
     <script src="/js/notifications.js"></script>
     <?php endif; ?>

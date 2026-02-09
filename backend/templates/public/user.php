@@ -130,6 +130,7 @@
     <script src="/js/search-manager.js"></script>
     <script src="/js/shader-who.js"></script>
     <script src="/js/user-profile-manager.js"></script>
+    <script src="/js/scroll-to-top.js"></script>
     
     <!-- Page Initialization -->
     <script src="/js/user-page.js"></script>
