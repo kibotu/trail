@@ -33,12 +33,22 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/health',
-        'description' => 'Health check endpoint',
+        'description' => 'Health check endpoint - Returns API status',
         'auth' => false,
         'auth_level' => 'public',
         'group' => 'public',
         'rate_limit' => 'None',
         'curl' => "curl {$baseUrl}/api/health"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/config',
+        'description' => 'Get public configuration values (e.g., max_text_length)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/config"
     ],
     [
         'method' => 'GET',
@@ -59,6 +69,38 @@ $endpoints = [
         'group' => 'public',
         'rate_limit' => 'None',
         'curl' => "curl {$baseUrl}/api/users/alice/rss"
+    ],
+    
+    // AUTHENTICATION ENDPOINTS
+    [
+        'method' => 'POST',
+        'path' => '/api/auth/google',
+        'description' => 'Authenticate with Google OAuth - Exchange Google ID token for session',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'auth',
+        'rate_limit' => '5/5min',
+        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"id_token\":\"GOOGLE_ID_TOKEN\"}' \\\n     {$baseUrl}/api/auth/google"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/auth/session',
+        'description' => 'Get current session info and JWT token',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'auth',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/auth/session"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/auth/logout',
+        'description' => 'Logout and invalidate session',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'auth',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST -b cookies.txt {$baseUrl}/api/auth/logout"
     ],
     
     // CORE USER ENDPOINTS (Auth Required)
@@ -135,7 +177,7 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/entries',
-        'description' => 'List all entries with optional search - Supports cursor-based pagination',
+        'description' => 'List all entries with optional search - Supports cursor-based pagination and full-text search',
         'auth' => false,
         'auth_level' => 'public',
         'group' => 'public',
@@ -564,16 +606,16 @@ foreach ($endpoints as $endpoint) {
     $groupedEndpoints[$group][] = $endpoint;
 }
 
-// Define group metadata
+// Define group metadata (order matters for display)
 $groups = [
     'public' => ['title' => 'Public Endpoints', 'description' => 'No authentication required', 'icon' => 'fa-globe'],
     'auth' => ['title' => 'Authentication', 'description' => 'Login and session management', 'icon' => 'fa-key'],
-    'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management', 'icon' => 'fa-user'],
-    'engagement' => ['title' => 'Engagement', 'description' => 'Claps and comments', 'icon' => 'fa-heart'],
-    'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management', 'icon' => 'fa-image'],
-    'moderation' => ['title' => 'Moderation', 'description' => 'Content reporting and user muting', 'icon' => 'fa-shield-halved'],
-    'notifications' => ['title' => 'Notifications', 'description' => 'Real-time updates', 'icon' => 'fa-bell'],
-    'admin' => ['title' => 'Admin Endpoints', 'description' => 'Administrative functions', 'icon' => 'fa-crown']
+    'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management (requires auth)', 'icon' => 'fa-user'],
+    'engagement' => ['title' => 'Engagement', 'description' => 'Claps and comments (write requires auth)', 'icon' => 'fa-heart'],
+    'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management (requires auth)', 'icon' => 'fa-image'],
+    'moderation' => ['title' => 'Moderation', 'description' => 'Content reporting and user muting (requires auth)', 'icon' => 'fa-shield-halved'],
+    'notifications' => ['title' => 'Notifications', 'description' => 'Real-time updates (requires auth)', 'icon' => 'fa-bell'],
+    'admin' => ['title' => 'Admin Endpoints', 'description' => 'Administrative functions (requires admin)', 'icon' => 'fa-crown']
 ];
 
 ?>
@@ -734,9 +776,33 @@ graph LR
                 <!-- Quick Start Section -->
                 <section id="quick-start" class="section">
                     <h2>Quick Start Guide</h2>
-                    <p>Get started with Trail API in 3 simple steps:</p>
                     
-                    <h3>Step 1: Get Your API Token</h3>
+                    <div class="info-box">
+                        <strong>📖 Public Access:</strong> You can view entries, comments, and user profiles without authentication. Authentication is only required to create, edit, or delete content.
+                    </div>
+                    
+                    <h3>Public API Usage (No Authentication)</h3>
+                    <div class="code-example">
+                        <code># List all public entries
+curl <?= $baseUrl ?>/api/entries?limit=20
+
+# Search entries
+curl <?= $baseUrl ?>/api/entries?q=example&limit=20
+
+# Get a specific entry
+curl <?= $baseUrl ?>/api/entries/abc123
+
+# View user's entries
+curl <?= $baseUrl ?>/api/users/alice/entries
+
+# Search user's entries
+curl <?= $baseUrl ?>/api/users/alice/entries?q=example</code>
+                    </div>
+                    
+                    <h3>Authenticated API Usage</h3>
+                    <p>To create or modify content, follow these steps:</p>
+                    
+                    <h4>Step 1: Get Your API Token</h4>
                     <div class="info-box">
                         <ol style="margin: 0.5rem 0;">
                             <li>Sign in to Trail at <a href="<?= $baseUrl ?>" target="_blank"><?= $baseUrl ?></a> using Google OAuth</li>
@@ -747,7 +813,7 @@ graph LR
                         </ol>
                     </div>
                     
-                    <h3>Step 2: Create Your First Entry</h3>
+                    <h4>Step 2: Create Your First Entry</h4>
                     <div class="code-example">
                         <code># Replace YOUR_API_TOKEN with your actual token
 curl -X POST <?= $baseUrl ?>/api/entries \
@@ -756,11 +822,11 @@ curl -X POST <?= $baseUrl ?>/api/entries \
   -d '{"text":"Hello from Trail API! 🚀"}'</code>
                     </div>
                     
-                    <h3>Step 3: List Entries</h3>
+                    <h4>Step 3: List Your Entries</h4>
                     <div class="code-example">
-                        <code># List your entries
+                        <code># List entries you created
 curl -H "Authorization: Bearer YOUR_API_TOKEN" \
-     <?= $baseUrl ?>/api/entries?limit=20</code>
+     <?= $baseUrl ?>/api/profile</code>
                     </div>
                     
                     <div class="info-box success">
@@ -929,7 +995,8 @@ curl -X POST \
                             <li><strong>Full-text:</strong> 4+ characters (relevance ranked)</li>
                             <li><strong>LIKE search:</strong> 1-3 characters (pattern matching)</li>
                             <li><strong>Max length:</strong> 200 characters</li>
-                            <li><strong>Auth required:</strong> Search requires JWT token</li>
+                            <li><strong>Public access:</strong> No authentication required</li>
+                            <li><strong>Filtering:</strong> Authenticated users get personalized results (muted users hidden)</li>
                         </ul>
                     </div>
                     
@@ -1058,13 +1125,18 @@ curl -X POST \
                         <h3><i class="fa-solid fa-magnifying-glass"></i> Full-Text Search</h3>
                         <p>The <code>GET /api/entries</code> and <code>GET /api/users/{nickname}/entries</code> endpoints support full-text search:</p>
                         <div class="code-block">
-                            <code>GET /api/entries?q=search+term&limit=20</code>
+                            <code># Search is public - no authentication required
+curl <?= $baseUrl ?>/api/entries?q=search+term&limit=20
+
+# Search user's entries
+curl <?= $baseUrl ?>/api/users/alice/entries?q=example&limit=20</code>
                         </div>
                         <ul>
                             <li><strong>Full-text mode:</strong> 4+ characters with relevance ranking</li>
                             <li><strong>LIKE mode:</strong> 1-3 characters with pattern matching</li>
                             <li><strong>Max length:</strong> 200 characters</li>
-                            <li><strong>Auth required:</strong> JWT token needed for search</li>
+                            <li><strong>Public access:</strong> No authentication required</li>
+                            <li><strong>Personalization:</strong> Authenticated users get filtered results (muted users hidden)</li>
                         </ul>
                     </div>
                     

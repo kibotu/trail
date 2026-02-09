@@ -136,9 +136,9 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 - `GET /rss` - RSS feed
 
 **Entries (Read):**
-- `GET /api/entries` - List all public entries (paginated)
+- `GET /api/entries` - List all public entries (paginated, supports search with `?q=query`)
 - `GET /api/entries/{id}` - Get specific entry by ID
-- `GET /api/users/{nickname}/entries` - Get entries by user nickname
+- `GET /api/users/{nickname}/entries` - Get entries by user nickname (supports search)
 - `GET /api/users/{nickname}` - Get public user profile
 
 **Engagement (Read):**

@@ -277,17 +277,23 @@ Full API documentation is available at: https://trail.services.kibotu.net/api
 
 ### Public API Access
 
-View public content without authentication:
+View and search public content without authentication:
 
 ```bash
 # List all public entries
 curl https://trail.services.kibotu.net/api/entries
+
+# Search entries
+curl https://trail.services.kibotu.net/api/entries?q=example
 
 # Get specific entry
 curl https://trail.services.kibotu.net/api/entries/123
 
 # Get user's entries
 curl https://trail.services.kibotu.net/api/users/johndoe/entries
+
+# Search user's entries
+curl https://trail.services.kibotu.net/api/users/johndoe/entries?q=example
 
 # Get comments on an entry
 curl https://trail.services.kibotu.net/api/entries/123/comments

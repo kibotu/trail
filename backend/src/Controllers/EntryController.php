@@ -304,15 +304,6 @@ class EntryController
 
         // Handle search if query provided
         if ($searchQuery !== null && trim($searchQuery) !== '') {
-            // Search requires authentication
-            if (!$userId) {
-                $response->getBody()->write(json_encode([
-                    'error' => 'Authentication required for search',
-                    'code' => 'AUTH_REQUIRED'
-                ]));
-                return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
-            }
-            
             // Sanitize and validate search query
             $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
             
@@ -625,15 +616,6 @@ class EntryController
         
         // Handle search if query provided
         if ($searchQuery !== null && trim($searchQuery) !== '') {
-            // Search requires authentication
-            if (!$userId) {
-                $response->getBody()->write(json_encode([
-                    'error' => 'Authentication required for search',
-                    'code' => 'AUTH_REQUIRED'
-                ]));
-                return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
-            }
-            
             // Sanitize and validate search query
             $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
             
