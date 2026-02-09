@@ -25,13 +25,6 @@ $baseUrl = $protocol . '://' . $host;
 $endpoints = [
     [
         'method' => 'GET',
-        'path' => '/api',
-        'description' => 'API documentation (this page)',
-        'auth' => false,
-        'curl' => "curl {$baseUrl}/api"
-    ],
-    [
-        'method' => 'GET',
         'path' => '/api/admin/entries',
         'description' => 'List all entries (admin only)',
         'auth' => true,
@@ -80,6 +73,13 @@ $endpoints = [
         'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20\n\n# Next page:\ncurl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?limit=20&before=2024-01-01%2012:00:00"
     ],
     [
+        'method' => 'GET',
+        'path' => '/api/entries?q={query}',
+        'description' => 'Search entries (authenticated) - Full-text search with pagination. Supports ?q=query&limit=20&before=TIMESTAMP',
+        'auth' => true,
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?q=example\n\n# With pagination:\ncurl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/entries?q=example&limit=20&before=2024-01-01%2012:00:00"
+    ],
+    [
         'method' => 'POST',
         'path' => '/api/entries',
         'description' => 'Create a new entry (authenticated) - Max 140 characters. Supports custom dates, inline media upload, and initial claps.',
@@ -116,6 +116,20 @@ $endpoints = [
     ],
     [
         'method' => 'GET',
+        'path' => '/api/users/{nickname}/entries',
+        'description' => 'List entries by user nickname - Supports cursor-based pagination with ?limit=20&before=TIMESTAMP',
+        'auth' => false,
+        'curl' => "curl {$baseUrl}/api/users/@alice/entries?limit=20"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/users/{nickname}/entries?q={query}',
+        'description' => 'Search entries by user nickname (authenticated) - Full-text search within user\'s entries. Supports ?q=query&limit=20&before=TIMESTAMP',
+        'auth' => true,
+        'curl' => "curl -H \"Authorization: Bearer YOUR_JWT_TOKEN\" \\\n     {$baseUrl}/api/users/@alice/entries?q=example&limit=20"
+    ],
+    [
+        'method' => 'GET',
         'path' => '/api/health',
         'description' => 'Health check endpoint',
         'auth' => false,
@@ -127,13 +141,6 @@ $endpoints = [
         'description' => 'Global RSS feed of all public entries',
         'auth' => false,
         'curl' => "curl {$baseUrl}/api/rss"
-    ],
-    [
-        'method' => 'GET',
-        'path' => '/api/rss/{user_id}',
-        'description' => 'User-specific RSS feed by user ID',
-        'auth' => false,
-        'curl' => "curl {$baseUrl}/api/rss/123"
     ],
     [
         'method' => 'GET',
@@ -270,6 +277,54 @@ usort($endpoints, function($a, $b) {
                     &nbsp;&nbsp;"user_clap_count": 25<br>
                     }</code>
                 </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Search Functionality</h2>
+            <p>The <code>GET /api/entries</code> and <code>GET /api/users/{nickname}/entries</code> endpoints support full-text search via the <code>?q=</code> query parameter:</p>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-magnifying-glass"></i> Search Query Parameter</h3>
+                <p>Add a search query to filter entries:</p>
+                <div class="code-block">
+                    <code>?q=search+term</code>
+                </div>
+                <p class="note">URL-encode the query parameter. Spaces can be encoded as <code>+</code> or <code>%20</code>.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-database"></i> Search Modes</h3>
+                <p>The API automatically selects the optimal search mode:</p>
+                <ul>
+                    <li><strong>Full-text search:</strong> Used for queries with 4+ characters. Provides relevance ranking and better performance.</li>
+                    <li><strong>LIKE search:</strong> Fallback for short queries (1-3 characters). Uses pattern matching.</li>
+                </ul>
+                <p class="note">Maximum query length: 200 characters. Queries are automatically sanitized for safety.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-shield-halved"></i> Authentication Requirement</h3>
+                <p>Search requires authentication with a valid JWT token:</p>
+                <div class="code-block">
+                    <code>Authorization: Bearer YOUR_JWT_TOKEN</code>
+                </div>
+                <p class="note">Obtain a JWT token via <code>POST /api/auth/google</code> endpoint.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fa-solid fa-list"></i> Search Response Format</h3>
+                <p>Search results include the query in the response:</p>
+                <div class="code-block">
+                    <code>{<br>
+                    &nbsp;&nbsp;"entries": [...],<br>
+                    &nbsp;&nbsp;"has_more": true,<br>
+                    &nbsp;&nbsp;"next_cursor": "2025-01-15 10:30:00",<br>
+                    &nbsp;&nbsp;"limit": 20,<br>
+                    &nbsp;&nbsp;"search_query": "example"<br>
+                    }</code>
+                </div>
+                <p class="note">Pagination works the same as regular listing - use <code>before</code> parameter with <code>next_cursor</code> value.</p>
             </div>
         </div>
         
