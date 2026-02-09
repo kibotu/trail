@@ -289,20 +289,6 @@ $app->post('/api/auth/logout', function ($request, $response) use ($config) {
     // Clear session cookie
     clearSessionCookie();
     
-    // Clear JWT cookie with multiple attempts to ensure it's cleared
-    // Try with domain set
-    setcookie('trail_jwt', '', [
-        'expires' => time() - 3600,
-        'path' => '/',
-        'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    
-    // Also try without domain (for localhost)
-    setcookie('trail_jwt', '', time() - 3600, '/');
-    
     $response->getBody()->write(json_encode(['success' => true]));
     return $response->withHeader('Content-Type', 'application/json');
 });

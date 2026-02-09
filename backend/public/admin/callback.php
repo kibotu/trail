@@ -105,20 +105,6 @@ try {
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());
 
-    // Set JWT token in httpOnly cookie for API access
-    setcookie(
-        'trail_jwt',
-        $jwtToken,
-        [
-            'expires' => $expiresAt->getTimestamp(),
-            'path' => '/',
-            'domain' => '',
-            'secure' => true,
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]
-    );
-
     // Redirect to landing page for all users
     header('Location: /');
     exit;

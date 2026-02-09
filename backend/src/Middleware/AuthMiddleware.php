@@ -32,12 +32,6 @@ class AuthMiddleware implements MiddlewareInterface
             $token = $matches[1];
         }
 
-        // Fallback: Try to get token from httpOnly cookie
-        if (!$token) {
-            $cookies = $request->getCookieParams();
-            $token = $cookies['trail_jwt'] ?? null;
-        }
-
         // Fallback: Try to get token from session
         if (!$token) {
             require_once __DIR__ . '/../../public/helpers/session.php';
