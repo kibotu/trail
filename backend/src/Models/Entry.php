@@ -23,8 +23,8 @@ class Entry
         if ($preview !== null) {
             if ($createdAt !== null) {
                 $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids, created_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids, created_at, updated_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmt->execute([
                     $userId,
@@ -37,7 +37,8 @@ class Entry
                     $preview['json'] ?? null,
                     $preview['source'] ?? null,
                     $imageIdsJson,
-                    $createdAt
+                    $createdAt,
+                    $createdAt  // Set updated_at to match created_at for backdated entries
                 ]);
             } else {
                 $stmt = $this->db->prepare(
@@ -60,10 +61,10 @@ class Entry
         } else {
             if ($createdAt !== null) {
                 $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, image_ids, created_at) 
-                     VALUES (?, ?, ?, ?)"
+                    "INSERT INTO {$this->table} (user_id, text, image_ids, created_at, updated_at) 
+                     VALUES (?, ?, ?, ?, ?)"
                 );
-                $stmt->execute([$userId, $text, $imageIdsJson, $createdAt]);
+                $stmt->execute([$userId, $text, $imageIdsJson, $createdAt, $createdAt]);
             } else {
                 $stmt = $this->db->prepare(
                     "INSERT INTO {$this->table} (user_id, text, image_ids) 
