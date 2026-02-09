@@ -8,6 +8,7 @@
 class ApiTokenManager {
     constructor() {
         this.tokenValue = null;
+        this.createdAt = null;
         this.isVisible = false;
         this.apiBase = '/api';
     }
@@ -40,6 +41,7 @@ class ApiTokenManager {
 
             const data = await response.json();
             this.tokenValue = data.api_token;
+            this.createdAt = data.created_at;
             this.updateUI(data);
         } catch (error) {
             console.error('Error loading API token:', error);
@@ -79,11 +81,13 @@ class ApiTokenManager {
                 : 'fa-solid fa-eye';
         }
 
-        // Get the current created_at value from the UI
-        const createdEl = document.getElementById('api-token-created');
-        const createdAt = createdEl ? createdEl.textContent : '';
-        
-        this.updateUI({ created_at: createdAt });
+        // Only update the token value display; use the stored original date
+        const valueEl = document.getElementById('api-token-value');
+        if (valueEl) {
+            valueEl.textContent = this.isVisible 
+                ? this.tokenValue 
+                : '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••';
+        }
     }
 
     /**
@@ -153,6 +157,7 @@ class ApiTokenManager {
 
             const data = await response.json();
             this.tokenValue = data.api_token;
+            this.createdAt = data.created_at;
             
             // Automatically show the new token
             this.isVisible = true;
