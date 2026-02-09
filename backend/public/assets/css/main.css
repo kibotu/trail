@@ -2204,7 +2204,66 @@ main {
 .page-profile .identity-member-since {
     color: var(--text-muted);
     font-size: 0.8rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Identity card statistics */
+.page-profile .identity-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    padding: 0.875rem 0;
+    margin-bottom: 0.75rem;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.page-profile .identity-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    min-width: 3.5rem;
+}
+
+.page-profile .identity-stat-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.page-profile .identity-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 500;
+}
+
+/* Identity card meta items (last seen, last post) */
+.page-profile .identity-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-profile .identity-meta-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.page-profile .identity-meta-item i {
+    font-size: 0.75rem;
+    width: 0.875rem;
+    text-align: center;
+    flex-shrink: 0;
 }
 
 .page-profile .view-profile-btn {
@@ -2816,16 +2875,63 @@ main {
     pointer-events: none;
 }
 
-.page-user .profile-joined {
+/* Profile metadata row (joined, last seen, last post) */
+.page-user .profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.page-user .profile-joined,
+.page-user .profile-last-seen,
+.page-user .profile-last-entry {
     color: var(--text-muted);
     font-size: 0.875rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.375rem;
+    margin: 0;
 }
 
-.page-user .profile-joined i {
+.page-user .profile-joined i,
+.page-user .profile-last-seen i,
+.page-user .profile-last-entry i {
+    font-size: 0.8125rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Profile statistics counters */
+.page-user .profile-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.page-user .profile-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    text-decoration: none;
+    color: var(--text-muted);
     font-size: 0.875rem;
+    transition: color 0.15s;
+    cursor: default;
+}
+
+.page-user .profile-stat:hover {
+    color: var(--text-primary);
+}
+
+.page-user .profile-stat-value {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.page-user .profile-stat-label {
+    font-weight: 400;
 }
 
 .page-user .entries-container {
@@ -4726,6 +4832,14 @@ main {
         font-size: 1.25rem;
     }
 
+    .page-profile .identity-stats {
+        gap: 1rem;
+    }
+
+    .page-profile .identity-stat-value {
+        font-size: 1rem;
+    }
+
     .page-profile .profile-section {
         padding: 1.5rem;
     }
@@ -4772,6 +4886,22 @@ main {
     }
 
     .page-user .profile-bio {
+        font-size: 0.875rem;
+    }
+
+    .page-user .profile-meta {
+        gap: 0.125rem 1rem;
+    }
+
+    .page-user .profile-stats {
+        gap: 1rem;
+    }
+
+    .page-user .profile-stat {
+        font-size: 0.8125rem;
+    }
+
+    .page-user .profile-stat-value {
         font-size: 0.875rem;
     }
 

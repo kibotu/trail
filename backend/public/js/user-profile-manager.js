@@ -136,6 +136,11 @@ class UserProfileManager {
             joinedEl.innerHTML = `<i class="fa-solid fa-calendar"></i> ${joinedDate}`;
         }
 
+        // Set statistics
+        if (profile.stats) {
+            this.displayStats(profile.stats);
+        }
+
         // Show/hide edit overlays
         if (this.isOwner) {
             this.showEditControls();
@@ -673,6 +678,83 @@ class UserProfileManager {
             this.shaderCanvas.parentNode.removeChild(this.shaderCanvas);
             this.shaderCanvas = null;
         }
+    }
+
+    /**
+     * Display profile statistics in the header card
+     */
+    displayStats(stats) {
+        // -- Numeric counters --
+        const statsContainer = document.getElementById('profileStats');
+        if (statsContainer) {
+            const setValue = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.querySelector('.profile-stat-value').textContent = this.formatNumber(value);
+                }
+            };
+            setValue('statEntries',  stats.entry_count  ?? 0);
+            setValue('statComments', stats.comment_count ?? 0);
+            statsContainer.style.display = '';
+        }
+
+        // -- Last seen (previous login) --
+        if (stats.previous_login_at) {
+            const lastSeenEl = document.getElementById('profileLastSeen');
+            if (lastSeenEl) {
+                const span = lastSeenEl.querySelector('span');
+                span.textContent = `Last seen ${this.formatRelativeDate(stats.previous_login_at)}`;
+                lastSeenEl.style.display = '';
+            }
+        }
+
+        // -- Last entry --
+        if (stats.last_entry_at) {
+            const lastEntryEl = document.getElementById('profileLastEntry');
+            if (lastEntryEl) {
+                const span = lastEntryEl.querySelector('span');
+                span.textContent = `Last post ${this.formatRelativeDate(stats.last_entry_at)}`;
+                lastEntryEl.style.display = '';
+            }
+        }
+    }
+
+    /**
+     * Format a number for display (e.g. 1234 -> "1,234", 12500 -> "12.5K")
+     */
+    formatNumber(n) {
+        const num = Number(n) || 0;
+        if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (num >= 10_000)    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+        return num.toLocaleString();
+    }
+
+    /**
+     * Format a date string into a human-friendly relative string
+     * e.g. "2 hours ago", "3 days ago", "Jan 15, 2025"
+     */
+    formatRelativeDate(dateString) {
+        const date = new Date(dateString);
+        const now  = new Date();
+        const diffMs = now - date;
+        const diffSec  = Math.floor(diffMs / 1000);
+        const diffMin  = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay  = Math.floor(diffHour / 24);
+
+        if (diffSec < 60)   return 'just now';
+        if (diffMin < 60)   return `${diffMin}m ago`;
+        if (diffHour < 24)  return `${diffHour}h ago`;
+        if (diffDay < 7)    return `${diffDay}d ago`;
+        if (diffDay < 30)   return `${Math.floor(diffDay / 7)}w ago`;
+
+        // Older than a month – show a short absolute date
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const month = months[date.getMonth()];
+        const day   = date.getDate();
+        const year  = date.getFullYear();
+        if (year === now.getFullYear()) return `${month} ${day}`;
+        return `${month} ${day}, ${year}`;
     }
 
     /**

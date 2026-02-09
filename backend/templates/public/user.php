@@ -93,9 +93,27 @@
                     <h1 class="profile-name" id="profileName">Loading...</h1>
                     <p class="profile-nickname" id="profileNickname">@<?= htmlspecialchars($nickname ?? '') ?></p>
                     <p class="profile-bio" id="profileBio"></p>
-                    <p class="profile-joined" id="profileJoined">
-                        <i class="fa-solid fa-calendar"></i> Joined...
-                    </p>
+                    <div class="profile-meta" id="profileMeta">
+                        <p class="profile-joined" id="profileJoined">
+                            <i class="fa-solid fa-calendar"></i> Joined...
+                        </p>
+                        <p class="profile-last-seen" id="profileLastSeen" style="display:none;">
+                            <i class="fa-solid fa-clock"></i> <span></span>
+                        </p>
+                        <p class="profile-last-entry" id="profileLastEntry" style="display:none;">
+                            <i class="fa-solid fa-pen-nib"></i> <span></span>
+                        </p>
+                    </div>
+                    <div class="profile-stats" id="profileStats" style="display:none;">
+                        <a class="profile-stat" id="statEntries" href="#entries" title="Entries">
+                            <span class="profile-stat-value">0</span>
+                            <span class="profile-stat-label">Entries</span>
+                        </a>
+                        <a class="profile-stat" id="statComments" href="#comments" title="Comments">
+                            <span class="profile-stat-value">0</span>
+                            <span class="profile-stat-label">Comments</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

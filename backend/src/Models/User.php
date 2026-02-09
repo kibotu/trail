@@ -321,6 +321,43 @@ class User
     }
 
     /**
+     * Get profile statistics for a user (entries, links, comments, last entry, last login)
+     *
+     * Runs a single query with subselects for efficiency.
+     */
+    public function getProfileStats(int $userId): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT
+                (SELECT COUNT(*) FROM trail_entries WHERE user_id = :uid1) AS entry_count,
+                (SELECT COUNT(*) FROM trail_entries WHERE user_id = :uid2 AND preview_url IS NOT NULL) AS link_count,
+                (SELECT COUNT(*) FROM trail_comments WHERE user_id = :uid3) AS comment_count,
+                (SELECT MAX(created_at) FROM trail_entries WHERE user_id = :uid4) AS last_entry_at,
+                (SELECT MAX(created_at) FROM trail_sessions WHERE user_id = :uid5
+                    AND created_at < (SELECT MAX(created_at) FROM trail_sessions WHERE user_id = :uid6)
+                ) AS previous_login_at
+        ");
+        $stmt->execute([
+            ':uid1' => $userId,
+            ':uid2' => $userId,
+            ':uid3' => $userId,
+            ':uid4' => $userId,
+            ':uid5' => $userId,
+            ':uid6' => $userId,
+        ]);
+
+        $row = $stmt->fetch();
+
+        return [
+            'entry_count'       => (int) ($row['entry_count'] ?? 0),
+            'link_count'        => (int) ($row['link_count'] ?? 0),
+            'comment_count'     => (int) ($row['comment_count'] ?? 0),
+            'last_entry_at'     => $row['last_entry_at'] ?? null,
+            'previous_login_at' => $row['previous_login_at'] ?? null,
+        ];
+    }
+
+    /**
      * Generate a cryptographically secure API token
      */
     public function generateApiToken(): string

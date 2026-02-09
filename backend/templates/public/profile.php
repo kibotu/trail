@@ -61,6 +61,32 @@
                     </a>
                     <p id="identity-email" class="identity-email"></p>
                     <p id="identity-member-since" class="identity-member-since"></p>
+
+                    <div class="identity-stats" id="identityStats" style="display:none;">
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatEntries">0</span>
+                            <span class="identity-stat-label">Entries</span>
+                        </div>
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatLinks">0</span>
+                            <span class="identity-stat-label">Links</span>
+                        </div>
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatComments">0</span>
+                            <span class="identity-stat-label">Comments</span>
+                        </div>
+                    </div>
+
+                    <div class="identity-meta" id="identityMeta" style="display:none;">
+                        <p class="identity-meta-item" id="identityLastSeen" style="display:none;">
+                            <i class="fa-solid fa-clock"></i>
+                            <span></span>
+                        </p>
+                        <p class="identity-meta-item" id="identityLastEntry" style="display:none;">
+                            <i class="fa-solid fa-pen-nib"></i>
+                            <span></span>
+                        </p>
+                    </div>
                 </div>
             </aside>
 

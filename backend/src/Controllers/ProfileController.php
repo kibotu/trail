@@ -42,6 +42,9 @@ class ProfileController
             $nickname = $userModel->getOrGenerateNickname($userId, $user['google_id'], $salt);
         }
 
+        // Gather profile statistics
+        $stats = $userModel->getProfileStats($userId);
+
         $profileData = [
             'id' => $user['id'],
             'email' => $user['email'],
@@ -56,7 +59,8 @@ class ProfileController
             'header_image_url' => $user['header_image_url'] ?? null,
             'is_admin' => (bool) $user['is_admin'],
             'created_at' => $user['created_at'],
-            'updated_at' => $user['updated_at']
+            'updated_at' => $user['updated_at'],
+            'stats' => $stats,
         ];
 
         $response->getBody()->write(json_encode($profileData));
@@ -179,6 +183,9 @@ class ProfileController
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
+        // Gather profile statistics
+        $stats = $userModel->getProfileStats((int) $user['id']);
+
         // Return only public profile data
         $profileData = [
             'id' => $user['id'],
@@ -189,7 +196,8 @@ class ProfileController
             'gravatar_hash' => $user['gravatar_hash'],
             'profile_image_url' => $user['profile_image_url'] ?? null,
             'header_image_url' => $user['header_image_url'] ?? null,
-            'created_at' => $user['created_at']
+            'created_at' => $user['created_at'],
+            'stats' => $stats,
         ];
 
         $response->getBody()->write(json_encode($profileData));

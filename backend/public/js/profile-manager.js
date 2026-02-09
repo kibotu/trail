@@ -140,6 +140,10 @@ class ProfileManager {
             memberSinceEl.textContent = `Member since ${this.formatDate(profile.created_at)}`;
         }
 
+        // Set statistics
+        if (profile.stats) {
+            this.displayStats(profile.stats);
+        }
     }
 
     /**
@@ -527,6 +531,91 @@ class ProfileManager {
         } else {
             console.log(`[${type}] ${message}`);
         }
+    }
+
+    /**
+     * Display profile statistics in the identity card
+     * @param {Object} stats - Stats object from API
+     */
+    displayStats(stats) {
+        // Numeric counters
+        const statsContainer = document.getElementById('identityStats');
+        if (statsContainer) {
+            const set = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = this.formatNumber(value);
+            };
+            set('identityStatEntries',  stats.entry_count  ?? 0);
+            set('identityStatLinks',    stats.link_count    ?? 0);
+            set('identityStatComments', stats.comment_count ?? 0);
+            statsContainer.style.display = '';
+        }
+
+        // Meta section (last seen, last entry)
+        const metaContainer = document.getElementById('identityMeta');
+        let hasMetaItems = false;
+
+        if (stats.previous_login_at) {
+            const el = document.getElementById('identityLastSeen');
+            if (el) {
+                el.querySelector('span').textContent = `Last seen ${this.formatRelativeDate(stats.previous_login_at)}`;
+                el.style.display = '';
+                hasMetaItems = true;
+            }
+        }
+
+        if (stats.last_entry_at) {
+            const el = document.getElementById('identityLastEntry');
+            if (el) {
+                el.querySelector('span').textContent = `Last post ${this.formatRelativeDate(stats.last_entry_at)}`;
+                el.style.display = '';
+                hasMetaItems = true;
+            }
+        }
+
+        if (metaContainer && hasMetaItems) {
+            metaContainer.style.display = '';
+        }
+    }
+
+    /**
+     * Format a number for display (e.g. 1234 -> "1,234", 12500 -> "12.5K")
+     * @param {number} n - Number to format
+     * @returns {string} Formatted number
+     */
+    formatNumber(n) {
+        const num = Number(n) || 0;
+        if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (num >= 10_000)    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+        return num.toLocaleString();
+    }
+
+    /**
+     * Format a date string into a human-friendly relative string
+     * @param {string} dateString - ISO date string
+     * @returns {string} Relative date string
+     */
+    formatRelativeDate(dateString) {
+        const date = new Date(dateString);
+        const now  = new Date();
+        const diffMs = now - date;
+        const diffSec  = Math.floor(diffMs / 1000);
+        const diffMin  = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay  = Math.floor(diffHour / 24);
+
+        if (diffSec < 60)   return 'just now';
+        if (diffMin < 60)   return `${diffMin}m ago`;
+        if (diffHour < 24)  return `${diffHour}h ago`;
+        if (diffDay < 7)    return `${diffDay}d ago`;
+        if (diffDay < 30)   return `${Math.floor(diffDay / 7)}w ago`;
+
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const month = months[date.getMonth()];
+        const day   = date.getDate();
+        const year  = date.getFullYear();
+        if (year === now.getFullYear()) return `${month} ${day}`;
+        return `${month} ${day}, ${year}`;
     }
 
     /**
