@@ -550,12 +550,8 @@ class Entry
         $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
         $sql .= " $whereClause";
         
-        // Order by relevance (if FULLTEXT) then created_at
-        if ($useFulltext) {
-            $sql .= " ORDER BY relevance DESC, e.created_at DESC LIMIT ?";
-        } else {
-            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
-        }
+        // Order by created_at (most recent first) - relevance is not used for sorting
+        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
         $params[] = $limit;
         
         $stmt = $this->db->prepare($sql);
@@ -650,12 +646,8 @@ class Entry
         $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
         $sql .= " $whereClause";
         
-        // Order by relevance (if FULLTEXT) then created_at
-        if ($useFulltext) {
-            $sql .= " ORDER BY relevance DESC, e.created_at DESC LIMIT ?";
-        } else {
-            $sql .= " ORDER BY e.created_at DESC LIMIT ?";
-        }
+        // Order by created_at (most recent first) - relevance is not used for sorting
+        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
         $params[] = $limit;
         
         $stmt = $this->db->prepare($sql);
