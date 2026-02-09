@@ -642,20 +642,25 @@ $groups = [
         .toc-link { 
             display: block; 
             padding: 0.5rem 0.75rem; 
-            color: var(--text-secondary); 
-            text-decoration: none;
+            color: var(--text-secondary) !important; 
+            text-decoration: none !important;
             border-radius: 6px;
             transition: all 0.2s;
             font-size: 0.9375rem;
         }
         
+        .toc-link:visited {
+            color: var(--text-secondary) !important;
+        }
+        
         .toc-link:hover { 
-            color: var(--accent); 
+            color: var(--accent) !important; 
             background: rgba(59, 130, 246, 0.1);
+            text-decoration: none !important;
         }
         
         .toc-link.active { 
-            color: var(--accent); 
+            color: var(--accent) !important; 
             background: rgba(59, 130, 246, 0.15);
             font-weight: 500;
         }
