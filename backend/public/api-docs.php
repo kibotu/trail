@@ -258,8 +258,7 @@ usort($endpoints, function($a, $b) {
                 <div class="code-block">
                     <code>{<br>
                     &nbsp;&nbsp;"id": 123,<br>
-                    &nbsp;&nbsp;"created_at": "2026-01-30 12:34:56",<br>
-                    &nbsp;&nbsp;"custom_created_at": "2025-11-28 10:54:34",<br>
+                    &nbsp;&nbsp;"created_at": "2025-11-28 10:54:34",<br>
                     &nbsp;&nbsp;"images": [{<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;"id": 456,<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;"url": "/uploads/images/1/1_1738246496_abc.webp",<br>

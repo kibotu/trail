@@ -128,5 +128,5 @@ function makeRequest(string $url, array $data, string $jwtToken): array
 echo "All tests completed!\n";
 echo "\nNote: Make sure to:\n";
 echo "1. Replace YOUR_JWT_TOKEN_HERE with a valid JWT token\n";
-echo "2. Run the database migration: 021_add_custom_created_at.sql\n";
+echo "2. Run the database migration: 023_simplify_created_at.sql\n";
 echo "3. Adjust \$baseUrl if your server runs on a different port\n";

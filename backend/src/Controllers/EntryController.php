@@ -27,7 +27,7 @@ class EntryController
         $imageIds = $data['image_ids'] ?? null;
         $media = $data['media'] ?? null;
         $rawUpload = $data['raw_upload'] ?? false;
-        $customCreatedAt = $data['created_at'] ?? null;
+        $createdAt = $data['created_at'] ?? null;
         $initialClaps = $data['initial_claps'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
@@ -161,11 +161,11 @@ class EntryController
             }
         }
 
-        // Parse custom created_at date if provided
-        $parsedCustomDate = null;
-        if (!empty($customCreatedAt)) {
-            $parsedCustomDate = TwitterDateParser::parse($customCreatedAt);
-            if ($parsedCustomDate === null) {
+        // Parse created_at date if provided
+        $parsedDate = null;
+        if (!empty($createdAt)) {
+            $parsedDate = TwitterDateParser::parse($createdAt);
+            if ($parsedDate === null) {
                 $response->getBody()->write(json_encode(['error' => 'Invalid date format. Expected Twitter format: "Fri Nov 28 10:54:34 +0000 2025"']));
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
@@ -190,7 +190,7 @@ class EntryController
             $preview = null;
         }
 
-        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds, $parsedCustomDate);
+        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds, $parsedDate);
         $entry = $entryModel->findById($entryId, $userId);
 
         // Add initial claps if provided
@@ -259,7 +259,6 @@ class EntryController
         $response->getBody()->write(json_encode([
             'id' => $entryId,
             'created_at' => $entry['created_at'],
-            'custom_created_at' => $entry['custom_created_at'] ?? null,
             'images' => $entryWithImages['images'] ?? [],
             'clap_count' => $entry['clap_count'] ?? 0,
             'user_clap_count' => $entry['user_clap_count'] ?? 0,

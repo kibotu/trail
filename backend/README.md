@@ -268,8 +268,7 @@ The sync script:
 **Never run migrations manually.** Always use `./sync.sh`.
 
 Latest migrations:
-- `021_add_custom_created_at.sql` - Custom date support for entries
-- `022_record_custom_created_at_migration.sql` - Migration tracking
+- `023_simplify_created_at.sql` - Simplified created_at (removed custom_created_at column)
 
 See [MIGRATION_GUIDE.md](../MIGRATION_GUIDE.md) for details.
 
