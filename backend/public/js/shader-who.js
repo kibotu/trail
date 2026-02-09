@@ -151,19 +151,19 @@ function initProteanCloudsShader(canvasElement, options = {}) {
             float time = iTime * 3.;
             vec3 ro = vec3(0, 0, time);
             
-            ro += vec3(sin(iTime) * 0.5, sin(iTime * 1.) * 0., 0);
+            ro += vec3(sin(iTime) * 0.15, sin(iTime * 1.) * 0., 0);
                 
             float dspAmp = .85;
             ro.xy += disp(ro.z) * dspAmp;
             float tgtDst = 3.5;
             
             vec3 target = normalize(ro - vec3(disp(time + tgtDst) * dspAmp, time + tgtDst));
-            ro.x -= bsMo.x * 2.;
+            ro.x -= bsMo.x * 0.5;
             vec3 rightdir = normalize(cross(target, vec3(0, 1, 0)));
             vec3 updir = normalize(cross(rightdir, target));
             rightdir = normalize(cross(updir, target));
             vec3 rd = normalize((p.x * rightdir + p.y * updir) * 1. - target);
-            rd.xy *= rot(-disp(time + 3.5).x * 0.2 + bsMo.x);
+            rd.xy *= rot(-disp(time + 3.5).x * 0.05 + bsMo.x * 0.3);
             prm1 = smoothstep(-0.4, 0.4, sin(iTime * 0.3));
             vec4 scn = render(ro, rd, time);
                 
