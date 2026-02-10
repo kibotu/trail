@@ -83,14 +83,14 @@ $errorMessage = $errorInfo['message'];
 </div>
 
 <!-- Core JavaScript Modules -->
-<script src="/js/config.js"></script>
-<script src="/js/snackbar.js"></script>
-<script src="/js/celebrations.js"></script>
-<script src="/js/ui-interactions.js"></script>
-<script src="/js/entries-manager.js"></script>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/snackbar.js"></script>
+<script src="/assets/js/celebrations.js"></script>
+<script src="/assets/js/ui-interactions.js"></script>
+<script src="/assets/js/entries-manager.js"></script>
 
 <!-- Page Initialization -->
-<script src="/js/error-page.js"></script>
+<script src="/assets/js/error-page.js"></script>
 
 </body>
 </html>

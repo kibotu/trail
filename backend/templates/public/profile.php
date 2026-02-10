@@ -235,11 +235,11 @@
     </div>
 
     <!-- Core JavaScript Modules -->
-    <script src="/js/snackbar.js"></script>
-    <script src="/js/profile-manager.js"></script>
-    <script src="/js/api-token-manager.js"></script>
+    <script src="/assets/js/snackbar.js"></script>
+    <script src="/assets/js/profile-manager.js"></script>
+    <script src="/assets/js/api-token-manager.js"></script>
     
     <!-- Page Initialization -->
-    <script src="/js/profile-page.js"></script>
+    <script src="/assets/js/profile-page.js"></script>
 </body>
 </html>

@@ -150,23 +150,23 @@
     </main>
 
     <!-- Core JavaScript Modules -->
-    <script src="/js/config.js"></script>
-    <script src="/js/snackbar.js"></script>
-    <script src="/js/card-template.js"></script>
-    <script src="/js/ui-interactions.js"></script>
-    <script src="/js/entries-manager.js"></script>
-    <script src="/js/infinite-scroll.js"></script>
-    <script src="/js/celebrations.js"></script>
-    <script src="/js/image-upload.js"></script>
-    <script src="/js/comments-manager.js"></script>
-    <script src="/js/search-manager.js"></script>
-    <script src="/js/shader-background.js"></script>
-    <script src="/js/scroll-to-top.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/snackbar.js"></script>
+    <script src="/assets/js/card-template.js"></script>
+    <script src="/assets/js/ui-interactions.js"></script>
+    <script src="/assets/js/entries-manager.js"></script>
+    <script src="/assets/js/infinite-scroll.js"></script>
+    <script src="/assets/js/celebrations.js"></script>
+    <script src="/assets/js/image-upload.js"></script>
+    <script src="/assets/js/comments-manager.js"></script>
+    <script src="/assets/js/search-manager.js"></script>
+    <script src="/assets/js/shader-background.js"></script>
+    <script src="/assets/js/scroll-to-top.js"></script>
     <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
-    <script src="/js/notifications.js"></script>
+    <script src="/assets/js/notifications.js"></script>
     <?php endif; ?>
     
     <!-- Page Initialization -->
-    <script src="/js/landing-page.js"></script>
+    <script src="/assets/js/landing-page.js"></script>
 </body>
 </html>

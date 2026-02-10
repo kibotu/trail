@@ -120,6 +120,6 @@
         <?php endif; ?>
     </div>
     
-    <script src="/js/notifications.js"></script>
+    <script src="/assets/js/notifications.js"></script>
 </body>
 </html>

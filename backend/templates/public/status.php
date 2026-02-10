@@ -45,16 +45,16 @@
     </main>
 
     <!-- Core JavaScript Modules -->
-    <script src="/js/config.js"></script>
-    <script src="/js/snackbar.js"></script>
-    <script src="/js/card-template.js"></script>
-    <script src="/js/ui-interactions.js"></script>
-    <script src="/js/entries-manager.js"></script>
-    <script src="/js/image-upload.js"></script>
-    <script src="/js/comments-manager.js"></script>
-    <script src="/js/meta-updater.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/snackbar.js"></script>
+    <script src="/assets/js/card-template.js"></script>
+    <script src="/assets/js/ui-interactions.js"></script>
+    <script src="/assets/js/entries-manager.js"></script>
+    <script src="/assets/js/image-upload.js"></script>
+    <script src="/assets/js/comments-manager.js"></script>
+    <script src="/assets/js/meta-updater.js"></script>
     
     <!-- Page Initialization -->
-    <script src="/js/status-page.js"></script>
+    <script src="/assets/js/status-page.js"></script>
 </body>
 </html>

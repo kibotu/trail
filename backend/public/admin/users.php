@@ -362,6 +362,6 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         <?php endif; ?>
     </div>
 
-    <script src="/js/admin-users.js"></script>
+    <script src="/assets/js/admin-users.js"></script>
 </body>
 </html>

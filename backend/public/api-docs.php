@@ -1513,6 +1513,6 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
     </div>
     
     <script src="/assets/js/mermaid.min.js"></script>
-    <script src="/js/api-docs.js"></script>
+    <script src="/assets/js/api-docs.js"></script>
 </body>
 </html>

@@ -228,9 +228,9 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         </div>
     </div>
 
-    <script src="/js/config.js"></script>
-    <script src="/js/snackbar.js"></script>
-    <script src="/js/card-template.js"></script>
-    <script src="/js/admin-dashboard.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/snackbar.js"></script>
+    <script src="/assets/js/card-template.js"></script>
+    <script src="/assets/js/admin-dashboard.js"></script>
 </body>
 </html>
