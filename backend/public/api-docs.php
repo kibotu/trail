@@ -101,7 +101,8 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -b cookies.txt {$baseUrl}/api/token"
+        'curl' => "curl -b cookies.txt {$baseUrl}/api/token",
+        'internal' => true
     ],
     [
         'method' => 'POST',
@@ -111,7 +112,8 @@ $endpoints = [
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     {$baseUrl}/api/token/regenerate"
+        'curl' => "curl -X POST \\\n     -b cookies.txt \\\n     {$baseUrl}/api/token/regenerate",
+        'internal' => true
     ],
     [
         'method' => 'GET',
@@ -597,9 +599,13 @@ $endpoints = [
     ]
 ];
 
-// Group endpoints by category
+// Group endpoints by category (excluding internal endpoints)
 $groupedEndpoints = [];
 foreach ($endpoints as $endpoint) {
+    // Skip internal endpoints from public documentation
+    if (!empty($endpoint['internal'])) {
+        continue;
+    }
     $group = $endpoint['group'] ?? 'other';
     if (!isset($groupedEndpoints[$group])) {
         $groupedEndpoints[$group] = [];
