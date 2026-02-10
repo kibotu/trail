@@ -182,7 +182,17 @@ ServerSignature Off
 </IfModule>
 
 # ============================================
-# 11. Front Controller (URL Rewriting)
+# 11. Favicon Redirect
+# ============================================
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirect /favicon.ico to /assets/favicon.ico
+    RewriteRule ^favicon\.ico$ /assets/favicon.ico [L]
+</IfModule>
+
+# ============================================
+# 12. Front Controller (URL Rewriting)
 # ============================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -198,7 +208,7 @@ ServerSignature Off
 </IfModule>
 
 # ============================================
-# 12. MIME Type Security
+# 13. MIME Type Security
 # ============================================
 <IfModule mod_mime.c>
     # Force download for potentially dangerous files
@@ -211,14 +221,14 @@ ServerSignature Off
 </IfModule>
 
 # ============================================
-# 13. Compression (Performance)
+# 14. Compression (Performance)
 # ============================================
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
 
 # ============================================
-# 14. Browser Caching (Performance)
+# 15. Browser Caching (Performance)
 # ============================================
 <IfModule mod_expires.c>
     ExpiresActive On
