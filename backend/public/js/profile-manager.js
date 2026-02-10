@@ -564,6 +564,15 @@ class ProfileManager {
             viewStatsContainer.style.display = '';
         }
 
+        // Clap stats container
+        const clapStatsContainer = document.getElementById('identityClapStats');
+        if (clapStatsContainer) {
+            const totalClaps = (stats.total_entry_claps ?? 0) + (stats.total_comment_claps ?? 0);
+            const el = document.getElementById('identityStatTotalClaps');
+            if (el) el.textContent = this.formatNumber(totalClaps);
+            clapStatsContainer.style.display = '';
+        }
+
         // Meta section (last seen, last entry)
         const metaContainer = document.getElementById('identityMeta');
         let hasMetaItems = false;

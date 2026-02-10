@@ -92,6 +92,13 @@
                         </div>
                     </div>
 
+                    <div class="identity-stats identity-clap-stats" id="identityClapStats" style="display:none;">
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatTotalClaps">0</span>
+                            <span class="identity-stat-label"><i class="fa-solid fa-heart"></i> Total Claps</span>
+                        </div>
+                    </div>
+
                     <div class="identity-meta" id="identityMeta" style="display:none;">
                         <p class="identity-meta-item" id="identityLastSeen" style="display:none;">
                             <i class="fa-solid fa-clock"></i>

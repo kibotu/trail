@@ -321,7 +321,7 @@ class User
     }
 
     /**
-     * Get profile statistics for a user (entries, links, comments, last entry, last login, view stats)
+     * Get profile statistics for a user (entries, links, comments, last entry, last login, view stats, clap stats)
      *
      * Runs a single query with subselects for efficiency.
      */
@@ -352,7 +352,19 @@ class User
                     SELECT view_count
                     FROM trail_view_counts
                     WHERE target_type = 'profile' AND target_id = :uid9
-                ), 0) AS total_profile_views
+                ), 0) AS total_profile_views,
+                COALESCE((
+                    SELECT SUM(c.clap_count)
+                    FROM trail_claps c
+                    INNER JOIN trail_entries e ON c.entry_id = e.id
+                    WHERE e.user_id = :uid10
+                ), 0) AS total_entry_claps,
+                COALESCE((
+                    SELECT SUM(cc.clap_count)
+                    FROM trail_comment_claps cc
+                    INNER JOIN trail_comments c ON cc.comment_id = c.id
+                    WHERE c.user_id = :uid11
+                ), 0) AS total_comment_claps
         ");
         $stmt->execute([
             ':uid1' => $userId,
@@ -364,6 +376,8 @@ class User
             ':uid7' => $userId,
             ':uid8' => $userId,
             ':uid9' => $userId,
+            ':uid10' => $userId,
+            ':uid11' => $userId,
         ]);
 
         $row = $stmt->fetch();
@@ -377,6 +391,8 @@ class User
             'total_entry_views'   => (int) ($row['total_entry_views'] ?? 0),
             'total_comment_views' => (int) ($row['total_comment_views'] ?? 0),
             'total_profile_views' => (int) ($row['total_profile_views'] ?? 0),
+            'total_entry_claps'   => (int) ($row['total_entry_claps'] ?? 0),
+            'total_comment_claps' => (int) ($row['total_comment_claps'] ?? 0),
         ];
     }
 
