@@ -215,3 +215,4 @@ backend/cache/
 android-backup/
 
 **/*/.phpunit.cache/
+.vscode/

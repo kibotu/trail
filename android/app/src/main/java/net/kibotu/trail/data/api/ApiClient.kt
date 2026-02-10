@@ -7,9 +7,11 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import net.kibotu.trail.BuildConfig
 
 object ApiClient {
-    private const val BASE_URL = "https://trail.services.kibotu.net/"
+    // Base URL from local.properties (configured to match backend/secrets.yml)
+    private val BASE_URL = BuildConfig.API_BASE_URL
 
     private var authToken: String? = null
 

@@ -28,6 +28,13 @@ if [ ! -f "$SECRETS_FILE" ]; then
     exit 1
 fi
 
+# Extract app base URL from secrets.yml
+APP_BASE_URL=$(grep -A 5 "^app:" "$SECRETS_FILE" | grep "base_url:" | awk '{print $2}')
+if [ -z "$APP_BASE_URL" ]; then
+    echo -e "${RED}✗ Error: base_url not found in secrets.yml${NC}"
+    exit 1
+fi
+
 # Extract FTP credentials from secrets.yml
 FTP_HOST=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}')
 FTP_PORT=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "port:" | awk '{print $2}')
@@ -40,6 +47,7 @@ FTP_PORT=${FTP_PORT:-21}
 FTP_REMOTE_PATH=${FTP_REMOTE_PATH:-/}
 
 echo -e "${GREEN}✓${NC} Configuration loaded"
+echo -e "  Base URL: ${BLUE}$APP_BASE_URL${NC}"
 echo -e "  FTP Host: ${BLUE}$FTP_HOST:$FTP_PORT${NC}"
 echo -e "  Remote Path: ${BLUE}$FTP_REMOTE_PATH${NC}"
 echo ""
@@ -99,7 +107,7 @@ echo ""
 echo -e "${YELLOW}[3/3]${NC} Uploading to FTP server..."
 echo -e "${BLUE}Production Structure:${NC}"
 echo -e "  FTP Root (not public)"
-echo -e "  ├── public/      → https://trail.services.kibotu.net/"
+echo -e "  ├── public/      → $APP_BASE_URL/"
 echo -e "  ├── src/"
 echo -e "  ├── templates/"
 echo -e "  └── vendor/      (pre-built, no composer on prod)"
@@ -122,7 +130,7 @@ lcd $BACKEND_DIR
 
 # Mirror (sync) only production files to remote
 # Production structure:
-#   FTP_ROOT/public/     -> web root (https://trail.services.kibotu.net/)
+#   FTP_ROOT/public/     -> web root ($APP_BASE_URL/)
 #   FTP_ROOT/src/        -> application code (not public)
 #   FTP_ROOT/templates/  -> HTML templates (not public)
 #   FTP_ROOT/vendor/     -> pre-built dependencies (not public)
@@ -379,7 +387,7 @@ EOF
     
     # Run migrations via HTTP
     echo -e "${BLUE}Executing migrations on production server...${NC}"
-    MIGRATION_OUTPUT=$(curl -s "https://trail.services.kibotu.net/run-migrations-temp.php")
+    MIGRATION_OUTPUT=$(curl -s "$APP_BASE_URL/run-migrations-temp.php")
     echo "$MIGRATION_OUTPUT"
     
     # Check if migrations succeeded
@@ -413,5 +421,5 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║   Deployment Successful! 🚀            ║${NC}"
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
 echo ""
-echo -e "  Backend URL: ${BLUE}https://trail.services.kibotu.net${NC}"
+echo -e "  Backend URL: ${BLUE}$APP_BASE_URL${NC}"
 echo ""

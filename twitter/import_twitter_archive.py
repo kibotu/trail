@@ -4,6 +4,7 @@
 # dependencies = [
 #     "requests>=2.31.0",
 #     "urllib3>=2.0.0",
+#     "pyyaml>=6.0.0",
 # ]
 # ///
 """
@@ -44,8 +45,31 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import requests
+import yaml
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+
+def get_base_url_from_secrets() -> Optional[str]:
+    """Try to read base_url from backend/secrets.yml."""
+    # Try relative paths from twitter/ directory
+    possible_paths = [
+        Path(__file__).parent.parent / "backend" / "secrets.yml",
+        Path(__file__).parent / ".." / "backend" / "secrets.yml",
+        Path("../backend/secrets.yml"),
+    ]
+    
+    for secrets_path in possible_paths:
+        if secrets_path.exists():
+            try:
+                with open(secrets_path, "r") as f:
+                    config = yaml.safe_load(f)
+                    base_url = config.get("app", {}).get("base_url")
+                    if base_url:
+                        return f"{base_url}/api"
+            except Exception:
+                pass
+    return None
 
 
 class TwitterArchiveImporter:
@@ -55,7 +79,7 @@ class TwitterArchiveImporter:
         self,
         archive_path: str,
         api_key: str,
-        api_base_url: str = "https://trail.services.kibotu.net/api",
+        api_base_url: Optional[str] = None,
         delay_ms: int = 100,
         dry_run: bool = False,
         verbose: bool = False,
@@ -64,7 +88,13 @@ class TwitterArchiveImporter:
     ):
         self.archive_path = Path(archive_path)
         self.api_key = api_key
-        self.api_base_url = api_base_url
+        # Use provided URL, or try secrets.yml, or env var, or localhost fallback
+        self.api_base_url = (
+            api_base_url
+            or os.environ.get("TRAIL_API_URL")
+            or get_base_url_from_secrets()
+            or "http://localhost/api"
+        )
         self.delay_ms = delay_ms
         self.dry_run = dry_run
         self.verbose = verbose
@@ -600,10 +630,17 @@ Examples:
         help="Path to Twitter archive folder (default: auto-detect)",
     )
     
+    # Get default API URL from secrets.yml or environment
+    default_api_url = (
+        os.environ.get("TRAIL_API_URL")
+        or get_base_url_from_secrets()
+        or "http://localhost/api"
+    )
+    
     parser.add_argument(
         "--api-url",
-        default="https://trail.services.kibotu.net/api",
-        help="Trail API base URL (default: https://trail.services.kibotu.net/api)",
+        default=default_api_url,
+        help=f"Trail API base URL (default: from secrets.yml or TRAIL_API_URL env var, currently: {default_api_url})",
     )
     
     parser.add_argument(

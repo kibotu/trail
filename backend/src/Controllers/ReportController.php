@@ -63,7 +63,7 @@ class ReportController
                 $entry['hash_id'] = $hashIdService->encode($entryId);
                 
                 $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
-                $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+                $baseUrl = $config['app']['base_url'] ?? 'http://localhost';
                 
                 $emailService = new EmailService($adminEmail, $baseUrl);
                 $emailSent = $emailService->sendReportNotification($entry, $reportCount);
