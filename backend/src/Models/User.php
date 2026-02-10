@@ -321,7 +321,7 @@ class User
     }
 
     /**
-     * Get profile statistics for a user (entries, links, comments, last entry, last login)
+     * Get profile statistics for a user (entries, links, comments, last entry, last login, view stats)
      *
      * Runs a single query with subselects for efficiency.
      */
@@ -335,7 +335,24 @@ class User
                 (SELECT MAX(created_at) FROM trail_entries WHERE user_id = :uid4) AS last_entry_at,
                 (SELECT MAX(created_at) FROM trail_sessions WHERE user_id = :uid5
                     AND created_at < (SELECT MAX(created_at) FROM trail_sessions WHERE user_id = :uid6)
-                ) AS previous_login_at
+                ) AS previous_login_at,
+                COALESCE((
+                    SELECT SUM(vc.view_count)
+                    FROM trail_view_counts vc
+                    INNER JOIN trail_entries e ON vc.target_id = e.id
+                    WHERE vc.target_type = 'entry' AND e.user_id = :uid7
+                ), 0) AS total_entry_views,
+                COALESCE((
+                    SELECT SUM(vc.view_count)
+                    FROM trail_view_counts vc
+                    INNER JOIN trail_comments c ON vc.target_id = c.id
+                    WHERE vc.target_type = 'comment' AND c.user_id = :uid8
+                ), 0) AS total_comment_views,
+                COALESCE((
+                    SELECT view_count
+                    FROM trail_view_counts
+                    WHERE target_type = 'profile' AND target_id = :uid9
+                ), 0) AS total_profile_views
         ");
         $stmt->execute([
             ':uid1' => $userId,
@@ -344,16 +361,22 @@ class User
             ':uid4' => $userId,
             ':uid5' => $userId,
             ':uid6' => $userId,
+            ':uid7' => $userId,
+            ':uid8' => $userId,
+            ':uid9' => $userId,
         ]);
 
         $row = $stmt->fetch();
 
         return [
-            'entry_count'       => (int) ($row['entry_count'] ?? 0),
-            'link_count'        => (int) ($row['link_count'] ?? 0),
-            'comment_count'     => (int) ($row['comment_count'] ?? 0),
-            'last_entry_at'     => $row['last_entry_at'] ?? null,
-            'previous_login_at' => $row['previous_login_at'] ?? null,
+            'entry_count'         => (int) ($row['entry_count'] ?? 0),
+            'link_count'          => (int) ($row['link_count'] ?? 0),
+            'comment_count'       => (int) ($row['comment_count'] ?? 0),
+            'last_entry_at'       => $row['last_entry_at'] ?? null,
+            'previous_login_at'   => $row['previous_login_at'] ?? null,
+            'total_entry_views'   => (int) ($row['total_entry_views'] ?? 0),
+            'total_comment_views' => (int) ($row['total_comment_views'] ?? 0),
+            'total_profile_views' => (int) ($row['total_profile_views'] ?? 0),
         ];
     }
 

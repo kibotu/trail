@@ -43,10 +43,54 @@ class UserProfileManager {
         try {
             await this.loadProfile();
             this.setupEventListeners();
+            this.recordProfileView();
         } catch (error) {
             console.error('Failed to initialize profile:', error);
             this.showError('Failed to load profile. Please try again.');
         }
+    }
+
+    /**
+     * Record a profile view (fire-and-forget)
+     */
+    recordProfileView() {
+        fetch(`${this.apiBase}/users/${this.nickname}/views`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint: this.getBrowserFingerprint() })
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Update the view count in the UI if it exists
+            const viewCountEl = document.querySelector('#statProfileViews .profile-stat-value');
+            if (viewCountEl && data.view_count !== undefined) {
+                viewCountEl.textContent = this.formatNumber(data.view_count);
+            }
+        })
+        .catch(() => {}); // Silent - views are best-effort
+    }
+
+    /**
+     * Generate a lightweight browser fingerprint for view deduplication.
+     * Differentiates devices behind the same IP without cross-site tracking.
+     * Uses only stable properties that don't change during normal use.
+     */
+    getBrowserFingerprint() {
+        // Use cached fingerprint if available from card-template.js
+        if (typeof getBrowserFingerprint === 'function') {
+            return getBrowserFingerprint();
+        }
+        // Fallback: generate inline (stable properties only)
+        const components = [
+            screen.width,
+            screen.height,
+            screen.colorDepth,
+            navigator.language,
+            navigator.hardwareConcurrency || 0,
+            navigator.platform || ''
+        ];
+        return components.join('|');
     }
 
     /**
@@ -695,6 +739,7 @@ class UserProfileManager {
             };
             setValue('statEntries',  stats.entry_count  ?? 0);
             setValue('statComments', stats.comment_count ?? 0);
+            setValue('statProfileViews', stats.total_profile_views ?? 0);
             statsContainer.style.display = '';
         }
 

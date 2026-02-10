@@ -23,6 +23,7 @@ use Trail\Controllers\CommentController;
 use Trail\Controllers\CommentClapController;
 use Trail\Controllers\CommentReportController;
 use Trail\Controllers\NotificationController;
+use Trail\Controllers\ViewController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -335,6 +336,14 @@ $app->get('/api/comments/{id}/claps', [CommentClapController::class, 'getClaps']
 
 // Comment report route
 $app->post('/api/comments/{id}/report', [CommentReportController::class, 'reportComment'])->add(new AuthMiddleware($config));
+
+// View tracking routes (no auth required - anonymous views tracked by IP)
+$app->post('/api/entries/{id}/views', [ViewController::class, 'recordEntryView'])
+    ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
+$app->post('/api/comments/{id}/views', [ViewController::class, 'recordCommentView'])
+    ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
+$app->post('/api/users/{nickname}/views', [ViewController::class, 'recordProfileView'])
+    ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
 
 // Image upload routes (authenticated)
 $app->post('/api/images/upload/init', [ImageUploadController::class, 'initUpload'])->add(new AuthMiddleware($config));

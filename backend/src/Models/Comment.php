@@ -32,7 +32,8 @@ class Comment
     public function findById(int $id, ?int $currentUserId = null): ?array
     {
         $sql = "SELECT c.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
-                COALESCE(clap_totals.total_claps, 0) as clap_count";
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -44,7 +45,9 @@ class Comment
                      SELECT comment_id, SUM(clap_count) as total_claps
                      FROM trail_comment_claps
                      GROUP BY comment_id
-                 ) clap_totals ON c.id = clap_totals.comment_id";
+                 ) clap_totals ON c.id = clap_totals.comment_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'comment' AND view_counts.target_id = c.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_comment_claps user_claps ON c.id = user_claps.comment_id AND user_claps.user_id = ?";
@@ -68,7 +71,8 @@ class Comment
     public function getByEntry(int $entryId, int $limit = 50, ?string $before = null, ?int $currentUserId = null, array $excludeCommentIds = []): array
     {
         $sql = "SELECT c.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
-                COALESCE(clap_totals.total_claps, 0) as clap_count";
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -80,7 +84,9 @@ class Comment
                      SELECT comment_id, SUM(clap_count) as total_claps
                      FROM trail_comment_claps
                      GROUP BY comment_id
-                 ) clap_totals ON c.id = clap_totals.comment_id";
+                 ) clap_totals ON c.id = clap_totals.comment_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'comment' AND view_counts.target_id = c.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_comment_claps user_claps ON c.id = user_claps.comment_id AND user_claps.user_id = ?";

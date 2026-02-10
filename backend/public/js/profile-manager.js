@@ -551,6 +551,19 @@ class ProfileManager {
             statsContainer.style.display = '';
         }
 
+        // View stats container
+        const viewStatsContainer = document.getElementById('identityViewStats');
+        if (viewStatsContainer) {
+            const set = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = this.formatNumber(value);
+            };
+            set('identityStatEntryViews',   stats.total_entry_views   ?? 0);
+            set('identityStatCommentViews', stats.total_comment_views ?? 0);
+            set('identityStatProfileViews', stats.total_profile_views ?? 0);
+            viewStatsContainer.style.display = '';
+        }
+
         // Meta section (last seen, last entry)
         const metaContainer = document.getElementById('identityMeta');
         let hasMetaItems = false;

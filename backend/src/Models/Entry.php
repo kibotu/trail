@@ -81,7 +81,8 @@ class Entry
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count";
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -98,7 +99,9 @@ class Entry
                      SELECT entry_id, COUNT(*) as comment_count
                      FROM trail_comments
                      GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id";
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -123,7 +126,8 @@ class Entry
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count";
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -140,7 +144,9 @@ class Entry
                      SELECT entry_id, COUNT(*) as comment_count
                      FROM trail_comments
                      GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id";
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -171,10 +177,11 @@ class Entry
 
     public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null): array
     {
-        // Build SELECT with clap counts and comment counts
+        // Build SELECT with clap counts, comment counts, and view counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count";
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
@@ -191,7 +198,9 @@ class Entry
                      SELECT entry_id, COUNT(*) as comment_count
                      FROM trail_comments
                      GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id";
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -468,10 +477,11 @@ class Entry
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
         $useFulltext = mb_strlen($searchQuery) >= 4;
         
-        // Build SELECT with clap counts, comment counts, and relevance score
+        // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count";
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         // Params must be added in the exact order of ? placeholders in the SQL
         $params = [];
@@ -496,7 +506,9 @@ class Entry
                      SELECT entry_id, COUNT(*) as comment_count
                      FROM trail_comments
                      GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id";
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -575,10 +587,11 @@ class Entry
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
         $useFulltext = mb_strlen($searchQuery) >= 4;
         
-        // Build SELECT with clap counts, comment counts, and relevance score
+        // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count";
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
         
         // Params must be added in the exact order of ? placeholders in the SQL
         $params = [];
@@ -603,7 +616,9 @@ class Entry
                      SELECT entry_id, COUNT(*) as comment_count
                      FROM trail_comments
                      GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id";
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";

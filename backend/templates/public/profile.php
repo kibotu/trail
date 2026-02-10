@@ -77,6 +77,21 @@
                         </div>
                     </div>
 
+                    <div class="identity-stats identity-view-stats" id="identityViewStats" style="display:none;">
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatEntryViews">0</span>
+                            <span class="identity-stat-label">Entry Views</span>
+                        </div>
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatCommentViews">0</span>
+                            <span class="identity-stat-label">Comment Views</span>
+                        </div>
+                        <div class="identity-stat">
+                            <span class="identity-stat-value" id="identityStatProfileViews">0</span>
+                            <span class="identity-stat-label">Profile Views</span>
+                        </div>
+                    </div>
+
                     <div class="identity-meta" id="identityMeta" style="display:none;">
                         <p class="identity-meta-item" id="identityLastSeen" style="display:none;">
                             <i class="fa-solid fa-clock"></i>

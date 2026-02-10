@@ -236,6 +236,9 @@ try {
     $config = Config::load(__DIR__ . '/../secrets.yml');
     $db = Database::getInstance($config);
     
+    // Enable buffered queries to prevent "unbuffered queries" errors
+    $db->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+    
     // Get applied migrations
     $stmt = $db->query("SELECT migration_name FROM trail_migrations ORDER BY applied_at");
     $appliedMigrations = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -308,13 +311,27 @@ try {
             }
         );
         
-        $db->beginTransaction();
+        // Check if migration contains DDL statements (CREATE, ALTER, DROP, TRUNCATE)
+        // DDL causes implicit commits in MySQL, so we can't use transactions
+        $containsDDL = preg_match('/^\s*(CREATE|ALTER|DROP|TRUNCATE)\s+/im', $cleanedSql);
+        
+        if (!$containsDDL) {
+            $db->beginTransaction();
+        }
+        
         try {
             $stmtCount = 0;
             foreach ($statements as $statement) {
                 if (!empty($statement)) {
                     try {
-                        $db->exec($statement);
+                        // Use query() for SELECT statements to properly consume results
+                        if (preg_match('/^\s*SELECT\s+/i', $statement)) {
+                            $result = $db->query($statement);
+                            $result->fetchAll(); // Consume all results to avoid buffering issues
+                            $result->closeCursor();
+                        } else {
+                            $db->exec($statement);
+                        }
                         $stmtCount++;
                     } catch (PDOException $e) {
                         echo "      ✗ SQL Error: " . $e->getMessage() . "\n";
@@ -330,10 +347,14 @@ try {
             $stmt = $db->prepare("INSERT INTO trail_migrations (migration_name) VALUES (?)");
             $stmt->execute([$filename]);
             
-            $db->commit();
+            if (!$containsDDL) {
+                $db->commit();
+            }
             echo "    ✓ Applied: $filename\n";
         } catch (Exception $e) {
-            $db->rollBack();
+            if (!$containsDDL && $db->inTransaction()) {
+                $db->rollBack();
+            }
             echo "    ✗ Failed: " . $e->getMessage() . "\n";
             throw $e;
         }

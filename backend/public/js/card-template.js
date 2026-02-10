@@ -70,6 +70,101 @@ function formatClapCount(count) {
     return count.toString();
 }
 
+// Format view count to human-readable format (e.g., 3.9k, 1.2M)
+function formatViewCount(count) {
+    if (count >= 1000000) {
+        return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (count >= 1000) {
+        return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return String(count || 0);
+}
+
+/**
+ * Generate a lightweight browser fingerprint for view deduplication.
+ * Combines stable browser properties to differentiate devices behind the same IP.
+ * This is NOT for tracking across sites—only for per-session deduplication.
+ * 
+ * Properties chosen for stability (won't change during normal use):
+ * - Screen resolution (monitor, not window)
+ * - Color depth
+ * - Language preference
+ * - CPU cores
+ * - Platform/OS
+ * - Canvas rendering (font/GPU-based)
+ * 
+ * Excluded: timezone (changes with DST/travel), window size (user resizes)
+ * 
+ * @returns {string} A fingerprint string
+ */
+function generateBrowserFingerprint() {
+    const components = [
+        screen.width,
+        screen.height,
+        screen.colorDepth,
+        navigator.language,
+        navigator.hardwareConcurrency || 0,
+        navigator.platform || '',
+        // Canvas fingerprint (lightweight) - stable across sessions
+        (() => {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillText('fp', 2, 2);
+                return canvas.toDataURL().slice(-50);
+            } catch {
+                return '';
+            }
+        })()
+    ];
+    return components.join('|');
+}
+
+// Cache the fingerprint for the session
+let cachedFingerprint = null;
+function getBrowserFingerprint() {
+    if (cachedFingerprint === null) {
+        cachedFingerprint = generateBrowserFingerprint();
+    }
+    return cachedFingerprint;
+}
+
+/**
+ * Record a view with fingerprint data
+ * @param {string} url The API endpoint URL
+ */
+function recordViewWithFingerprint(url) {
+    fetch(url, { 
+        method: 'POST', 
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fingerprint: getBrowserFingerprint() })
+    }).catch(() => {}); // Silent — views are best-effort
+}
+
+/**
+ * Intersection Observer for view tracking
+ * Records views when entries/comments scroll into the viewport
+ */
+const viewTrackingObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        
+        const el = entry.target;
+        observer.unobserve(el);
+        
+        const entryId = el.dataset.entryId;
+        const hashId = el.dataset.hashId || el.querySelector('[data-hash-id]')?.dataset.hashId;
+        
+        if (hashId) {
+            recordViewWithFingerprint(`/api/entries/${hashId}/views`);
+        }
+    });
+}, { threshold: 0.5 }); // 50% visible = viewed
+
 /**
  * Create entry images HTML
  * @param {Object} entry - Entry object with images array
@@ -326,6 +421,13 @@ function createEntryCard(entry, options = {}) {
                 </div>
                 <div class="entry-footer-actions">
                     <div class="entry-footer-left">
+                        <span class="view-counter" 
+                              data-entry-id="${entry.id}"
+                              data-hash-id="${hashId}"
+                              aria-label="Views">
+                            <i class="fa-regular fa-eye"></i>
+                            <span class="view-count">${formatViewCount(entry.view_count || 0)}</span>
+                        </span>
                         <button class="comment-button" 
                                 ${options.enablePermalink !== false ? '' : 'data-no-navigate'}
                                 data-entry-id="${entry.id}"
@@ -579,6 +681,10 @@ function createEntryCard(entry, options = {}) {
             });
         }
     }
+    
+    // Add card to view tracking observer for automatic view recording
+    card.dataset.hashId = hashId;
+    viewTrackingObserver.observe(card);
     
     return card;
 }
@@ -914,6 +1020,8 @@ if (typeof module !== 'undefined' && module.exports) {
         linkifyMentions,
         extractDomain,
         formatTimestamp,
+        formatClapCount,
+        formatViewCount,
         createEntryImagesHtml,
         createLinkPreviewCard,
         createEntryCard,
@@ -922,6 +1030,7 @@ if (typeof module !== 'undefined' && module.exports) {
         copyEntryLink,
         shareEntryNative,
         reportEntry,
-        muteUser
+        muteUser,
+        viewTrackingObserver
     };
 }
