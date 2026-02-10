@@ -16,62 +16,22 @@ class Entry
         $this->db = $db;
     }
 
-    public function create(int $userId, string $text, ?array $preview = null, ?array $imageIds = null, ?string $createdAt = null): int
+    public function create(int $userId, string $text, ?int $urlPreviewId = null, ?array $imageIds = null, ?string $createdAt = null): int
     {
         $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
         
-        if ($preview !== null) {
-            if ($createdAt !== null) {
-                $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids, created_at, updated_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                );
-                $stmt->execute([
-                    $userId,
-                    $text,
-                    $preview['url'] ?? null,
-                    $preview['title'] ?? null,
-                    $preview['description'] ?? null,
-                    $preview['image'] ?? null,
-                    $preview['site_name'] ?? null,
-                    $preview['json'] ?? null,
-                    $preview['source'] ?? null,
-                    $imageIdsJson,
-                    $createdAt,
-                    $createdAt  // Set updated_at to match created_at for backdated entries
-                ]);
-            } else {
-                $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, preview_url, preview_title, preview_description, preview_image, preview_site_name, preview_json, preview_source, image_ids) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                );
-                $stmt->execute([
-                    $userId,
-                    $text,
-                    $preview['url'] ?? null,
-                    $preview['title'] ?? null,
-                    $preview['description'] ?? null,
-                    $preview['image'] ?? null,
-                    $preview['site_name'] ?? null,
-                    $preview['json'] ?? null,
-                    $preview['source'] ?? null,
-                    $imageIdsJson
-                ]);
-            }
+        if ($createdAt !== null) {
+            $stmt = $this->db->prepare(
+                "INSERT INTO {$this->table} (user_id, text, url_preview_id, image_ids, created_at, updated_at) 
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([$userId, $text, $urlPreviewId, $imageIdsJson, $createdAt, $createdAt]);
         } else {
-            if ($createdAt !== null) {
-                $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, image_ids, created_at, updated_at) 
-                     VALUES (?, ?, ?, ?, ?)"
-                );
-                $stmt->execute([$userId, $text, $imageIdsJson, $createdAt, $createdAt]);
-            } else {
-                $stmt = $this->db->prepare(
-                    "INSERT INTO {$this->table} (user_id, text, image_ids) 
-                     VALUES (?, ?, ?)"
-                );
-                $stmt->execute([$userId, $text, $imageIdsJson]);
-            }
+            $stmt = $this->db->prepare(
+                "INSERT INTO {$this->table} (user_id, text, url_preview_id, image_ids) 
+                 VALUES (?, ?, ?, ?)"
+            );
+            $stmt->execute([$userId, $text, $urlPreviewId, $imageIdsJson]);
         }
         
         return (int) $this->db->lastInsertId();
@@ -80,6 +40,8 @@ class Entry
     public function findById(int $id, ?int $currentUserId = null): ?array
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
                 COALESCE(view_counts.view_count, 0) as view_count";
@@ -90,6 +52,7 @@ class Entry
         
         $sql .= " FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
@@ -125,6 +88,8 @@ class Entry
     public function getByUser(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
                 COALESCE(view_counts.view_count, 0) as view_count";
@@ -135,6 +100,7 @@ class Entry
         
         $sql .= " FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
@@ -179,6 +145,8 @@ class Entry
     {
         // Build SELECT with clap counts, comment counts, and view counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
                 COALESCE(view_counts.view_count, 0) as view_count";
@@ -189,6 +157,7 @@ class Entry
         
         $sql .= " FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
@@ -236,7 +205,7 @@ class Entry
         
         // Filter by preview source
         if ($sourceFilter !== null) {
-            $whereConditions[] = "e.preview_source = ?";
+            $whereConditions[] = "p.source = ?";
             $params[] = $sourceFilter;
         }
         
@@ -260,38 +229,17 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function update(int $id, string $text, ?array $preview = null, ?array $imageIds = null): bool
+    public function update(int $id, string $text, ?int $urlPreviewId = null, ?array $imageIds = null): bool
     {
         $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
         
-        if ($preview !== null) {
-            $stmt = $this->db->prepare(
-                "UPDATE {$this->table} 
-                 SET text = ?, preview_url = ?, preview_title = ?, preview_description = ?, preview_image = ?, preview_site_name = ?, preview_json = ?, preview_source = ?, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
-                 WHERE id = ?"
-            );
-            
-            return $stmt->execute([
-                $text,
-                $preview['url'] ?? null,
-                $preview['title'] ?? null,
-                $preview['description'] ?? null,
-                $preview['image'] ?? null,
-                $preview['site_name'] ?? null,
-                $preview['json'] ?? null,
-                $preview['source'] ?? null,
-                $imageIdsJson,
-                $id
-            ]);
-        } else {
-            $stmt = $this->db->prepare(
-                "UPDATE {$this->table} 
-                 SET text = ?, preview_url = NULL, preview_title = NULL, preview_description = NULL, preview_image = NULL, preview_site_name = NULL, preview_json = NULL, preview_source = NULL, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
-                 WHERE id = ?"
-            );
-            
-            return $stmt->execute([$text, $imageIdsJson, $id]);
-        }
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} 
+             SET text = ?, url_preview_id = ?, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE id = ?"
+        );
+        
+        return $stmt->execute([$text, $urlPreviewId, $imageIdsJson, $id]);
     }
 
     public function delete(int $id): bool
@@ -311,13 +259,13 @@ class Entry
 
     /**
      * Count entries with preview URLs (links) by a specific user
-     * Returns the number of entries with preview_url not null
+     * Returns the number of entries with url_preview_id not null
      */
     public function countLinksWithPreviewByUser(int $userId): int
     {
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) as count FROM {$this->table} 
-             WHERE user_id = ? AND preview_url IS NOT NULL"
+             WHERE user_id = ? AND url_preview_id IS NOT NULL"
         );
         $stmt->execute([$userId]);
         $result = $stmt->fetch();
@@ -479,6 +427,8 @@ class Entry
         
         // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
                 COALESCE(view_counts.view_count, 0) as view_count";
@@ -487,8 +437,9 @@ class Entry
         $params = [];
         
         if ($useFulltext) {
-            $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
-            $params[] = $searchQuery; // Bind for SELECT relevance score
+            $sql .= ", (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) + COALESCE(MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE), 0)) as relevance";
+            $params[] = $searchQuery; // Bind for SELECT relevance score (entries)
+            $params[] = $searchQuery; // Bind for SELECT relevance score (previews)
         }
         
         if ($currentUserId !== null) {
@@ -497,6 +448,7 @@ class Entry
         
         $sql .= " FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
@@ -522,7 +474,8 @@ class Entry
         if ($useFulltext) {
             // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $searchQuery;
             $params[] = $searchQuery;
             $params[] = $likeQuery;
             $params[] = $likeQuery;
@@ -531,7 +484,7 @@ class Entry
         } else {
             // LIKE search for short queries
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $likeQuery;
             $params[] = $likeQuery;
             $params[] = $likeQuery;
@@ -589,6 +542,8 @@ class Entry
         
         // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
                 COALESCE(view_counts.view_count, 0) as view_count";
@@ -597,8 +552,9 @@ class Entry
         $params = [];
         
         if ($useFulltext) {
-            $sql .= ", MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance";
-            $params[] = $searchQuery; // Bind for SELECT relevance score
+            $sql .= ", (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) + COALESCE(MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE), 0)) as relevance";
+            $params[] = $searchQuery; // Bind for SELECT relevance score (entries)
+            $params[] = $searchQuery; // Bind for SELECT relevance score (previews)
         }
         
         if ($currentUserId !== null) {
@@ -607,6 +563,7 @@ class Entry
         
         $sql .= " FROM {$this->table} e 
                  JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
                      FROM trail_claps
@@ -636,7 +593,8 @@ class Entry
         if ($useFulltext) {
             // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(MATCH(e.text, e.preview_title, e.preview_description, e.preview_site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $searchQuery;
             $params[] = $searchQuery;
             $params[] = $likeQuery;
             $params[] = $likeQuery;
@@ -645,7 +603,7 @@ class Entry
         } else {
             // LIKE search for short queries
             $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(e.text LIKE ? OR e.preview_title LIKE ? OR e.preview_description LIKE ? OR e.preview_site_name LIKE ?)";
+            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $likeQuery;
             $params[] = $likeQuery;
             $params[] = $likeQuery;

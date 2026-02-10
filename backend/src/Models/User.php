@@ -330,7 +330,7 @@ class User
         $stmt = $this->db->prepare("
             SELECT
                 (SELECT COUNT(*) FROM trail_entries WHERE user_id = :uid1) AS entry_count,
-                (SELECT COUNT(*) FROM trail_entries WHERE user_id = :uid2 AND preview_url IS NOT NULL) AS link_count,
+                (SELECT COUNT(*) FROM trail_entries WHERE user_id = :uid2 AND url_preview_id IS NOT NULL) AS link_count,
                 (SELECT COUNT(*) FROM trail_comments WHERE user_id = :uid3) AS comment_count,
                 (SELECT MAX(created_at) FROM trail_entries WHERE user_id = :uid4) AS last_entry_at,
                 (SELECT MAX(created_at) FROM trail_sessions WHERE user_id = :uid5
@@ -413,11 +413,12 @@ class User
             SELECT 
                 e.id,
                 e.text,
-                e.preview_url,
-                e.preview_title,
+                p.url as preview_url,
+                p.title as preview_title,
                 e.created_at,
                 COALESCE(SUM(c.clap_count), 0) as clap_count
             FROM trail_entries e
+            LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
             LEFT JOIN trail_claps c ON e.id = c.entry_id
             WHERE e.user_id = :uid
             GROUP BY e.id
@@ -441,11 +442,12 @@ class User
             SELECT 
                 e.id,
                 e.text,
-                e.preview_url,
-                e.preview_title,
+                p.url as preview_url,
+                p.title as preview_title,
                 e.created_at,
                 COALESCE(vc.view_count, 0) as view_count
             FROM trail_entries e
+            LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
             LEFT JOIN trail_view_counts vc ON vc.target_type = 'entry' AND vc.target_id = e.id
             WHERE e.user_id = :uid
             ORDER BY view_count DESC, e.created_at DESC

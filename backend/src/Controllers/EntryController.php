@@ -206,24 +206,24 @@ class EntryController
 
         $entryModel = new Entry($db);
 
-        // Extract and fetch URL preview if text contains a URL
-        $preview = null;
+        // Extract and fetch URL preview if text contains a URL (with caching)
+        $urlPreviewId = null;
         try {
             // Create usage tracker for iframe.ly API
             $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
             $usageTracker = new IframelyUsageTracker($db, $adminEmail);
             
-            $embedService = new UrlEmbedService($config, $usageTracker);
+            $embedService = new UrlEmbedService($config, $usageTracker, $db);
             if ($embedService->hasUrl($sanitizedText)) {
-                $preview = $embedService->extractAndFetchPreview($sanitizedText);
+                $urlPreviewId = $embedService->extractAndGetPreviewId($sanitizedText);
             }
         } catch (\Throwable $e) {
             // Log error but continue - preview is optional
             error_log("EntryController::create: Preview fetch failed: " . $e->getMessage());
-            $preview = null;
+            $urlPreviewId = null;
         }
 
-        $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds, $parsedDate);
+        $entryId = $entryModel->create($userId, $sanitizedText, $urlPreviewId, $imageIds, $parsedDate);
         $entry = $entryModel->findById($entryId, $userId);
 
         // Add initial claps if provided (requires admin for raw_upload mode)
@@ -519,24 +519,24 @@ class EntryController
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
-        // Extract and fetch URL preview if text contains a URL
-        $preview = null;
+        // Extract and fetch URL preview if text contains a URL (with caching)
+        $urlPreviewId = null;
         try {
             // Create usage tracker for iframe.ly API
             $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
             $usageTracker = new IframelyUsageTracker($db, $adminEmail);
             
-            $embedService = new UrlEmbedService($config, $usageTracker);
+            $embedService = new UrlEmbedService($config, $usageTracker, $db);
             if ($embedService->hasUrl($sanitizedText)) {
-                $preview = $embedService->extractAndFetchPreview($sanitizedText);
+                $urlPreviewId = $embedService->extractAndGetPreviewId($sanitizedText);
             }
         } catch (\Throwable $e) {
             // Log error but continue - preview is optional
             error_log("EntryController::update: Preview fetch failed: " . $e->getMessage());
-            $preview = null;
+            $urlPreviewId = null;
         }
 
-        $success = $entryModel->update($entryId, $sanitizedText, $preview, $imageIds);
+        $success = $entryModel->update($entryId, $sanitizedText, $urlPreviewId, $imageIds);
 
         if ($success) {
             $entry = $entryModel->findById($entryId);

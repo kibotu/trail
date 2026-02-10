@@ -6,6 +6,8 @@ namespace Trail\Services;
 
 use Embed\Embed;
 use Trail\Config\Config;
+use Trail\Models\UrlPreview;
+use PDO;
 
 /**
  * UrlEmbedService - Extracts and fetches URL metadata for preview cards
@@ -13,6 +15,8 @@ use Trail\Config\Config;
  * This service uses iframe.ly API as the primary method to fetch Open Graph, 
  * Twitter Card, oEmbed, and other metadata from URLs to generate rich preview cards.
  * Falls back to the embed/embed library if iframe.ly fails or monthly limit is reached.
+ * 
+ * Implements URL preview caching to avoid redundant API calls for the same URL.
  */
 class UrlEmbedService
 {
@@ -20,8 +24,9 @@ class UrlEmbedService
     private ?string $iframelyApiKey;
     private ?string $iframelyApiUrl;
     private ?IframelyUsageTracker $usageTracker;
+    private ?UrlPreview $urlPreviewModel;
 
-    public function __construct(?array $config = null, ?IframelyUsageTracker $usageTracker = null)
+    public function __construct(?array $config = null, ?IframelyUsageTracker $usageTracker = null, ?PDO $db = null)
     {
         // Use default Embed configuration for fallback
         $this->embed = new Embed();
@@ -39,11 +44,58 @@ class UrlEmbedService
         $this->iframelyApiKey = $config['iframely']['api_key'] ?? null;
         $this->iframelyApiUrl = $config['iframely']['api_url'] ?? 'https://iframe.ly/api/iframely';
         $this->usageTracker = $usageTracker;
+        
+        // Initialize URL preview model for caching
+        $this->urlPreviewModel = $db ? new UrlPreview($db) : null;
     }
 
     /**
-     * Extract the first URL from text and fetch its metadata
+     * Normalize URL for caching to maximize cache hits
      * 
+     * Removes tracking parameters, normalizes scheme/host, removes trailing slashes
+     * 
+     * @param string $url The URL to normalize
+     * @return string Normalized URL
+     */
+    public static function normalizeUrl(string $url): string
+    {
+        $parsed = parse_url($url);
+        
+        if (!$parsed || !isset($parsed['host'])) {
+            return $url; // Return as-is if invalid
+        }
+        
+        $scheme = strtolower($parsed['scheme'] ?? 'https');
+        $host = strtolower($parsed['host']);
+        $path = isset($parsed['path']) ? rtrim($parsed['path'], '/') : '';
+        
+        // Remove common tracking parameters
+        $query = $parsed['query'] ?? '';
+        if ($query) {
+            parse_str($query, $params);
+            $trackingParams = [
+                'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                'ref', 'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid'
+            ];
+            foreach ($trackingParams as $param) {
+                unset($params[$param]);
+            }
+            ksort($params); // Consistent ordering
+            $query = http_build_query($params);
+        }
+        
+        $normalized = $scheme . '://' . $host . $path;
+        if ($query) {
+            $normalized .= '?' . $query;
+        }
+        
+        return $normalized;
+    }
+
+    /**
+     * Extract the first URL from text and fetch its metadata (legacy method)
+     * 
+     * @deprecated Use extractAndGetPreviewId() instead for caching support
      * @param string $text The text to extract URL from
      * @return array|null Preview data or null if no URL found or fetch failed
      */
@@ -68,6 +120,99 @@ class UrlEmbedService
         } catch (\Throwable $e) {
             // Catch any errors to prevent breaking entry creation
             error_log("UrlEmbedService::extractAndFetchPreview: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extract the first URL from text and get or fetch its preview ID (with caching)
+     * 
+     * This method checks the cache first before fetching from external APIs.
+     * Returns the URL preview ID for storing in trail_entries.url_preview_id
+     * 
+     * @param string $text The text to extract URL from
+     * @return int|null Preview ID or null if no URL found or fetch failed
+     */
+    public function extractAndGetPreviewId(string $text): ?int
+    {
+        try {
+            $urls = TextSanitizer::extractUrls($text);
+            
+            if (empty($urls)) {
+                return null;
+            }
+
+            // Use the first URL found
+            $url = $urls[0];
+            
+            // Ensure URL has protocol
+            if (!preg_match('/^https?:\/\//i', $url)) {
+                $url = 'https://' . $url;
+            }
+
+            return $this->getOrFetchPreviewId($url);
+        } catch (\Throwable $e) {
+            // Catch any errors to prevent breaking entry creation
+            error_log("UrlEmbedService::extractAndGetPreviewId: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get or fetch URL preview ID with cache-first strategy
+     * 
+     * 1. Normalize the URL
+     * 2. Check if preview exists in cache (by URL hash)
+     * 3. If cached, return the preview ID
+     * 4. If not cached, fetch from API and store in cache
+     * 
+     * @param string $url The URL to get preview for
+     * @return int|null Preview ID or null if fetch failed
+     */
+    public function getOrFetchPreviewId(string $url): ?int
+    {
+        // If caching is not available, fall back to non-cached behavior
+        if ($this->urlPreviewModel === null) {
+            error_log("UrlEmbedService::getOrFetchPreviewId: URL preview caching not available (no DB connection)");
+            return null;
+        }
+
+        try {
+            // Normalize URL for consistent caching
+            $normalized = self::normalizeUrl($url);
+            $urlHash = UrlPreview::hashUrl($normalized);
+            
+            // 1. Check cache first
+            $existing = $this->urlPreviewModel->findByUrlHash($urlHash);
+            if ($existing) {
+                error_log("UrlEmbedService::getOrFetchPreviewId: Cache hit for {$normalized}");
+                return (int) $existing['id'];
+            }
+            
+            // 2. Cache miss - fetch from API
+            error_log("UrlEmbedService::getOrFetchPreviewId: Cache miss for {$normalized}, fetching...");
+            $preview = $this->fetchPreview($url);
+            
+            if (!$preview) {
+                error_log("UrlEmbedService::getOrFetchPreviewId: Failed to fetch preview for {$url}");
+                return null;
+            }
+            
+            // 3. Store in cache and return ID
+            $previewId = $this->urlPreviewModel->create($normalized, [
+                'title' => $preview['title'] ?? null,
+                'description' => $preview['description'] ?? null,
+                'image' => $preview['image'] ?? null,
+                'site_name' => $preview['site_name'] ?? null,
+                'json' => $preview['json'] ?? null,
+                'source' => $preview['source'] ?? null,
+            ]);
+            
+            error_log("UrlEmbedService::getOrFetchPreviewId: Cached preview with ID {$previewId} for {$normalized}");
+            return $previewId;
+            
+        } catch (\Throwable $e) {
+            error_log("UrlEmbedService::getOrFetchPreviewId: Error: " . $e->getMessage());
             return null;
         }
     }
@@ -634,28 +779,6 @@ class UrlEmbedService
         }
         
         return null;
-    }
-
-    /**
-     * Normalize URL for comparison
-     * 
-     * Removes query parameters, fragments, and trailing slashes
-     * 
-     * @param string $url The URL to normalize
-     * @return string Normalized URL
-     */
-    private function normalizeUrl(string $url): string
-    {
-        $parsed = parse_url($url);
-        
-        $normalized = ($parsed['scheme'] ?? 'https') . '://';
-        $normalized .= $parsed['host'] ?? '';
-        $normalized .= $parsed['path'] ?? '';
-        
-        // Remove trailing slash
-        $normalized = rtrim($normalized, '/');
-        
-        return strtolower($normalized);
     }
 
     /**

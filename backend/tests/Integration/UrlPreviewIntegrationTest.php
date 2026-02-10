@@ -9,10 +9,11 @@ use Trail\Config\Config;
 use Trail\Database\Database;
 use Trail\Models\Entry;
 use Trail\Models\User;
+use Trail\Models\UrlPreview;
 use Trail\Services\UrlEmbedService;
 
 /**
- * Integration test for URL preview functionality
+ * Integration test for URL preview functionality with caching
  * 
  * This test requires a test database connection.
  * Run with: vendor/bin/phpunit tests/Integration/UrlPreviewIntegrationTest.php
@@ -21,6 +22,7 @@ class UrlPreviewIntegrationTest extends TestCase
 {
     private static ?\PDO $db = null;
     private static ?int $testUserId = null;
+    private static ?array $config = null;
 
     public static function setUpBeforeClass(): void
     {
@@ -30,8 +32,8 @@ class UrlPreviewIntegrationTest extends TestCase
         }
 
         try {
-            $config = Config::load(__DIR__ . '/../../secrets.yml');
-            self::$db = Database::getInstance($config);
+            self::$config = Config::load(__DIR__ . '/../../secrets.yml');
+            self::$db = Database::getInstance(self::$config);
             
             // Create test user
             $userModel = new User(self::$db);
@@ -57,6 +59,13 @@ class UrlPreviewIntegrationTest extends TestCase
                 
                 $stmt = self::$db->prepare("DELETE FROM trail_users WHERE id = ?");
                 $stmt->execute([self::$testUserId]);
+                
+                // Clean up orphaned URL previews (those not referenced by any entry)
+                $stmt = self::$db->prepare("
+                    DELETE FROM trail_url_previews 
+                    WHERE id NOT IN (SELECT DISTINCT url_preview_id FROM trail_entries WHERE url_preview_id IS NOT NULL)
+                ");
+                $stmt->execute();
             } catch (\Exception $e) {
                 // Ignore cleanup errors
             }
@@ -70,15 +79,15 @@ class UrlPreviewIntegrationTest extends TestCase
         }
 
         $entryModel = new Entry(self::$db);
-        $embedService = new UrlEmbedService();
+        $embedService = new UrlEmbedService(self::$config, null, self::$db);
 
         $text = "Check out https://example.com - it's a test domain";
         
-        // Extract and fetch preview
-        $preview = $embedService->extractAndFetchPreview($text);
+        // Extract and get preview ID (with caching)
+        $urlPreviewId = $embedService->extractAndGetPreviewId($text);
         
-        // Create entry with preview
-        $entryId = $entryModel->create(self::$testUserId, $text, $preview);
+        // Create entry with preview ID
+        $entryId = $entryModel->create(self::$testUserId, $text, $urlPreviewId);
         
         $this->assertGreaterThan(0, $entryId);
         
@@ -89,13 +98,9 @@ class UrlPreviewIntegrationTest extends TestCase
         $this->assertEquals($text, $entry['text']);
         
         // If preview was fetched successfully, verify it's stored
-        if ($preview !== null) {
+        if ($urlPreviewId !== null) {
             $this->assertNotNull($entry['preview_url']);
-            $this->assertEquals($preview['url'], $entry['preview_url']);
-            
-            if (isset($preview['title'])) {
-                $this->assertEquals($preview['title'], $entry['preview_title']);
-            }
+            $this->assertStringContainsString('example.com', $entry['preview_url']);
         }
         
         // Clean up
@@ -109,17 +114,17 @@ class UrlPreviewIntegrationTest extends TestCase
         }
 
         $entryModel = new Entry(self::$db);
-        $embedService = new UrlEmbedService();
+        $embedService = new UrlEmbedService(self::$config, null, self::$db);
 
         $text = "Just a regular post without any links";
         
-        // Extract and fetch preview (should be null)
-        $preview = $embedService->extractAndFetchPreview($text);
+        // Extract and get preview ID (should be null)
+        $urlPreviewId = $embedService->extractAndGetPreviewId($text);
         
-        $this->assertNull($preview);
+        $this->assertNull($urlPreviewId);
         
         // Create entry without preview
-        $entryId = $entryModel->create(self::$testUserId, $text, $preview);
+        $entryId = $entryModel->create(self::$testUserId, $text, $urlPreviewId);
         
         $this->assertGreaterThan(0, $entryId);
         
@@ -143,7 +148,7 @@ class UrlPreviewIntegrationTest extends TestCase
         }
 
         $entryModel = new Entry(self::$db);
-        $embedService = new UrlEmbedService();
+        $embedService = new UrlEmbedService(self::$config, null, self::$db);
 
         // Create entry without URL
         $originalText = "Original post without URL";
@@ -151,9 +156,9 @@ class UrlPreviewIntegrationTest extends TestCase
         
         // Update with URL
         $newText = "Updated post with https://example.com";
-        $preview = $embedService->extractAndFetchPreview($newText);
+        $urlPreviewId = $embedService->extractAndGetPreviewId($newText);
         
-        $success = $entryModel->update($entryId, $newText, $preview);
+        $success = $entryModel->update($entryId, $newText, $urlPreviewId);
         $this->assertTrue($success);
         
         // Fetch updated entry
@@ -162,11 +167,82 @@ class UrlPreviewIntegrationTest extends TestCase
         $this->assertEquals($newText, $entry['text']);
         
         // If preview was fetched, verify it's updated
-        if ($preview !== null) {
+        if ($urlPreviewId !== null) {
             $this->assertNotNull($entry['preview_url']);
         }
         
         // Clean up
         $entryModel->delete($entryId);
+    }
+
+    public function testSameUrlUsesCachedPreview(): void
+    {
+        if (!self::$db || !self::$testUserId) {
+            $this->markTestSkipped('Database not available');
+        }
+
+        $entryModel = new Entry(self::$db);
+        $embedService = new UrlEmbedService(self::$config, null, self::$db);
+        $urlPreviewModel = new UrlPreview(self::$db);
+
+        $testUrl = "https://example.com/test-" . time();
+        $text1 = "First post with {$testUrl}";
+        $text2 = "Second post with {$testUrl}";
+        
+        // Get initial cache count
+        $initialCount = $urlPreviewModel->count();
+        
+        // Create first entry - should fetch and cache
+        $urlPreviewId1 = $embedService->extractAndGetPreviewId($text1);
+        $entryId1 = $entryModel->create(self::$testUserId, $text1, $urlPreviewId1);
+        
+        // Check cache increased by 1 (if preview was fetched)
+        if ($urlPreviewId1 !== null) {
+            $afterFirstCount = $urlPreviewModel->count();
+            $this->assertEquals($initialCount + 1, $afterFirstCount);
+            
+            // Create second entry with same URL - should use cache
+            $urlPreviewId2 = $embedService->extractAndGetPreviewId($text2);
+            $entryId2 = $entryModel->create(self::$testUserId, $text2, $urlPreviewId2);
+            
+            // Cache count should not increase
+            $afterSecondCount = $urlPreviewModel->count();
+            $this->assertEquals($afterFirstCount, $afterSecondCount);
+            
+            // Both entries should reference the same preview
+            $this->assertEquals($urlPreviewId1, $urlPreviewId2);
+            
+            // Clean up
+            $entryModel->delete($entryId2);
+        }
+        
+        // Clean up
+        $entryModel->delete($entryId1);
+    }
+
+    public function testUrlNormalizationDeduplicates(): void
+    {
+        if (!self::$db || !self::$testUserId) {
+            $this->markTestSkipped('Database not available');
+        }
+
+        $entryModel = new Entry(self::$db);
+        $embedService = new UrlEmbedService(self::$config, null, self::$db);
+
+        $baseUrl = "https://example.com/page";
+        $text1 = "Post with {$baseUrl}";
+        $text2 = "Post with {$baseUrl}?utm_source=test"; // Should normalize to same URL
+        $text3 = "Post with {$baseUrl}/"; // Trailing slash should normalize
+        
+        // Create entries
+        $urlPreviewId1 = $embedService->extractAndGetPreviewId($text1);
+        $urlPreviewId2 = $embedService->extractAndGetPreviewId($text2);
+        $urlPreviewId3 = $embedService->extractAndGetPreviewId($text3);
+        
+        // All should reference the same cached preview (if fetched)
+        if ($urlPreviewId1 !== null) {
+            $this->assertEquals($urlPreviewId1, $urlPreviewId2, "URL with tracking params should use same cache");
+            $this->assertEquals($urlPreviewId1, $urlPreviewId3, "URL with trailing slash should use same cache");
+        }
     }
 }
