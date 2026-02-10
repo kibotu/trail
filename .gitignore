@@ -199,6 +199,9 @@ gradle-app.setting
 # Backend secrets file (contains production credentials)
 backend/secrets.yml
 
+# Secrets folder (OAuth client secrets, Firebase credentials)
+.secrets/
+
 # PHP dependencies (built during deployment)
 backend/vendor/
 

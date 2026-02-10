@@ -66,7 +66,7 @@ ServerSignature Off
 </FilesMatch>
 
 # Protect specific files
-<FilesMatch "(composer\.(json|lock)|package(-lock)?\.json|\.env|\.git.*|\.htaccess|\.htpasswd|config\.yml)$">
+<FilesMatch "(composer\.(json|lock)|package(-lock)?\.json|\.env|\.git.*|\.htaccess|\.htpasswd|config\.yml|secrets\.yml)$">
     # Apache 2.4+
     <IfModule mod_authz_core.c>
         Require all denied
