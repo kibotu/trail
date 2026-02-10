@@ -161,12 +161,15 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <div class="stat-label">Storage Size</div>
                 <div class="stat-value" style="font-size: 1.5rem;"><?= $totalDiskSizeFormatted ?></div>
                 <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">Temp: <?= $tempSizeFormatted ?></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
                     <?php if ($tempSize > 0): ?>
                     <button onclick="clearCache()" class="btn-clear-cache" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp</button>
                     <?php endif; ?>
                     <button onclick="pruneImages()" class="btn-prune-images" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
                         <i class="fa-solid fa-broom"></i> Prune Images
+                    </button>
+                    <button onclick="pruneViews()" class="btn-prune-views" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-eye-slash"></i> Prune Views
                     </button>
                 </div>
             </div>

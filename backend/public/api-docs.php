@@ -266,6 +266,38 @@ $endpoints = [
         'curl' => "curl {$baseUrl}/api/comments/456/claps"
     ],
     
+    // VIEW TRACKING ENDPOINTS
+    [
+        'method' => 'POST',
+        'path' => '/api/entries/{id}/views',
+        'description' => 'Record entry view - Tracks unique views with 24h deduplication',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"fingerprint\":\"optional-client-fingerprint\"}' \\\n     {$baseUrl}/api/entries/123/views"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/comments/{id}/views',
+        'description' => 'Record comment view - Tracks unique views with 24h deduplication',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"fingerprint\":\"optional-client-fingerprint\"}' \\\n     {$baseUrl}/api/comments/456/views"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/users/{nickname}/views',
+        'description' => 'Record profile view - Tracks unique profile views with 24h deduplication',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"fingerprint\":\"optional-client-fingerprint\"}' \\\n     {$baseUrl}/api/users/alice/views"
+    ],
+    
     // MEDIA ENDPOINTS (Auth Required)
     [
         'method' => 'POST',
@@ -579,7 +611,7 @@ foreach ($endpoints as $endpoint) {
 $groups = [
     'public' => ['title' => 'Public Endpoints', 'description' => 'No authentication required', 'icon' => 'fa-globe'],
     'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management (requires auth)', 'icon' => 'fa-user'],
-    'engagement' => ['title' => 'Engagement', 'description' => 'Claps and comments (write requires auth)', 'icon' => 'fa-heart'],
+    'engagement' => ['title' => 'Engagement', 'description' => 'Claps, comments, and view tracking', 'icon' => 'fa-heart'],
     'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management (requires auth)', 'icon' => 'fa-image'],
     'moderation' => ['title' => 'Moderation', 'description' => 'Content reporting and user muting (requires auth)', 'icon' => 'fa-shield-halved'],
     'notifications' => ['title' => 'Notifications', 'description' => 'Real-time updates (requires auth)', 'icon' => 'fa-bell'],
@@ -685,6 +717,13 @@ $groups = [
                             <div>
                                 <strong>Moderation</strong>
                                 <div style="font-size: 0.875rem; color: #6b7280;">User muting and content reporting</div>
+                            </div>
+                        </div>
+                        <div class="capability-item">
+                            <i class="fa-solid fa-eye capability-icon"></i>
+                            <div>
+                                <strong>View Tracking</strong>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Unique view counts for entries, comments & profiles</div>
                             </div>
                         </div>
                     </div>
@@ -961,6 +1000,19 @@ curl -X POST \
                             <li><strong>Claps:</strong> 1-50 claps per user per entry/comment</li>
                             <li><strong>Comments:</strong> Threaded discussions (max <?= $maxTextLength ?> chars)</li>
                             <li><strong>Mentions:</strong> @username mentions with notifications</li>
+                            <li><strong>Views:</strong> Unique view tracking for entries, comments, and profiles</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-eye"></i> View Tracking</h3>
+                        <p>Analytics and view counting for content:</p>
+                        <ul>
+                            <li><strong>Entry views:</strong> Track unique views per entry</li>
+                            <li><strong>Comment views:</strong> Track unique views per comment</li>
+                            <li><strong>Profile views:</strong> Track unique profile page views</li>
+                            <li><strong>Deduplication:</strong> 24-hour window for unique view counting</li>
+                            <li><strong>Anonymous support:</strong> Optional fingerprint for anonymous users</li>
                         </ul>
                     </div>
                     
@@ -1086,7 +1138,16 @@ curl -X POST \
                         <div class="code-block">
                             <code>"initial_claps": 25</code>
                         </div>
-                        <p class="note">Valid range: 1-50. Claps are attributed to the authenticated user (author).</p>
+                        <p class="note">Valid range: 1-50 (normal mode), 1-100,000 (with <code>raw_upload</code> admin mode). Claps are attributed to the authenticated user (author).</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-eye"></i> Initial Views <span class="auth-level-admin">ADMIN</span></h3>
+                        <p>Set view counts when importing (requires <code>raw_upload</code> mode):</p>
+                        <div class="code-block">
+                            <code>"initial_views": 1500</code>
+                        </div>
+                        <p class="note">Only available with <code>raw_upload: true</code> (admin mode). Sets the initial view count for the entry.</p>
                     </div>
                     
                     <div class="feature-card">
@@ -1104,7 +1165,8 @@ curl -X POST \
     "file_size": 45678
   }],
   "clap_count": 25,
-  "user_clap_count": 25
+  "user_clap_count": 25,
+  "view_count": 1500
 }</code>
                         </div>
                     </div>
@@ -1227,8 +1289,13 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                             </tr>
                             <tr>
                                 <td>Initial claps</td>
-                                <td>1-50 range</td>
-                                <td>For imports only</td>
+                                <td>1-50 (normal), 1-100,000 (admin)</td>
+                                <td>For imports only (higher limit with raw_upload)</td>
+                            </tr>
+                            <tr>
+                                <td>Initial views</td>
+                                <td>0+ (no limit)</td>
+                                <td>Admin only (requires raw_upload)</td>
                             </tr>
                             <tr>
                                 <td>Claps per action</td>
@@ -1273,7 +1340,23 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
   "user_id": 456,
   "user_nickname": "alice",
   "clap_count": 10,
-  "comment_count": 3
+  "comment_count": 3,
+  "view_count": 42
+}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h4>Comment Response</h4>
+                        <div class="code-block">
+                            <code>{
+  "id": 789,
+  "text": "Comment text",
+  "created_at": "2025-02-09 12:30:00",
+  "user_id": 456,
+  "user_nickname": "alice",
+  "clap_count": 5,
+  "view_count": 18
 }</code>
                         </div>
                     </div>

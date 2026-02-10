@@ -342,12 +342,14 @@ class EntryController
         }
 
         // Handle search if query provided
+        $isValidSearch = false;
         if ($searchQuery !== null && trim($searchQuery) !== '') {
             // Sanitize and validate search query
             $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
             
             if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
                 $entries = $entryModel->searchAllWithImages($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
+                $isValidSearch = true;
             } else {
                 // Invalid or unsafe query - return empty results
                 $entries = [];
@@ -403,9 +405,19 @@ class EntryController
             'limit' => $limit,
         ];
         
-        // Include search query in response if searching
-        if (isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+        // Include search query and total count in response if searching
+        if ($isValidSearch && isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
+            
+            // Only get total count on first page (no cursor) for performance
+            if ($before === null) {
+                try {
+                    $responseData['total_count'] = $entryModel->countSearchAll($searchQuery, $excludeUserId, $excludeEntryIds);
+                } catch (\Throwable $e) {
+                    error_log("EntryController::listPublic: Failed to count search results: " . $e->getMessage());
+                    // Don't include total_count on error - frontend will fall back to entries.length
+                }
+            }
         }
 
         $response->getBody()->write(json_encode($responseData));
@@ -664,12 +676,14 @@ class EntryController
         $entryModel = new Entry($db);
         
         // Handle search if query provided
+        $isValidSearch = false;
         if ($searchQuery !== null && trim($searchQuery) !== '') {
             // Sanitize and validate search query
             $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
             
             if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
                 $entries = $entryModel->searchByUserWithImages($user['id'], $searchQuery, $limit, $before, $userId);
+                $isValidSearch = true;
             } else {
                 // Invalid or unsafe query - return empty results
                 $entries = [];
@@ -716,9 +730,19 @@ class EntryController
             ]
         ];
         
-        // Include search query in response if searching
-        if (isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+        // Include search query and total count in response if searching
+        if ($isValidSearch && isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
+            
+            // Only get total count on first page (no cursor) for performance
+            if ($before === null) {
+                try {
+                    $responseData['total_count'] = $entryModel->countSearchByUser($user['id'], $searchQuery);
+                } catch (\Throwable $e) {
+                    error_log("EntryController::listByNickname: Failed to count search results: " . $e->getMessage());
+                    // Don't include total_count on error - frontend will fall back to entries.length
+                }
+            }
         }
 
         $response->getBody()->write(json_encode($responseData));

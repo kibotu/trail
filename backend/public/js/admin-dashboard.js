@@ -376,6 +376,42 @@ async function pruneImages() {
     }
 }
 
+/**
+ * Prune orphaned views and view counts
+ */
+async function pruneViews() {
+    if (!confirm('Prune orphaned views?\n\nThis will:\n• Delete view counts for entries, comments, and profiles that no longer exist\n• Delete view records for entries, comments, and profiles that no longer exist\n\nThis action cannot be undone.')) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Pruning...';
+    
+    try {
+        const response = await fetch('/api/admin/views/prune', {
+            method: 'POST',
+            credentials: 'same-origin' // Use session cookie for authentication
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Failed to prune views: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error pruning views:', error);
+        alert('Failed to prune views: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAdminDashboard);

@@ -244,6 +244,48 @@ class Entry
 
     public function delete(int $id): bool
     {
+        // Delete view counts for this entry
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id = ?"
+        );
+        $stmt->execute([$id]);
+        
+        // Delete raw views for this entry
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id = ?"
+        );
+        $stmt->execute([$id]);
+        
+        // Delete claps for this entry
+        $stmt = $this->db->prepare("DELETE FROM trail_claps WHERE entry_id = ?");
+        $stmt->execute([$id]);
+        
+        // Get comment IDs for this entry
+        $commentStmt = $this->db->prepare("SELECT id FROM trail_comments WHERE entry_id = ?");
+        $commentStmt->execute([$id]);
+        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (!empty($commentIds)) {
+            $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
+            
+            // Delete view counts for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete raw views for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+            );
+            $stmt->execute($commentIds);
+        }
+        
+        // Delete comments for this entry
+        $stmt = $this->db->prepare("DELETE FROM trail_comments WHERE entry_id = ?");
+        $stmt->execute([$id]);
+        
+        // Finally, delete the entry
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
         return $stmt->execute([$id]);
     }
@@ -275,14 +317,74 @@ class Entry
 
     /**
      * Delete all entries by a specific user
+     * Also cleans up associated views, view counts, and claps
      * Returns the number of entries deleted
      */
     public function deleteByUser(int $userId): int
     {
+        // First, get all entry IDs for this user
+        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (empty($entryIds)) {
+            return 0;
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        
+        // Delete view counts for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete raw views for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete claps for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete comments for these entries (and their views)
+        $commentStmt = $this->db->prepare(
+            "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
+        );
+        $commentStmt->execute($entryIds);
+        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (!empty($commentIds)) {
+            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
+            
+            // Delete view counts for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete raw views for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete the comments themselves
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
+            );
+            $stmt->execute($entryIds);
+        }
+        
+        // Finally, delete the entries
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         
-        return $stmt->rowCount();
+        return count($entryIds);
     }
 
     /**
@@ -645,5 +747,115 @@ class Entry
     {
         $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId);
         return array_map([$this, 'attachImageUrls'], $entries);
+    }
+
+    /**
+     * Count all entries matching a search query
+     * 
+     * @param string $searchQuery Search query (already sanitized)
+     * @param int|null $excludeUserId User ID to exclude muted users for
+     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
+     * @return int Total count of matching entries
+     */
+    public function countSearchAll(string $searchQuery, ?int $excludeUserId = null, array $excludeEntryIds = []): int
+    {
+        // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
+        $useFulltext = mb_strlen($searchQuery) >= 4;
+        
+        $sql = "SELECT COUNT(DISTINCT e.id) as total
+                FROM trail_entries e
+                JOIN trail_users u ON e.user_id = u.id
+                LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id";
+        
+        $params = [];
+        $whereConditions = [];
+        
+        // Add search condition
+        if ($useFulltext) {
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $searchQuery;
+            $params[] = $searchQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        } else {
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        }
+        
+        // Exclude muted users if user is authenticated
+        if ($excludeUserId !== null) {
+            $whereConditions[] = "e.user_id NOT IN (SELECT muted_user_id FROM trail_mutes WHERE user_id = ?)";
+            $params[] = $excludeUserId;
+        }
+        
+        // Exclude hidden entries
+        if (!empty($excludeEntryIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
+            $whereConditions[] = "e.id NOT IN ($placeholders)";
+            $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        if (!empty($whereConditions)) {
+            $sql .= " WHERE " . implode(' AND ', $whereConditions);
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return (int) ($result['total'] ?? 0);
+    }
+
+    /**
+     * Count entries by specific user matching a search query
+     * 
+     * @param int $userId User ID to search within
+     * @param string $searchQuery Search query (already sanitized)
+     * @return int Total count of matching entries for this user
+     */
+    public function countSearchByUser(int $userId, string $searchQuery): int
+    {
+        // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
+        $useFulltext = mb_strlen($searchQuery) >= 4;
+        
+        $sql = "SELECT COUNT(DISTINCT e.id) as total
+                FROM trail_entries e
+                JOIN trail_users u ON e.user_id = u.id
+                LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
+                WHERE e.user_id = ?";
+        
+        $params = [$userId];
+        
+        // Add search condition
+        if ($useFulltext) {
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $sql .= " AND (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $searchQuery;
+            $params[] = $searchQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        } else {
+            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $sql .= " AND (e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+            $params[] = $likeQuery;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return (int) ($result['total'] ?? 0);
     }
 }

@@ -15,6 +15,7 @@ use Trail\Services\TextSanitizer;
 use Trail\Services\StorageService;
 use Trail\Services\ErrorLogService;
 use Trail\Cron\CleanupOrphanImages;
+use Trail\Models\View;
 
 class AdminController
 {
@@ -423,6 +424,102 @@ class AdminController
             
         } catch (\Throwable $e) {
             error_log("Image prune error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Prune orphaned views and view counts
+     * Removes view records that reference entries or comments that no longer exist
+     */
+    public static function pruneViews(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            $db = Database::getInstance($config);
+
+            $deletedViewCounts = 0;
+            $deletedViews = 0;
+
+            // Delete orphaned entry view counts (entries that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE vc FROM trail_view_counts vc
+                 LEFT JOIN trail_entries e ON vc.target_id = e.id AND vc.target_type = 'entry'
+                 WHERE vc.target_type = 'entry' AND e.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViewCounts += $stmt->rowCount();
+
+            // Delete orphaned comment view counts (comments that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE vc FROM trail_view_counts vc
+                 LEFT JOIN trail_comments c ON vc.target_id = c.id AND vc.target_type = 'comment'
+                 WHERE vc.target_type = 'comment' AND c.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViewCounts += $stmt->rowCount();
+
+            // Delete orphaned profile view counts (users that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE vc FROM trail_view_counts vc
+                 LEFT JOIN trail_users u ON vc.target_id = u.id AND vc.target_type = 'profile'
+                 WHERE vc.target_type = 'profile' AND u.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViewCounts += $stmt->rowCount();
+
+            // Delete orphaned entry views (entries that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE v FROM trail_views v
+                 LEFT JOIN trail_entries e ON v.target_id = e.id AND v.target_type = 'entry'
+                 WHERE v.target_type = 'entry' AND e.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViews += $stmt->rowCount();
+
+            // Delete orphaned comment views (comments that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE v FROM trail_views v
+                 LEFT JOIN trail_comments c ON v.target_id = c.id AND v.target_type = 'comment'
+                 WHERE v.target_type = 'comment' AND c.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViews += $stmt->rowCount();
+
+            // Delete orphaned profile views (users that no longer exist)
+            $stmt = $db->prepare(
+                "DELETE v FROM trail_views v
+                 LEFT JOIN trail_users u ON v.target_id = u.id AND v.target_type = 'profile'
+                 WHERE v.target_type = 'profile' AND u.id IS NULL"
+            );
+            $stmt->execute();
+            $deletedViews += $stmt->rowCount();
+
+            $message = sprintf(
+                "Cleanup complete: %d orphaned view count%s and %d orphaned view record%s deleted",
+                $deletedViewCounts,
+                $deletedViewCounts === 1 ? '' : 's',
+                $deletedViews,
+                $deletedViews === 1 ? '' : 's'
+            );
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'deleted_view_counts' => $deletedViewCounts,
+                'deleted_views' => $deletedViews,
+                'message' => $message
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("View prune error: " . $e->getMessage());
             
             $response->getBody()->write(json_encode([
                 'success' => false,

@@ -135,7 +135,6 @@
     // Setup infinite scroll for entries
     let nextCursor = null;
     let currentSearchQuery = '';
-    let totalResultsCount = 0;
     const entriesContainer = document.getElementById('entriesContainer');
     const loadingElement = document.getElementById('loading');
     const endMessage = document.getElementById('endMessage');
@@ -159,18 +158,11 @@
 
             nextCursor = result.next_cursor;
             
-            // Update total count for search results
-            if (currentSearchQuery && !nextCursor) {
-                // First load - count the entries
-                totalResultsCount += result.entries.length;
-            } else if (currentSearchQuery) {
-                // Subsequent loads - add to count
-                totalResultsCount += result.entries.length;
-            }
-            
-            // Update search manager with count on first load
+            // Update search manager with total count from API on first load
             if (currentSearchQuery && searchManager && entriesContainer.children.length === result.entries.length) {
-                searchManager.updateResultsCount(result.entries.length);
+                // Use total_count from API if available (first page only), otherwise fall back to entries.length
+                const count = result.total_count !== undefined ? result.total_count : result.entries.length;
+                searchManager.updateResultsCount(count);
             }
             
             if (result.entries.length === 0 && entriesContainer.children.length === 0) {
@@ -208,7 +200,6 @@
                 onSearch: (query) => {
                     // Update current search query
                     currentSearchQuery = query;
-                    totalResultsCount = 0;
                     
                     // Show/hide create post section based on search
                     if (createPostSection) {

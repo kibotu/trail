@@ -73,7 +73,8 @@ class EntriesManager {
                 entries: data.entries || [],
                 next_cursor: data.next_cursor || null,
                 has_more: data.has_more || false,
-                user: data.user || null
+                user: data.user || null,
+                total_count: data.total_count  // Include total count from API (only on first page of search)
             };
 
         } catch (error) {
