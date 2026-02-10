@@ -55,7 +55,6 @@ def run_composer_install():
     except FileNotFoundError:
         console.print("[red]Error: Composer not found![/red]")
         console.print("[yellow]Install Composer: https://getcomposer.org/download/[/yellow]")
-        console.print("[yellow]Or use Docker: docker compose exec backend composer install --no-dev --optimize-autoloader[/yellow]")
         sys.exit(1)
 
 

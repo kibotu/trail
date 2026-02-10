@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify deployment readiness - checks Docker, vendor, and configuration."""
+"""Verify deployment readiness - checks vendor and configuration."""
 
 import sys
 import subprocess
@@ -18,19 +18,6 @@ def print_status(check, passed, message=""):
     if message:
         print(f"   {message}")
     return passed
-
-def check_docker_running():
-    """Check if Docker is running."""
-    try:
-        result = subprocess.run(
-            ["docker", "compose", "ps"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
 
 def check_vendor_exists():
     """Check if vendor directory exists."""
@@ -63,12 +50,12 @@ def check_gitignore():
     return False
 
 def check_php_extensions():
-    """Check if required PHP extensions are available in Docker."""
+    """Check if required PHP extensions are available locally."""
     required = ["curl", "mysqli", "pdo_mysql", "mbstring", "json", "gd", "zip", "bcmath", "intl", "opcache"]
     
     try:
         result = subprocess.run(
-            ["docker", "compose", "exec", "-T", "backend", "php", "-m"],
+            ["php", "-m"],
             capture_output=True,
             text=True,
             timeout=10
@@ -90,18 +77,8 @@ def main():
     
     all_passed = True
     
-    # Check 1: Docker
-    print("🐳 Docker Environment")
-    print("-" * 60)
-    docker_ok = check_docker_running()
-    all_passed &= print_status(
-        "Docker is running",
-        docker_ok,
-        "Run: docker compose up -d" if not docker_ok else ""
-    )
-    
-    # Check 2: Dependencies
-    print("\n📦 Dependencies")
+    # Check 1: Dependencies
+    print("📦 Dependencies")
     print("-" * 60)
     vendor_ok = check_vendor_exists()
     all_passed &= print_status(
@@ -117,7 +94,7 @@ def main():
         "Run: cd backend && composer install" if not composer_lock_ok else ""
     )
     
-    # Check 3: Configuration
+    # Check 2: Configuration
     print("\n⚙️  Configuration")
     print("-" * 60)
     env_ok = check_env_file()
@@ -134,7 +111,7 @@ def main():
         "Copy: cp config.yml.example config.yml" if not config_ok else ""
     )
     
-    # Check 4: Git Configuration
+    # Check 3: Git Configuration
     print("\n🔧 Git Configuration")
     print("-" * 60)
     gitignore_ok = check_gitignore()
@@ -144,16 +121,15 @@ def main():
         "Add 'backend/vendor/' to .gitignore" if not gitignore_ok else ""
     )
     
-    # Check 5: PHP Extensions (if Docker is running)
-    if docker_ok:
-        print("\n🔌 PHP Extensions")
-        print("-" * 60)
-        ext_ok, missing = check_php_extensions()
-        all_passed &= print_status(
-            "Required PHP extensions",
-            ext_ok,
-            f"Missing: {', '.join(missing)}" if not ext_ok else "All required extensions loaded"
-        )
+    # Check 4: PHP Extensions
+    print("\n🔌 PHP Extensions")
+    print("-" * 60)
+    ext_ok, missing = check_php_extensions()
+    all_passed &= print_status(
+        "Required PHP extensions",
+        ext_ok,
+        f"Missing: {', '.join(missing)}" if not ext_ok else "All required extensions loaded"
+    )
     
     # Summary
     print_header("Summary")
@@ -161,8 +137,7 @@ def main():
     if all_passed:
         print("✅ All checks passed! Ready for deployment.")
         print("\nNext steps:")
-        print("  1. Test locally: ./run.sh")
-        print("  2. Deploy: cd scripts && uv run python full_deploy.py")
+        print("  Deploy: cd scripts && uv run python full_deploy.py")
         return 0
     else:
         print("❌ Some checks failed. Fix the issues above before deploying.")

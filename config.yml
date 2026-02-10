@@ -8,12 +8,6 @@ database:
   charset: utf8mb4
   collation: utf8mb4_unicode_ci
 
-docker:
-  mysql_root_password: ${DOCKER_MYSQL_ROOT_PASSWORD}
-  mysql_port: 3306
-  phpmyadmin_port: 8080
-  php_port: 8000
-
 ftp:
   host: w020f923.kasserver.com
   port: 21

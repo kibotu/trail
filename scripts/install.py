@@ -20,7 +20,6 @@ def check_prerequisites():
     prerequisites = {
         'python': ('python3', '--version'),
         'uv': ('uv', '--version'),
-        'docker': ('docker', '--version'),
         'composer': ('composer', '--version'),
     }
     
@@ -55,8 +54,10 @@ def generate_config():
     
     # Database configuration
     console.print("[yellow]Database Configuration:[/yellow]")
+    db_host = Prompt.ask("Database host", default="localhost")
+    db_name = Prompt.ask("Database name", default="trail_db")
+    db_user = Prompt.ask("Database user", default="trail_user")
     db_password = Prompt.ask("Database password", password=True)
-    docker_mysql_root_password = Prompt.ask("Docker MySQL root password", password=True)
     
     # FTP configuration
     console.print("\n[yellow]FTP Configuration:[/yellow]")
@@ -82,10 +83,10 @@ def generate_config():
     
     # Create .env file
     env_content = f"""# Database
+DB_HOST={db_host}
+DB_NAME={db_name}
+DB_USER={db_user}
 DB_PASSWORD={db_password}
-
-# Docker
-DOCKER_MYSQL_ROOT_PASSWORD={docker_mysql_root_password}
 
 # FTP
 FTP_USER={ftp_user}
@@ -107,20 +108,14 @@ JWT_SECRET={jwt_secret}
     
     # Create config.yml
     config_content = f"""database:
-  host: localhost
+  host: ${{DB_HOST}}
   port: 3306
-  name: trail_db
-  user: trail_user
+  name: ${{DB_NAME}}
+  user: ${{DB_USER}}
   password: ${{DB_PASSWORD}}
   prefix: trail_
   charset: utf8mb4
   collation: utf8mb4_unicode_ci
-
-docker:
-  mysql_root_password: ${{DOCKER_MYSQL_ROOT_PASSWORD}}
-  mysql_port: 3306
-  phpmyadmin_port: 8080
-  php_port: 8000
 
 ftp:
   host: {ftp_host}
@@ -180,29 +175,6 @@ def install_backend_dependencies():
         return False
 
 
-def setup_docker():
-    """Set up Docker development environment."""
-    console.print("[bold blue]Setting Up Docker Environment[/bold blue]\n")
-    
-    backend_dir = Path(__file__).parent.parent / "backend"
-    
-    if Confirm.ask("Start Docker containers?"):
-        try:
-            subprocess.run(
-                ["docker-compose", "up", "-d"],
-                cwd=backend_dir,
-                check=True
-            )
-            console.print("[green]✓[/green] Docker containers started\n")
-            return True
-        except subprocess.CalledProcessError as e:
-            console.print(f"[red]✗[/red] Failed to start Docker: {e}\n")
-            return False
-    else:
-        console.print("[yellow]Skipped Docker setup[/yellow]\n")
-        return True
-
-
 def run_migrations():
     """Run database migrations."""
     console.print("[bold blue]Running Database Migrations[/bold blue]\n")
@@ -243,9 +215,6 @@ def main():
     # Install backend dependencies
     install_backend_dependencies()
     
-    # Setup Docker
-    setup_docker()
-    
     # Run migrations
     run_migrations()
     
@@ -255,9 +224,7 @@ def main():
         "Next steps:\n"
         "1. Configure google-services.json for Android app\n"
         "2. Update API base URL in Android app (di/KoinModules.kt)\n"
-        "3. Build Android app: cd android && ./gradlew assembleDebug\n"
-        "4. Access admin interface: http://localhost:8000/admin\n"
-        "5. Access phpMyAdmin: http://localhost:8080\n\n"
+        "3. Build Android app: cd android && ./gradlew assembleDebug\n\n"
         "For production deployment, run: uv run python scripts/full_deploy.py",
         border_style="green"
     ))

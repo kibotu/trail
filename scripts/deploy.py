@@ -48,7 +48,7 @@ def get_files_to_upload():
     """Get list of files to upload (exclude certain directories).
     
     NOTE: vendor/ directory IS uploaded because production server has no Composer.
-    Run 'composer install' locally/Docker before deployment to ensure vendor/ is up to date.
+    Run 'composer install' locally before deployment to ensure vendor/ is up to date.
     """
     backend_dir = Path(__file__).parent.parent / "backend"
     
@@ -58,8 +58,7 @@ def get_files_to_upload():
     
     exclude_patterns = {
         '.git', '.gitignore', 'tests', 'node_modules',
-        '.env', '.DS_Store', 'docker-compose.yml', 'Dockerfile',
-        'phpunit.xml', '.phpunit.cache', 'docker'
+        '.env', '.DS_Store', 'phpunit.xml', '.phpunit.cache'
     }
     
     files_to_upload = []
