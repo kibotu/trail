@@ -25,7 +25,7 @@ from pathlib import Path
 import requests
 
 
-def test_basic_entry(jwt_token: str, api_url: str):
+def test_basic_entry(api_key: str, api_url: str):
     """Test creating a basic entry without media."""
     print("\n1️⃣ Testing basic entry creation...")
     
@@ -35,7 +35,7 @@ def test_basic_entry(jwt_token: str, api_url: str):
     }
     
     headers = {
-        "Authorization": f"Bearer {jwt_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
@@ -55,7 +55,7 @@ def test_basic_entry(jwt_token: str, api_url: str):
         return None
 
 
-def test_entry_with_image(jwt_token: str, api_url: str, image_path: Path):
+def test_entry_with_image(api_key: str, api_url: str, image_path: Path):
     """Test creating an entry with one image."""
     print("\n2️⃣ Testing entry with single image...")
     
@@ -80,7 +80,7 @@ def test_entry_with_image(jwt_token: str, api_url: str, image_path: Path):
     }
     
     headers = {
-        "Authorization": f"Bearer {jwt_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
@@ -103,7 +103,7 @@ def test_entry_with_image(jwt_token: str, api_url: str, image_path: Path):
         return None
 
 
-def test_entry_with_multiple_images(jwt_token: str, api_url: str, image_paths: list):
+def test_entry_with_multiple_images(api_key: str, api_url: str, image_paths: list):
     """Test creating an entry with multiple images."""
     print("\n3️⃣ Testing entry with multiple images...")
     
@@ -134,7 +134,7 @@ def test_entry_with_multiple_images(jwt_token: str, api_url: str, image_paths: l
     }
     
     headers = {
-        "Authorization": f"Bearer {jwt_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
@@ -158,7 +158,7 @@ def test_entry_with_multiple_images(jwt_token: str, api_url: str, image_paths: l
         return None
 
 
-def test_entry_with_claps(jwt_token: str, api_url: str):
+def test_entry_with_claps(api_key: str, api_url: str):
     """Test creating an entry with initial claps."""
     print("\n4️⃣ Testing entry with initial claps...")
     
@@ -169,7 +169,7 @@ def test_entry_with_claps(jwt_token: str, api_url: str):
     }
     
     headers = {
-        "Authorization": f"Bearer {jwt_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
@@ -192,7 +192,7 @@ def test_entry_with_claps(jwt_token: str, api_url: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Test Trail API functionality")
-    parser.add_argument("--jwt", required=True, help="JWT token")
+    parser.add_argument("--api-key", required=True, help="API key")
     parser.add_argument(
         "--api-url",
         default="https://trail.services.kibotu.net/api",
@@ -224,18 +224,18 @@ def main():
     
     # Run tests
     results = {
-        "basic": test_basic_entry(args.jwt, args.api_url),
-        "with_claps": test_entry_with_claps(args.jwt, args.api_url),
+        "basic": test_basic_entry(args.api_key, args.api_url),
+        "with_claps": test_entry_with_claps(args.api_key, args.api_url),
     }
     
     if test_images:
         results["single_image"] = test_entry_with_image(
-            args.jwt, args.api_url, test_images[0]
+            args.api_key, args.api_url, test_images[0]
         )
         
         if len(test_images) >= 2:
             results["multiple_images"] = test_entry_with_multiple_images(
-                args.jwt, args.api_url, test_images
+                args.api_key, args.api_url, test_images
             )
     else:
         print("\n⚠️  No test images found in archive")

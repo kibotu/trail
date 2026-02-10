@@ -10,7 +10,7 @@ TEMP_DIR="${SCRIPT_DIR}/.migration_temp"
 CACHE_DIR="${SCRIPT_DIR}/.migration_cache"
 CACHE_FILE=""
 ARCHIVE_PATH=""
-JWT_TOKEN=""
+API_KEY=""
 KEEP_EXTRACTED=false
 VERBOSE=false
 DRY_RUN=false
@@ -57,7 +57,7 @@ Usage: $0 --archive ARCHIVE_ZIP [OPTIONS]
 
 Required:
   --archive PATH          Path to Twitter archive ZIP file
-  --jwt TOKEN            JWT authentication token (or set TRAIL_JWT_TOKEN env var)
+  --api-key KEY          API key for authentication (or set TRAIL_API_KEY env var)
 
 Options:
   --keep-extracted       Keep extracted files after migration
@@ -69,17 +69,17 @@ Options:
 
 Examples:
   # Basic usage
-  $0 --jwt YOUR_TOKEN --archive twitter-backup.zip
+  $0 --api-key YOUR_API_KEY --archive twitter-backup.zip
 
   # With environment variable
-  export TRAIL_JWT_TOKEN="your_token"
+  export TRAIL_API_KEY="your_api_key"
   $0 --archive twitter-backup.zip
 
   # Keep extracted files and verbose mode
-  $0 --jwt TOKEN --archive backup.zip --keep-extracted -v
+  $0 --api-key KEY --archive backup.zip --keep-extracted -v
 
   # Resume interrupted migration (automatically detects cached progress)
-  $0 --jwt TOKEN --archive backup.zip
+  $0 --api-key KEY --archive backup.zip
 
 EOF
     exit 1
@@ -133,20 +133,20 @@ check_python() {
 validate_inputs() {
     print_info "Validating inputs..."
     
-    # Check JWT token
-    if [ -z "$JWT_TOKEN" ]; then
-        if [ -n "$TRAIL_JWT_TOKEN" ]; then
-            JWT_TOKEN="$TRAIL_JWT_TOKEN"
-            print_info "Using JWT token from TRAIL_JWT_TOKEN environment variable"
+    # Check API key
+    if [ -z "$API_KEY" ]; then
+        if [ -n "$TRAIL_API_KEY" ]; then
+            API_KEY="$TRAIL_API_KEY"
+            print_info "Using API key from TRAIL_API_KEY environment variable"
         else
-            print_error "JWT token required. Use --jwt TOKEN or set TRAIL_JWT_TOKEN environment variable"
+            print_error "API key required. Use --api-key KEY or set TRAIL_API_KEY environment variable"
             exit 1
         fi
     fi
     
-    # Validate JWT token format (basic check)
-    if [ ${#JWT_TOKEN} -lt 20 ]; then
-        print_error "JWT token seems too short. Please check your token."
+    # Validate API key format (basic check)
+    if [ ${#API_KEY} -lt 20 ]; then
+        print_error "API key seems too short. Please check your key."
         exit 1
     fi
     
@@ -283,7 +283,7 @@ run_migration() {
     
     # Build command
     local cmd="uv run ${SCRIPT_DIR}/import_twitter_archive.py"
-    cmd="$cmd --jwt \"$JWT_TOKEN\""
+    cmd="$cmd --api-key \"$API_KEY\""
     cmd="$cmd --archive \"$EXTRACTED_DIR\""
     cmd="$cmd --cache-file \"$CACHE_FILE\""
     
@@ -384,8 +384,8 @@ main() {
                 ARCHIVE_PATH="$2"
                 shift 2
                 ;;
-            --jwt)
-                JWT_TOKEN="$2"
+            --api-key)
+                API_KEY="$2"
                 shift 2
                 ;;
             --keep-extracted)

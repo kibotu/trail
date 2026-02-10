@@ -5,7 +5,7 @@ Migrate your Twitter archive to Trail API. One command. ~5 minutes for 2,788 twe
 ## Quick Start
 
 ```bash
-./migrate.sh --jwt YOUR_TOKEN --archive twitter-backup.zip
+./migrate.sh --api-key YOUR_API_KEY --archive twitter-backup.zip
 ```
 
 Done. The script installs dependencies, extracts the ZIP, migrates tweets with original timestamps, caches progress, and cleans up.  
@@ -13,30 +13,30 @@ Done. The script installs dependencies, extracts the ZIP, migrates tweets with o
 ## Prerequisites
 
 1. Twitter archive ZIP (Settings → Download archive, 24-48h wait)
-2. JWT token from [trail.services.kibotu.net](https://trail.services.kibotu.net) (Google OAuth)
+2. API key from [trail.services.kibotu.net](https://trail.services.kibotu.net) (Google OAuth)
 3. Python 3.7+ (script auto-installs `uv`)
 
 ## Usage
 
 **Recommended (secure):**
 ```bash
-export TRAIL_JWT_TOKEN="your_token"
+export TRAIL_API_KEY="your_api_key"
 ./migrate.sh --archive twitter-backup.zip
 ```
 
 **Test first:**
 ```bash
-./migrate.sh --jwt TOKEN --archive backup.zip --dry-run --limit 10
+./migrate.sh --api-key KEY --archive backup.zip --dry-run --limit 10
 ```
 
 **Resume interrupted migration:**
 ```bash
-./migrate.sh --jwt TOKEN --archive backup.zip  # Automatic
+./migrate.sh --api-key KEY --archive backup.zip  # Automatic
 ```
 
 **Options:**
 - `--archive PATH` - ZIP file (required)
-- `--jwt TOKEN` - Auth token (or `TRAIL_JWT_TOKEN` env)
+- `--api-key KEY` - API key (or `TRAIL_API_KEY` env)
 - `--dry-run` - Test mode
 - `--limit N` - Import first N tweets
 - `--delay MS` - Rate limit (default: 100ms)
@@ -45,7 +45,7 @@ export TRAIL_JWT_TOKEN="your_token"
 
 **Direct Python usage (extracted archives):**
 ```bash
-uv run import_twitter_archive.py --jwt TOKEN --archive ./twitter-2026-01-30-xxx/
+uv run import_twitter_archive.py --api-key KEY --archive ./twitter-2026-01-30-xxx/
 ```
 
 ## What Gets Migrated
@@ -56,7 +56,7 @@ uv run import_twitter_archive.py --jwt TOKEN --archive ./twitter-2026-01-30-xxx/
 
 ## How It Works
 
-1. Validates JWT token and ZIP file
+1. Validates API key and ZIP file
 2. Creates hash-based cache (`.migration_cache/<hash>.json`)
 3. Extracts archive, verifies structure
 4. Skips already-migrated tweets (from cache)
@@ -72,7 +72,7 @@ uv run import_twitter_archive.py --jwt TOKEN --archive ./twitter-2026-01-30-xxx/
 |-------|----------|
 | "Archive file not found" | Verify: `ls -la *.zip` |
 | "Invalid archive structure" | Use official Twitter archive ZIP |
-| "401 Unauthorized" | Get new JWT from trail.services.kibotu.net |
+| "401 Unauthorized" | Get new API key from trail.services.kibotu.net |
 | "429 Too Many Requests" | Add `--delay 500` |
 | Import failures | Images >20MB skipped, script continues |
 | Start fresh | `rm -rf .migration_cache/` |
@@ -84,7 +84,7 @@ uv run import_twitter_archive.py --jwt TOKEN --archive ./twitter-2026-01-30-xxx/
 ## Security
 
 ```bash
-export TRAIL_JWT_TOKEN="your_token"  # Preferred
+export TRAIL_API_KEY="your_api_key"  # Preferred
 ./migrate.sh --archive backup.zip
 ```
 

@@ -29,7 +29,7 @@ Note on View Counts:
     need to fetch them separately via the Twitter API before the data expires.
 
 Usage:
-    uv run import_twitter_archive.py --jwt YOUR_JWT_TOKEN [--dry-run] [--limit N] [-v]
+    uv run import_twitter_archive.py --api-key YOUR_API_KEY [--dry-run] [--limit N] [-v]
 """
 
 import argparse
@@ -54,7 +54,7 @@ class TwitterArchiveImporter:
     def __init__(
         self,
         archive_path: str,
-        jwt_token: str,
+        api_key: str,
         api_base_url: str = "https://trail.services.kibotu.net/api",
         delay_ms: int = 100,
         dry_run: bool = False,
@@ -63,7 +63,7 @@ class TwitterArchiveImporter:
         cache_file: Optional[str] = None,
     ):
         self.archive_path = Path(archive_path)
-        self.jwt_token = jwt_token
+        self.api_key = api_key
         self.api_base_url = api_base_url
         self.delay_ms = delay_ms
         self.dry_run = dry_run
@@ -130,7 +130,7 @@ class TwitterArchiveImporter:
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         session.headers.update({
-            "Authorization": f"Bearer {self.jwt_token}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         })
         return session
@@ -339,7 +339,7 @@ class TwitterArchiveImporter:
         json_str = json.dumps(display_payload, ensure_ascii=False)
         
         curl_cmd = f"""curl -X POST \\
-     -H "Authorization: Bearer <JWT_TOKEN>" \\
+     -H "Authorization: Bearer <API_KEY>" \\
      -H "Content-Type: application/json" \\
      -d '{json_str}' \\
      {self.api_base_url}/entries"""
@@ -572,26 +572,26 @@ def main():
         epilog="""
 Examples:
   # Dry run (test without importing)
-  python import_twitter_archive.py --jwt YOUR_TOKEN --dry-run
+  python import_twitter_archive.py --api-key YOUR_API_KEY --dry-run
 
   # Import first 10 tweets (testing)
-  python import_twitter_archive.py --jwt YOUR_TOKEN --limit 10
+  python import_twitter_archive.py --api-key YOUR_API_KEY --limit 10
 
   # Full import with verbose logging
-  python import_twitter_archive.py --jwt YOUR_TOKEN -v
+  python import_twitter_archive.py --api-key YOUR_API_KEY -v
 
   # Verbose mode with limit (see curl equivalents)
-  python import_twitter_archive.py --jwt YOUR_TOKEN --limit 5 -v
+  python import_twitter_archive.py --api-key YOUR_API_KEY --limit 5 -v
 
   # Custom archive path
-  python import_twitter_archive.py --jwt YOUR_TOKEN --archive /path/to/archive
+  python import_twitter_archive.py --api-key YOUR_API_KEY --archive /path/to/archive
         """,
     )
     
     parser.add_argument(
-        "--jwt",
+        "--api-key",
         required=True,
-        help="JWT authentication token for Trail API",
+        help="API key for Trail API authentication",
     )
     
     parser.add_argument(
@@ -658,7 +658,7 @@ Examples:
     # Create importer and run
     importer = TwitterArchiveImporter(
         archive_path=str(archive_path),
-        jwt_token=args.jwt,
+        api_key=args.api_key,
         api_base_url=args.api_url,
         delay_ms=args.delay,
         dry_run=args.dry_run,
