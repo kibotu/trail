@@ -421,13 +421,6 @@ function createEntryCard(entry, options = {}) {
                 </div>
                 <div class="entry-footer-actions">
                     <div class="entry-footer-left">
-                        <span class="view-counter" 
-                              data-entry-id="${entry.id}"
-                              data-hash-id="${hashId}"
-                              aria-label="Views">
-                            <i class="fa-regular fa-eye"></i>
-                            <span class="view-count">${formatViewCount(entry.view_count || 0)}</span>
-                        </span>
                         <button class="comment-button" 
                                 ${options.enablePermalink !== false ? '' : 'data-no-navigate'}
                                 data-entry-id="${entry.id}"
@@ -448,6 +441,13 @@ function createEntryCard(entry, options = {}) {
                             <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
                             <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
                         </button>
+                        <span class="view-counter" 
+                              data-entry-id="${entry.id}"
+                              data-hash-id="${hashId}"
+                              aria-label="Views">
+                            <i class="fa-solid fa-chart-simple"></i>
+                            <span class="view-count">${formatViewCount(entry.view_count || 0)}</span>
+                        </span>
                         <button class="share-button" data-no-navigate aria-label="Share entry">
                             <i class="fa-solid fa-share-nodes"></i>
                         </button>
