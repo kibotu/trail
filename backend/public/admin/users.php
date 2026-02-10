@@ -150,13 +150,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 </div>
             </div>
             <div class="header-right">
-                <button class="button secondary" onclick="window.location.href='/'">
+                <button class="button secondary icon-only" onclick="window.location.href='/'" title="Home">
                     <i class="fa-solid fa-home"></i>
-                    <span>Home</span>
                 </button>
-                <button class="button secondary" onclick="window.location.href='/admin/'">
-                    <span>←</span>
-                    <span>Dashboard</span>
+                <button class="button secondary icon-only" onclick="window.location.href='/admin/'" title="Dashboard">
+                    <i class="fa-solid fa-arrow-left"></i>
                 </button>
                 <div class="user-info">
                     <img src="<?= $avatarUrl ?>" alt="Avatar" class="avatar-small">

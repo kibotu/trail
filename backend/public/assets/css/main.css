@@ -820,6 +820,15 @@ main {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.button.icon-only {
+    padding: 0.5rem 0.75rem;
+    min-width: 40px;
+}
+
+.button.icon-only i {
+    margin: 0;
+}
+
 .share-button {
     background: transparent;
     border: none;
