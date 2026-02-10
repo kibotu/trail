@@ -113,7 +113,7 @@
                             <span class="profile-stat-value">0</span>
                             <span class="profile-stat-label">Comments</span>
                         </a>
-                        <span class="profile-stat" id="statProfileViews" title="Profile Views">
+                        <span class="profile-stat" id="statTotalViews" title="Total Views (Profile + Entries + Comments)">
                             <span class="profile-stat-value">0</span>
                             <span class="profile-stat-label">Views</span>
                         </span>

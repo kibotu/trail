@@ -205,6 +205,7 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
         $db = \Trail\Database\Database::getInstance($config);
         $session = getAuthenticatedUser($db);
         $isLoggedIn = $session !== null;
+        $userId = $session['user_id'] ?? null;
         $userName = $session['email'] ?? null;
         $userPhotoUrl = $session['photo_url'] ?? null;
         $isAdmin = $session['is_admin'] ?? false;

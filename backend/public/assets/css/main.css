@@ -1351,7 +1351,7 @@ main {
 .comment-footer {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     margin-top: 0.5rem;
 }
 
@@ -1364,6 +1364,27 @@ main {
 .comment-footer-right {
     display: flex;
     align-items: center;
+}
+
+/* Comment view counter */
+.comment-view-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: default;
+    user-select: none;
+}
+
+.comment-view-counter i {
+    font-size: 0.75rem;
+}
+
+.comment-view-counter .view-count {
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
 .comment-clap-button {

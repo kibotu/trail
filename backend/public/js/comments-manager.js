@@ -7,7 +7,78 @@ class CommentsManager {
     constructor() {
         this.expandedEntries = new Set(); // Track which entries have comments expanded
         this.commentsCache = new Map(); // Cache loaded comments per entry
+        this.viewedComments = new Set(); // Track which comments have been viewed
+        this.commentViewObserver = null;
         this.initializeGlobalListeners();
+        this.initializeViewObserver();
+    }
+
+    /**
+     * Initialize IntersectionObserver for comment view tracking
+     */
+    initializeViewObserver() {
+        this.commentViewObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                        const commentCard = entry.target;
+                        const commentHashId = commentCard.dataset.commentHashId;
+                        const commentId = commentCard.dataset.commentId;
+                        
+                        // Only record view once per comment per session
+                        if (commentHashId && !this.viewedComments.has(commentId)) {
+                            this.viewedComments.add(commentId);
+                            this.recordCommentView(commentHashId, commentCard);
+                        }
+                    }
+                });
+            },
+            { threshold: 0.5 }
+        );
+    }
+
+    /**
+     * Record a comment view (fire-and-forget)
+     */
+    recordCommentView(commentHashId, commentCard) {
+        const fingerprint = typeof getBrowserFingerprint === 'function' 
+            ? getBrowserFingerprint() 
+            : this.getSimpleFingerprint();
+        
+        fetch(`/api/comments/${commentHashId}/views`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint })
+        })
+        .then(r => r.json())
+        .then(data => {
+            // Update the view count in the UI if it exists
+            if (data.view_count !== undefined) {
+                const viewCountEl = commentCard.querySelector('.comment-view-counter .view-count');
+                if (viewCountEl) {
+                    viewCountEl.textContent = typeof formatViewCount === 'function' 
+                        ? formatViewCount(data.view_count) 
+                        : data.view_count;
+                }
+            }
+        })
+        .catch(() => {}); // Silent - views are best-effort
+    }
+
+    /**
+     * Simple fingerprint fallback
+     */
+    getSimpleFingerprint() {
+        const components = [
+            screen.width,
+            screen.height,
+            screen.colorDepth,
+            navigator.language,
+            navigator.hardwareConcurrency || 0,
+            navigator.platform || ''
+        ];
+        return components.join('|');
     }
 
     initializeGlobalListeners() {
@@ -223,6 +294,27 @@ class CommentsManager {
         
         // Attach event listeners to comment actions
         this.attachCommentActionListeners(commentsList, entryId, hashId);
+        
+        // Start observing comment cards for view tracking
+        this.observeCommentCards(commentsList);
+    }
+
+    /**
+     * Observe comment cards for view tracking
+     */
+    observeCommentCards(commentsList) {
+        if (!this.commentViewObserver) return;
+        
+        const commentCards = commentsList.querySelectorAll('.comment-card[data-comment-hash-id]');
+        commentCards.forEach(card => {
+            const commentHashId = card.dataset.commentHashId;
+            const commentId = card.dataset.commentId;
+            
+            // Only observe if has hash_id and not already viewed
+            if (commentHashId && !this.viewedComments.has(commentId)) {
+                this.commentViewObserver.observe(card);
+            }
+        });
     }
 
     createCommentCard(comment, entryId, hashId) {
@@ -230,9 +322,10 @@ class CommentsManager {
         const isAdmin = document.body.dataset.isAdmin === 'true';
         const canModify = currentUserId === comment.user_id || isAdmin;
         const isLoggedIn = document.body.dataset.isLoggedIn === 'true';
+        const commentHashId = comment.hash_id || '';
         
         return `
-            <div class="comment-card" data-comment-id="${comment.id}">
+            <div class="comment-card" data-comment-id="${comment.id}" data-comment-hash-id="${commentHashId}">
                 <div class="comment-header">
                     <img src="${escapeHtml(comment.avatar_url)}" alt="${escapeHtml(comment.user_nickname || comment.user_name)}" class="comment-avatar">
                     <div class="comment-header-info">
@@ -278,7 +371,15 @@ class CommentsManager {
                     ` : ''}
                 </div>
                 <div class="comment-footer">
-                    <div class="comment-footer-left"></div>
+                    <div class="comment-footer-left">
+                        <span class="comment-view-counter" 
+                              data-comment-id="${comment.id}"
+                              data-comment-hash-id="${commentHashId}"
+                              aria-label="Views">
+                            <i class="fa-solid fa-chart-simple"></i>
+                            <span class="view-count">${typeof formatViewCount === 'function' ? formatViewCount(comment.view_count || 0) : (comment.view_count || 0)}</span>
+                        </span>
+                    </div>
                     <div class="comment-footer-right">
                         ${isLoggedIn ? `
                             <button class="comment-clap-button ${(comment.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId === comment.user_id ? 'own-comment' : ''}" 

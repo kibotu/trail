@@ -62,10 +62,18 @@ class UserProfileManager {
         })
         .then(res => res.json())
         .then(data => {
-            // Update the view count in the UI if it exists
-            const viewCountEl = document.querySelector('#statProfileViews .profile-stat-value');
-            if (viewCountEl && data.view_count !== undefined) {
-                viewCountEl.textContent = this.formatNumber(data.view_count);
+            // Update the total view count in the UI if it exists
+            // The view was recorded, so increment the total views by 1 if this was a new view
+            if (data.recorded && data.view_count !== undefined) {
+                const viewCountEl = document.querySelector('#statTotalViews .profile-stat-value');
+                if (viewCountEl && this.profileData && this.profileData.stats) {
+                    // Recalculate total views with the new profile view count
+                    const stats = this.profileData.stats;
+                    const totalViews = data.view_count + 
+                                       (stats.total_entry_views ?? 0) + 
+                                       (stats.total_comment_views ?? 0);
+                    viewCountEl.textContent = this.formatNumber(totalViews);
+                }
             }
         })
         .catch(() => {}); // Silent - views are best-effort
@@ -739,7 +747,12 @@ class UserProfileManager {
             };
             setValue('statEntries',  stats.entry_count  ?? 0);
             setValue('statComments', stats.comment_count ?? 0);
-            setValue('statProfileViews', stats.total_profile_views ?? 0);
+            
+            // Calculate total views: profile views + entry views + comment views
+            const totalViews = (stats.total_profile_views ?? 0) + 
+                               (stats.total_entry_views ?? 0) + 
+                               (stats.total_comment_views ?? 0);
+            setValue('statTotalViews', totalViews);
             statsContainer.style.display = '';
         }
 

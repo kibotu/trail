@@ -207,12 +207,15 @@ class CommentController
         $comments = $commentModel->getByEntryWithImages($entryId, $limit, $before, $userId, $excludeCommentIds);
         $hasMore = count($comments) === $limit;
 
-        // Add avatar URLs and ensure nicknames
+        // Add avatar URLs, hash_ids, and ensure nicknames
         $userModel = new \Trail\Models\User($db);
         $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
         
         foreach ($comments as &$comment) {
             $comment['avatar_url'] = self::getAvatarUrl($comment);
+            
+            // Add hash_id for view tracking
+            $comment['hash_id'] = $hashIdService->encode((int) $comment['id']);
             
             // Generate nickname if not set
             if (empty($comment['user_nickname']) && !empty($comment['google_id'])) {
