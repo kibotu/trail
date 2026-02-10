@@ -210,7 +210,7 @@ class EntryController
         $urlPreviewId = null;
         try {
             // Create usage tracker for iframe.ly API
-            $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+            $adminEmail = $config['production']['admin_email'] ?? 'admin@example.com';
             $usageTracker = new IframelyUsageTracker($db, $adminEmail);
             
             $embedService = new UrlEmbedService($config, $usageTracker, $db);
@@ -535,7 +535,7 @@ class EntryController
         $urlPreviewId = null;
         try {
             // Create usage tracker for iframe.ly API
-            $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+            $adminEmail = $config['production']['admin_email'] ?? 'admin@example.com';
             $usageTracker = new IframelyUsageTracker($db, $adminEmail);
             
             $embedService = new UrlEmbedService($config, $usageTracker, $db);

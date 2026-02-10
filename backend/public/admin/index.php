@@ -59,7 +59,7 @@ try {
     $totalUsers = $stmt->fetch()['count'];
 
     // Get iframe.ly usage stats
-    $adminEmail = $config['production']['admin_email'] ?? 'cloudgazer3d@gmail.com';
+    $adminEmail = $config['production']['admin_email'] ?? 'admin@example.com';
     $usageTracker = new IframelyUsageTracker($db, $adminEmail);
     $iframelyUsage = $usageTracker->getCurrentMonthUsage();
     $iframelyLimit = IframelyUsageTracker::getMonthlyLimit();

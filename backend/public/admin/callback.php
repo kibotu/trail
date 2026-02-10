@@ -126,7 +126,7 @@ function exchangeCodeForToken(string $code, array $googleOAuth): array
         'code' => $code,
         'client_id' => $googleOAuth['client_id'],
         'client_secret' => $googleOAuth['client_secret'],
-        'redirect_uri' => $_ENV['GOOGLE_CLIENT_REDIRECT_URI'] ?? $googleOAuth['redirect_uri'] ?? '',
+        'redirect_uri' => $googleOAuth['redirect_uri'] ?? '',
         'grant_type' => 'authorization_code'
     ];
 

@@ -205,7 +205,7 @@ function deleteSession(PDO $db, string $sessionId): void
  */
 function buildGoogleAuthUrl(array $googleOAuth): string
 {
-    $redirectUri = $_ENV['GOOGLE_CLIENT_REDIRECT_URI'] ?? $googleOAuth['redirect_uri'] ?? '';
+    $redirectUri = $googleOAuth['redirect_uri'] ?? '';
     
     return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
         'client_id' => $googleOAuth['client_id'],

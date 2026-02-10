@@ -35,12 +35,12 @@ if [ -z "$APP_BASE_URL" ]; then
     exit 1
 fi
 
-# Extract FTP credentials from secrets.yml
-FTP_HOST=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}')
-FTP_PORT=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "port:" | awk '{print $2}')
-FTP_USER=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "user:" | awk '{print $2}')
-FTP_PASSWORD=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "password:" | awk '{print $2}')
-FTP_REMOTE_PATH=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "remote_path:" | awk '{print $2}')
+# Extract FTP credentials from secrets.yml (strip quotes if present)
+FTP_HOST=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}' | tr -d '"'"'")
+FTP_PORT=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "port:" | awk '{print $2}' | tr -d '"'"'")
+FTP_USER=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "user:" | awk '{print $2}' | tr -d '"'"'")
+FTP_PASSWORD=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "password:" | awk '{print $2}' | tr -d '"'"'")
+FTP_REMOTE_PATH=$(grep -A 5 "^ftp:" "$SECRETS_FILE" | grep "remote_path:" | awk '{print $2}' | tr -d '"'"'")
 
 # Default values
 FTP_PORT=${FTP_PORT:-21}
@@ -205,12 +205,12 @@ fi
 # Step 4: Run migrations
 echo -e "${YELLOW}[4/4]${NC} Running database migrations..."
 
-# Extract database credentials from secrets.yml
-DB_HOST=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}')
-DB_PORT=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "port:" | awk '{print $2}')
-DB_NAME=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "name:" | awk '{print $2}')
-DB_USER=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "user:" | awk '{print $2}')
-DB_PASSWORD=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "password:" | awk '{print $2}' | tr -d '"')
+# Extract database credentials from secrets.yml (strip quotes if present)
+DB_HOST=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}' | tr -d '"'"'")
+DB_PORT=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "port:" | awk '{print $2}' | tr -d '"'"'")
+DB_NAME=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "name:" | awk '{print $2}' | tr -d '"'"'")
+DB_USER=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "user:" | awk '{print $2}' | tr -d '"'"'")
+DB_PASSWORD=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "password:" | awk '{print $2}' | tr -d '"'"'")
 
 # Default values
 DB_HOST=${DB_HOST:-localhost}
