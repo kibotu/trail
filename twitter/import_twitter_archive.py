@@ -13,12 +13,20 @@ This script imports a Twitter archive (tweets + media) to the Trail API.
 
 Features:
 - Parses Twitter archive JSON data
+- Imports both original tweets AND retweets
 - Converts images to base64 for inline upload
 - Preserves original timestamps
-- Maps Twitter favorites to Trail claps (capped at 50)
+- Maps Twitter favorites/likes to Trail claps (up to 100,000 with raw_upload)
 - Supports rate limiting and retry logic
 - Maintains Twitter ID → Trail ID mapping
 - Excludes videos (MP4 files)
+
+Note on View Counts:
+    Twitter's data archive does NOT include view/impression counts for tweets.
+    View counts are classified as "non-public metrics" by Twitter and are only
+    available through the Twitter Developer API with OAuth authentication,
+    with a 30-day restriction. If you need to import view counts, you would
+    need to fetch them separately via the Twitter API before the data expires.
 
 Usage:
     uv run import_twitter_archive.py --jwt YOUR_JWT_TOKEN [--dry-run] [--limit N] [-v]
@@ -70,8 +78,11 @@ class TwitterArchiveImporter:
             "tweets_imported": 0,
             "tweets_failed": 0,
             "tweets_skipped": 0,
+            "retweets_imported": 0,
+            "original_tweets_imported": 0,
             "media_files_processed": 0,
             "media_files_skipped": 0,
+            "total_claps_imported": 0,
             "start_time": None,
             "end_time": None,
         }
@@ -214,16 +225,41 @@ class TwitterArchiveImporter:
         """
         return twitter_date
 
+    def is_retweet(self, tweet: Dict) -> bool:
+        """
+        Check if a tweet is a retweet.
+        
+        Retweets in Twitter archive have full_text starting with "RT @".
+        """
+        full_text = tweet.get("full_text", "")
+        return full_text.startswith("RT @")
+
     def map_favorites_to_claps(self, favorite_count: int) -> Optional[int]:
         """
         Map Twitter favorite_count to Trail initial_claps.
         
-        Range: 1-50 (cap at 50)
+        Range: 1-100,000 (with raw_upload admin mode)
         Returns None if favorite_count is 0 (don't set claps)
         """
         if favorite_count == 0:
             return None
-        return min(favorite_count, 50)
+        # With raw_upload: true, we can use up to 100,000 claps
+        return min(favorite_count, 100000)
+
+    def map_views_to_initial_views(self, view_count: int) -> Optional[int]:
+        """
+        Map Twitter view_count to Trail initial_views.
+        
+        Note: Twitter's data archive does NOT include view counts.
+        This method is kept for potential future use if view data is
+        obtained separately (e.g., via Twitter API before 30-day expiry).
+        
+        Requires raw_upload admin mode.
+        Returns None if view_count is 0 or not available.
+        """
+        if view_count <= 0:
+            return None
+        return view_count
 
     def prepare_entry_payload(
         self,
@@ -248,11 +284,21 @@ class TwitterArchiveImporter:
             "raw_upload": True,  # Skip image processing for faster imports
         }
 
-        # Add engagement metrics
+        # Add engagement metrics (likes → claps)
         favorite_count = int(tweet.get("favorite_count", 0))
         initial_claps = self.map_favorites_to_claps(favorite_count)
         if initial_claps is not None:
             payload["initial_claps"] = initial_claps
+
+        # Note: Twitter's data archive does NOT include view/impression counts.
+        # View counts are classified as "non-public metrics" by Twitter and are
+        # only available through the Twitter Developer API (with 30-day limit).
+        # If you have view data from another source, you can add it here:
+        #
+        # view_count = int(tweet.get("view_count", 0))
+        # initial_views = self.map_views_to_initial_views(view_count)
+        # if initial_views is not None:
+        #     payload["initial_views"] = initial_views
 
         # Add media if present
         if media_files:
@@ -393,9 +439,13 @@ class TwitterArchiveImporter:
                 self.stats["tweets_failed"] += 1
                 continue
 
+            # Check if this is a retweet
+            is_rt = self.is_retweet(tweet)
+
             # Display progress
             media_indicator = f"📷×{len(media_files)}" if media_files else ""
-            print(f"[{idx}/{len(tweets_data)}] {media_indicator} {text[:60]}...")
+            rt_indicator = "🔁" if is_rt else ""
+            print(f"[{idx}/{len(tweets_data)}] {rt_indicator}{media_indicator} {text[:60]}...")
 
             # Create entry
             result = self.create_entry(payload)
@@ -404,6 +454,17 @@ class TwitterArchiveImporter:
                 trail_id = result.get("id")
                 self.id_mapping[tweet_id] = trail_id
                 self.stats["tweets_imported"] += 1
+                
+                # Track retweets vs original tweets
+                if is_rt:
+                    self.stats["retweets_imported"] += 1
+                else:
+                    self.stats["original_tweets_imported"] += 1
+                
+                # Track engagement stats
+                if "initial_claps" in payload:
+                    self.stats["total_claps_imported"] += payload["initial_claps"]
+                
                 print(f"  ✅ Created entry ID: {trail_id}")
             else:
                 self.stats["tweets_failed"] += 1
@@ -461,11 +522,16 @@ class TwitterArchiveImporter:
         print("=" * 60)
         print(f"Total tweets in archive:    {self.stats['total_tweets']}")
         print(f"Tweets imported:            {self.stats['tweets_imported']} ✅")
+        print(f"  - Original tweets:        {self.stats['original_tweets_imported']}")
+        print(f"  - Retweets:               {self.stats['retweets_imported']} 🔁")
         print(f"Tweets skipped (cached):    {self.stats['tweets_skipped']} ⏭️")
         print(f"Tweets failed:              {self.stats['tweets_failed']} ❌")
         print(f"Tweets with media:          {self.stats['tweets_with_media']}")
         print(f"Media files processed:      {self.stats['media_files_processed']}")
         print(f"Media files skipped (video): {self.stats['media_files_skipped']}")
+        print("-" * 60)
+        print(f"Total claps imported:       {self.stats['total_claps_imported']:,} 👏")
+        print("-" * 60)
         print(f"Duration:                   {duration:.1f} seconds")
         
         if self.stats['tweets_imported'] > 0:
