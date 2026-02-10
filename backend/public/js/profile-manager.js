@@ -573,6 +573,30 @@ class ProfileManager {
             clapStatsContainer.style.display = '';
         }
 
+        // Top entries by claps
+        if (stats.top_entries_by_claps && stats.top_entries_by_claps.length > 0) {
+            const container = document.getElementById('identityTopEntriesByClaps');
+            const list = document.getElementById('topEntriesByClapslist');
+            if (container && list) {
+                list.innerHTML = stats.top_entries_by_claps.map(entry => 
+                    this.createTopEntryItem(entry, 'claps')
+                ).join('');
+                container.style.display = '';
+            }
+        }
+
+        // Top entries by views
+        if (stats.top_entries_by_views && stats.top_entries_by_views.length > 0) {
+            const container = document.getElementById('identityTopEntriesByViews');
+            const list = document.getElementById('topEntriesByViewsList');
+            if (container && list) {
+                list.innerHTML = stats.top_entries_by_views.map(entry => 
+                    this.createTopEntryItem(entry, 'views')
+                ).join('');
+                container.style.display = '';
+            }
+        }
+
         // Meta section (last seen, last entry)
         const metaContainer = document.getElementById('identityMeta');
         let hasMetaItems = false;
@@ -598,6 +622,53 @@ class ProfileManager {
         if (metaContainer && hasMetaItems) {
             metaContainer.style.display = '';
         }
+    }
+
+    /**
+     * Create a top entry list item
+     * @param {Object} entry - Entry data
+     * @param {string} type - 'claps' or 'views'
+     * @returns {string} HTML string
+     */
+    createTopEntryItem(entry, type) {
+        const count = type === 'claps' ? (entry.clap_count || 0) : (entry.view_count || 0);
+        const icon = type === 'claps' ? 'fa-heart' : 'fa-chart-simple';
+        const url = `/status/${entry.hash_id}`;
+        
+        // Determine display text: prefer preview_title, then text (truncated), then preview_url
+        let displayText = '';
+        if (entry.preview_title) {
+            displayText = entry.preview_title;
+        } else if (entry.text) {
+            displayText = entry.text.length > 50 ? entry.text.substring(0, 50) + '...' : entry.text;
+        } else if (entry.preview_url) {
+            try {
+                displayText = new URL(entry.preview_url).hostname;
+            } catch {
+                displayText = entry.preview_url;
+            }
+        } else {
+            displayText = 'Untitled entry';
+        }
+        
+        // Escape HTML
+        const escapeHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+        
+        return `
+            <li class="identity-top-entry-item">
+                <a href="${url}" class="identity-top-entry-link">
+                    <span class="identity-top-entry-text">${escapeHtml(displayText)}</span>
+                    <span class="identity-top-entry-count">
+                        <i class="fa-solid ${icon}"></i>
+                        ${this.formatNumber(count)}
+                    </span>
+                </a>
+            </li>
+        `;
     }
 
     /**

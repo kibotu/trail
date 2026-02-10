@@ -99,6 +99,16 @@
                         </div>
                     </div>
 
+                    <div class="identity-top-entries" id="identityTopEntriesByClaps" style="display:none;">
+                        <h4 class="identity-top-entries-title"><i class="fa-solid fa-heart"></i> Top by Claps</h4>
+                        <ul class="identity-top-entries-list" id="topEntriesByClapslist"></ul>
+                    </div>
+
+                    <div class="identity-top-entries" id="identityTopEntriesByViews" style="display:none;">
+                        <h4 class="identity-top-entries-title"><i class="fa-solid fa-chart-simple"></i> Top by Views</h4>
+                        <ul class="identity-top-entries-list" id="topEntriesByViewsList"></ul>
+                    </div>
+
                     <div class="identity-meta" id="identityMeta" style="display:none;">
                         <p class="identity-meta-item" id="identityLastSeen" style="display:none;">
                             <i class="fa-solid fa-clock"></i>

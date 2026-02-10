@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Trail\Database\Database;
 use Trail\Models\User;
 use Trail\Config\Config;
+use Trail\Services\HashIdService;
 
 class ProfileController
 {
@@ -44,6 +45,22 @@ class ProfileController
 
         // Gather profile statistics
         $stats = $userModel->getProfileStats($userId);
+
+        // Add hash_id to top entries
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+        
+        if (!empty($stats['top_entries_by_claps'])) {
+            foreach ($stats['top_entries_by_claps'] as &$entry) {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            }
+        }
+        
+        if (!empty($stats['top_entries_by_views'])) {
+            foreach ($stats['top_entries_by_views'] as &$entry) {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            }
+        }
 
         $profileData = [
             'id' => $user['id'],
@@ -185,6 +202,22 @@ class ProfileController
 
         // Gather profile statistics
         $stats = $userModel->getProfileStats((int) $user['id']);
+
+        // Add hash_id to top entries
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new HashIdService($hashSalt);
+        
+        if (!empty($stats['top_entries_by_claps'])) {
+            foreach ($stats['top_entries_by_claps'] as &$entry) {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            }
+        }
+        
+        if (!empty($stats['top_entries_by_views'])) {
+            foreach ($stats['top_entries_by_views'] as &$entry) {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            }
+        }
 
         // Return only public profile data
         $profileData = [

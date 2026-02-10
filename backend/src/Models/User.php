@@ -382,6 +382,12 @@ class User
 
         $row = $stmt->fetch();
 
+        // Get top 5 entries by claps
+        $topByClaps = $this->getTopEntriesByClaps($userId, 5);
+        
+        // Get top 5 entries by views
+        $topByViews = $this->getTopEntriesByViews($userId, 5);
+
         return [
             'entry_count'         => (int) ($row['entry_count'] ?? 0),
             'link_count'          => (int) ($row['link_count'] ?? 0),
@@ -393,7 +399,63 @@ class User
             'total_profile_views' => (int) ($row['total_profile_views'] ?? 0),
             'total_entry_claps'   => (int) ($row['total_entry_claps'] ?? 0),
             'total_comment_claps' => (int) ($row['total_comment_claps'] ?? 0),
+            'top_entries_by_claps' => $topByClaps,
+            'top_entries_by_views' => $topByViews,
         ];
+    }
+
+    /**
+     * Get top entries by clap count for a user
+     */
+    public function getTopEntriesByClaps(int $userId, int $limit = 5): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT 
+                e.id,
+                e.text,
+                e.preview_url,
+                e.preview_title,
+                e.created_at,
+                COALESCE(SUM(c.clap_count), 0) as clap_count
+            FROM trail_entries e
+            LEFT JOIN trail_claps c ON e.id = c.entry_id
+            WHERE e.user_id = :uid
+            GROUP BY e.id
+            HAVING clap_count > 0
+            ORDER BY clap_count DESC, e.created_at DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':uid', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Get top entries by view count for a user
+     */
+    public function getTopEntriesByViews(int $userId, int $limit = 5): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT 
+                e.id,
+                e.text,
+                e.preview_url,
+                e.preview_title,
+                e.created_at,
+                COALESCE(vc.view_count, 0) as view_count
+            FROM trail_entries e
+            LEFT JOIN trail_view_counts vc ON vc.target_type = 'entry' AND vc.target_id = e.id
+            WHERE e.user_id = :uid
+            ORDER BY view_count DESC, e.created_at DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':uid', $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
     }
 
     /**
