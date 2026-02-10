@@ -62,9 +62,22 @@ class ClapController
 
         $count = (int) $count;
 
-        // Validate count range (1-50)
-        if ($count < 1 || $count > 50) {
-            $response->getBody()->write(json_encode(['error' => 'Clap count must be between 1 and 50']));
+        // Check if caller is admin and has provided a custom max_claps
+        $isAdmin = $request->getAttribute('is_admin') ?? false;
+        $maxClaps = 50; // Default limit for regular users
+        
+        if ($isAdmin && isset($data['max_claps'])) {
+            $customMax = (int) $data['max_claps'];
+            if ($customMax >= 1 && $customMax <= 100000) {
+                $maxClaps = $customMax;
+            }
+        }
+
+        // Validate count range (1-maxClaps)
+        if ($count < 1 || $count > $maxClaps) {
+            $response->getBody()->write(json_encode([
+                'error' => "Clap count must be between 1 and {$maxClaps}"
+            ]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -88,7 +101,7 @@ class ClapController
         // Add/update clap
         try {
             $clapModel = new Clap($db);
-            $success = $clapModel->addClap($entryId, $userId, $count);
+            $success = $clapModel->addClap($entryId, $userId, $count, $maxClaps);
 
             if (!$success) {
                 error_log("ClapController: Failed to add clap for entry $entryId, user $userId");

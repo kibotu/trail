@@ -30,6 +30,7 @@ class EntryController
         $rawUpload = $data['raw_upload'] ?? false;
         $createdAt = $data['created_at'] ?? null;
         $initialClaps = $data['initial_claps'] ?? null;
+        $initialViews = $data['initial_views'] ?? null;
 
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
@@ -225,17 +226,34 @@ class EntryController
         $entryId = $entryModel->create($userId, $sanitizedText, $preview, $imageIds, $parsedDate);
         $entry = $entryModel->findById($entryId, $userId);
 
-        // Add initial claps if provided
+        // Add initial claps if provided (requires admin for raw_upload mode)
         if ($initialClaps !== null) {
             $clapCount = (int) $initialClaps;
-            if ($clapCount < 1 || $clapCount > 50) {
+            // Allow higher max claps in raw_upload mode (for API imports)
+            $maxClaps = $rawUpload ? 100000 : 50;
+            if ($clapCount < 1 || $clapCount > $maxClaps) {
                 error_log("EntryController::create: Invalid initial_claps value: {$clapCount}");
             } else {
                 try {
                     $clapModel = new \Trail\Models\Clap($db);
-                    $clapModel->addClap($entryId, $userId, $clapCount);
+                    $clapModel->addClap($entryId, $userId, $clapCount, $maxClaps);
                 } catch (\Throwable $e) {
                     error_log("EntryController::create: Failed to add initial claps: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Add initial views if provided (requires admin for raw_upload mode)
+        if ($initialViews !== null && $rawUpload) {
+            $viewCount = (int) $initialViews;
+            if ($viewCount < 0) {
+                error_log("EntryController::create: Invalid initial_views value: {$viewCount}");
+            } else {
+                try {
+                    $viewModel = new \Trail\Models\View($db);
+                    $viewModel->setViewCount('entry', $entryId, $viewCount);
+                } catch (\Throwable $e) {
+                    error_log("EntryController::create: Failed to set initial views: " . $e->getMessage());
                 }
             }
         }

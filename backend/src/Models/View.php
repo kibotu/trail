@@ -213,6 +213,29 @@ class View
     }
 
     /**
+     * Set the view count directly for a target (used for importing/seeding data).
+     * This will overwrite any existing view count.
+     *
+     * @param string $targetType Target type ('entry', 'comment', 'profile')
+     * @param int $targetId Target ID
+     * @param int $viewCount The view count to set
+     * @return bool Success status
+     */
+    public function setViewCount(string $targetType, int $targetId, int $viewCount): bool
+    {
+        if ($viewCount < 0) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO trail_view_counts (target_type, target_id, view_count)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE view_count = VALUES(view_count)"
+        );
+        return $stmt->execute([$targetType, $targetId, $viewCount]);
+    }
+
+    /**
      * Delete views for a specific target (used when content is deleted).
      * Note: This is optional since we may want to keep historical view data.
      */

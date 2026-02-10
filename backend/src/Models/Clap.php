@@ -21,13 +21,14 @@ class Clap
      * 
      * @param int $entryId Entry ID
      * @param int $userId User ID
-     * @param int $count Total clap count (1-50)
+     * @param int $count Total clap count (1-50 by default, configurable via maxClaps)
+     * @param int $maxClaps Maximum allowed claps (default 50, can be higher for API imports)
      * @return bool Success status
      */
-    public function addClap(int $entryId, int $userId, int $count): bool
+    public function addClap(int $entryId, int $userId, int $count, int $maxClaps = 50): bool
     {
         // Validate count range
-        if ($count < 1 || $count > 50) {
+        if ($count < 1 || $count > $maxClaps) {
             return false;
         }
 
