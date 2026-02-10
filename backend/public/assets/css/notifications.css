@@ -1,3 +1,33 @@
+/* Back Button in Header */
+.page-notifications .back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-right: 12px;
+}
+
+.page-notifications .back-button:hover {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    transform: translateX(-2px);
+}
+
+.page-notifications .header-content {
+    display: flex;
+    align-items: center;
+}
+
+.page-notifications .header-actions {
+    margin-left: auto;
+}
+
 /* Notification Bell Icon */
 .notification-bell-container {
     position: relative;
@@ -203,8 +233,8 @@
 .notifications-page {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
-    min-height: 100vh;
+    padding: 20px 20px 40px;
+    min-height: calc(100vh - 80px);
 }
 
 .notifications-header {

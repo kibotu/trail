@@ -5,11 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notifications - Trail</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/css/main.css">
     <link rel="stylesheet" href="/assets/css/notifications.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
 </head>
-<body>
+<body class="page-notifications">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <header>
+        <div class="header-content">
+            <a href="javascript:history.back()" class="back-button" aria-label="Go back">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <a href="/" class="logo">
+                <i class="fa-solid fa-link"></i>
+                <span>Trail</span>
+            </a>
+            <div class="header-actions">
+                <a href="/profile" class="nav-link" aria-label="Profile">
+                    <i class="fa-solid fa-user"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
     <div class="notifications-page">
         <div class="notifications-header">
             <h1>Notifications</h1>
