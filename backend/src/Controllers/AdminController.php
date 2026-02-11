@@ -223,7 +223,7 @@ class AdminController
         $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
         $offset = $page * $limit;
         $matchType = 'all';
-        if (isset($queryParams['match_type']) && in_array($queryParams['match_type'], ['all', 'text', 'url'], true)) {
+        if (isset($queryParams['match_type']) && in_array($queryParams['match_type'], ['all', 'text', 'url', 'text_url'], true)) {
             $matchType = $queryParams['match_type'];
         }
 
@@ -323,8 +323,8 @@ class AdminController
         $matchType = $data['match_type'] ?? 'all';
         $keep = $data['keep'] ?? 'oldest';
 
-        if (!in_array($matchType, ['all', 'text', 'url'], true)) {
-            $response->getBody()->write(json_encode(['error' => 'match_type must be all, text, or url']));
+        if (!in_array($matchType, ['all', 'text', 'url', 'text_url'], true)) {
+            $response->getBody()->write(json_encode(['error' => 'match_type must be all, text, url, or text_url']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 

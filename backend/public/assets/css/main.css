@@ -4703,6 +4703,11 @@ main {
     color: #34d399;
 }
 
+.page-admin-dashboard .duplicate-match-badge.text_url {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
 .page-admin-dashboard .duplicate-matched-value {
     display: flex;
     align-items: flex-start;

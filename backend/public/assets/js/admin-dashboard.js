@@ -546,8 +546,14 @@ function createDuplicateGroupCard(group) {
     card.className = 'duplicate-group-card';
     card.dataset.matchType = group.match_type;
 
-    const matchIcon = group.match_type === 'text' ? 'fa-font' : 'fa-link';
-    const matchLabel = group.match_type === 'text' ? 'Same Text' : 'Same URL';
+    const matchConfig = {
+        'text': { icon: 'fa-font', label: 'Same Text' },
+        'url': { icon: 'fa-link', label: 'Same URL Preview' },
+        'text_url': { icon: 'fa-file-lines', label: 'Same URL in Text' },
+    };
+    const match = matchConfig[group.match_type] || matchConfig['text'];
+    const matchIcon = match.icon;
+    const matchLabel = match.label;
     const displayName = group.user_nickname || group.user_name || 'Unknown';
     const avatarUrl = group.avatar_url || '';
 

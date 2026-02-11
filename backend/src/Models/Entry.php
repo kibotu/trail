@@ -860,11 +860,28 @@ class Entry
     }
 
     /**
+     * Extract URLs from text using regex
+     * 
+     * @param string $text Entry text
+     * @return array Array of unique URLs found in the text
+     */
+    private static function extractUrlsFromText(string $text): array
+    {
+        $urls = [];
+        if (preg_match_all('#https?://[^\s<>"\')\]]+#i', $text, $matches)) {
+            // Normalize: trim trailing punctuation that's likely not part of the URL
+            foreach ($matches[0] as $url) {
+                $url = rtrim($url, '.,;:!?)>');
+                $urls[] = $url;
+            }
+        }
+        return array_unique($urls);
+    }
+
+    /**
      * Get statistics about duplicate entries (same user, same content)
      * 
-     * @return array ['text_duplicate_groups' => int, 'url_duplicate_groups' => int,
-     *                'text_duplicate_entries' => int, 'url_duplicate_entries' => int,
-     *                'total_duplicate_groups' => int, 'total_extra_entries' => int]
+     * @return array Stats about text, url, and text_url duplicate groups
      */
     public function getDuplicateStats(): array
     {
@@ -880,7 +897,7 @@ class Entry
         );
         $textStats = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        // Count URL duplicate groups
+        // Count URL preview duplicate groups
         $stmt = $this->db->query(
             "SELECT COUNT(*) as group_count, COALESCE(SUM(cnt), 0) as entry_count FROM (
                 SELECT COUNT(*) as cnt
@@ -892,19 +909,66 @@ class Entry
         );
         $urlStats = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+        // Count text-URL duplicate groups (same URL in text, different text)
+        $textUrlStats = $this->getTextUrlDuplicateStats();
+
         $textGroups = (int) ($textStats['group_count'] ?? 0);
         $urlGroups = (int) ($urlStats['group_count'] ?? 0);
+        $textUrlGroups = $textUrlStats['group_count'];
         $textEntries = (int) ($textStats['entry_count'] ?? 0);
         $urlEntries = (int) ($urlStats['entry_count'] ?? 0);
+        $textUrlEntries = $textUrlStats['entry_count'];
 
         return [
             'text_duplicate_groups' => $textGroups,
             'url_duplicate_groups' => $urlGroups,
+            'text_url_duplicate_groups' => $textUrlGroups,
             'text_duplicate_entries' => $textEntries,
             'url_duplicate_entries' => $urlEntries,
-            'total_duplicate_groups' => $textGroups + $urlGroups,
-            'total_extra_entries' => ($textEntries - $textGroups) + ($urlEntries - $urlGroups),
+            'text_url_duplicate_entries' => $textUrlEntries,
+            'total_duplicate_groups' => $textGroups + $urlGroups + $textUrlGroups,
+            'total_extra_entries' => ($textEntries - $textGroups) + ($urlEntries - $urlGroups) + ($textUrlEntries - $textUrlGroups),
         ];
+    }
+
+    /**
+     * Get stats for text-URL duplicates (entries by same user containing the same URL in text)
+     * This is done in PHP because URL extraction requires regex parsing
+     */
+    private function getTextUrlDuplicateStats(): array
+    {
+        // Fetch entries that contain URLs in their text
+        $stmt = $this->db->query(
+            "SELECT id, user_id, text FROM {$this->table}
+             WHERE text IS NOT NULL AND text REGEXP 'https?://'"
+        );
+        $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Group by (user_id, url)
+        $urlMap = []; // key: "userId:url" => [entry_ids]
+        foreach ($entries as $entry) {
+            $urls = self::extractUrlsFromText($entry['text']);
+            foreach ($urls as $url) {
+                $key = $entry['user_id'] . ':' . $url;
+                $urlMap[$key][] = (int) $entry['id'];
+            }
+        }
+
+        // Filter to groups with >1 entry, exclude groups already covered by exact text match
+        $groupCount = 0;
+        $entryCount = 0;
+        foreach ($urlMap as $entryIds) {
+            if (count($entryIds) > 1) {
+                // Only count unique entry IDs (an entry with 2 URLs shouldn't be counted twice per group)
+                $uniqueIds = array_unique($entryIds);
+                if (count($uniqueIds) > 1) {
+                    $groupCount++;
+                    $entryCount += count($uniqueIds);
+                }
+            }
+        }
+
+        return ['group_count' => $groupCount, 'entry_count' => $entryCount];
     }
 
     /**
@@ -912,7 +976,7 @@ class Entry
      * 
      * @param int $limit Max number of duplicate groups to return
      * @param int $offset Offset for pagination
-     * @param string $matchType Filter: 'all', 'text', 'url'
+     * @param string $matchType Filter: 'all', 'text', 'url', 'text_url'
      * @return array ['groups' => [...], 'total_groups' => int]
      */
     public function getDuplicateGroups(int $limit = 20, int $offset = 0, string $matchType = 'all'): array
@@ -933,6 +997,19 @@ class Entry
                 $urlLimit = $matchType === 'url' ? $limit : $remainingLimit;
                 if ($urlLimit > 0) {
                     $result = $this->getUrlDuplicateGroups($urlLimit, max(0, $urlOffset));
+                    $groups = array_merge($groups, $result['groups']);
+                    $totalGroups += $result['total'];
+                }
+            }
+        }
+
+        if ($matchType === 'all' || $matchType === 'text_url') {
+            $remainingLimit = $limit - count($groups);
+            if ($remainingLimit > 0 || $matchType === 'text_url') {
+                $textUrlOffset = $matchType === 'text_url' ? $offset : max(0, $offset - $totalGroups);
+                $textUrlLimit = $matchType === 'text_url' ? $limit : $remainingLimit;
+                if ($textUrlLimit > 0) {
+                    $result = $this->getTextUrlDuplicateGroups($textUrlLimit, max(0, $textUrlOffset));
                     $groups = array_merge($groups, $result['groups']);
                     $totalGroups += $result['total'];
                 }
@@ -1057,6 +1134,81 @@ class Entry
                 'first_posted' => $raw['first_posted'],
                 'last_posted' => $raw['last_posted'],
                 'entries' => $entries,
+            ];
+        }
+
+        return ['groups' => $groups, 'total' => $total];
+    }
+
+    /**
+     * Find entries by the same user that contain the same URL in their text field
+     * Uses PHP regex extraction since SQL can't easily parse URLs from freetext
+     */
+    private function getTextUrlDuplicateGroups(int $limit, int $offset): array
+    {
+        // Fetch entries that contain URLs in their text
+        $stmt = $this->db->query(
+            "SELECT id, user_id, text, created_at FROM {$this->table}
+             WHERE text IS NOT NULL AND text REGEXP 'https?://'
+             ORDER BY created_at ASC"
+        );
+        $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Group by (user_id, url_in_text)
+        $urlMap = []; // key: "userId:url" => ['entry_ids' => [...], 'url' => ..., 'user_id' => ...]
+        foreach ($entries as $entry) {
+            $urls = self::extractUrlsFromText($entry['text']);
+            foreach ($urls as $url) {
+                $key = $entry['user_id'] . ':' . $url;
+                if (!isset($urlMap[$key])) {
+                    $urlMap[$key] = [
+                        'user_id' => (int) $entry['user_id'],
+                        'url' => $url,
+                        'entry_ids' => [],
+                        'first_posted' => $entry['created_at'],
+                        'last_posted' => $entry['created_at'],
+                    ];
+                }
+                // Avoid adding the same entry twice (if it has the same URL repeated in text)
+                if (!in_array((int) $entry['id'], $urlMap[$key]['entry_ids'], true)) {
+                    $urlMap[$key]['entry_ids'][] = (int) $entry['id'];
+                }
+                $urlMap[$key]['last_posted'] = $entry['created_at'];
+            }
+        }
+
+        // Filter to only groups with >1 unique entry
+        $duplicateGroups = [];
+        foreach ($urlMap as $data) {
+            if (count($data['entry_ids']) > 1) {
+                $duplicateGroups[] = $data;
+            }
+        }
+
+        // Sort by count descending, then by last_posted descending
+        usort($duplicateGroups, function ($a, $b) {
+            $countDiff = count($b['entry_ids']) - count($a['entry_ids']);
+            return $countDiff !== 0 ? $countDiff : strcmp($b['last_posted'], $a['last_posted']);
+        });
+
+        $total = count($duplicateGroups);
+
+        // Apply pagination
+        $paged = array_slice($duplicateGroups, $offset, $limit);
+
+        // Hydrate with full entry details
+        $groups = [];
+        foreach ($paged as $data) {
+            $entryDetails = $this->getEntriesByIds($data['entry_ids']);
+
+            $groups[] = [
+                'match_type' => 'text_url',
+                'user_id' => $data['user_id'],
+                'matched_value' => $data['url'],
+                'dupe_count' => count($data['entry_ids']),
+                'first_posted' => $data['first_posted'],
+                'last_posted' => $data['last_posted'],
+                'entries' => $entryDetails,
             ];
         }
 

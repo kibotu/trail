@@ -215,9 +215,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">
                     <?= number_format($duplicateStats['total_extra_entries']) ?> extra entries to clean up
                 </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); flex-wrap: wrap;">
                     <span><i class="fa-solid fa-font"></i> <?= $duplicateStats['text_duplicate_groups'] ?> text</span>
                     <span><i class="fa-solid fa-link"></i> <?= $duplicateStats['url_duplicate_groups'] ?> url</span>
+                    <span><i class="fa-solid fa-file-lines"></i> <?= $duplicateStats['text_url_duplicate_groups'] ?> url-in-text</span>
                 </div>
                 <button onclick="switchView('duplicates')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
                     <i class="fa-solid fa-magnifying-glass"></i> View Duplicates
@@ -254,7 +255,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <select id="dupe-match-filter" class="source-filter-select">
                         <option value="all">All Duplicates</option>
                         <option value="text">Same Text</option>
-                        <option value="url">Same URL</option>
+                        <option value="url">Same URL Preview</option>
+                        <option value="text_url">Same URL in Text</option>
                     </select>
                 </div>
             </div>
