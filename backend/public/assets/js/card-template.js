@@ -19,7 +19,8 @@ function linkifyText(text) {
 // Convert @mentions to clickable links
 function linkifyMentions(text) {
     // Match @username (alphanumeric + underscore + hyphen)
-    const mentionRegex = /@(\w+)/g;
+    // But exclude @mentions that are part of URLs (preceded by :// or /)
+    const mentionRegex = /(?<!:\/\/)(?<!\/)@(\w+)/g;
     return text.replace(mentionRegex, (match, username) => {
         // Preserve the original casing from the text
         return `<a href="/@${username}" class="mention-link" data-no-navigate>@${username}</a>`;
