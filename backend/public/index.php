@@ -527,6 +527,10 @@ $app->group('/api/admin', function ($group) {
     $group->post('/error-logs/cleanup', [AdminController::class, 'cleanupErrorLogs']);
     $group->post('/images/prune', [AdminController::class, 'pruneImages']);
     $group->post('/views/prune', [AdminController::class, 'pruneViews']);
+    $group->get('/duplicates', [AdminController::class, 'duplicates']);
+    $group->get('/duplicates/stats', [AdminController::class, 'duplicateStats']);
+    $group->post('/duplicates/resolve', [AdminController::class, 'resolveDuplicates']);
+    $group->post('/duplicates/resolve-all', [AdminController::class, 'resolveAllDuplicates']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes

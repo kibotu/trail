@@ -16,6 +16,7 @@ use Trail\Database\Database;
 use Trail\Services\JwtService;
 use Trail\Services\IframelyUsageTracker;
 use Trail\Services\StorageService;
+use Trail\Models\Entry;
 
 // Security headers
 header('X-Frame-Options: DENY');
@@ -90,6 +91,15 @@ try {
     } catch (Exception $e) {
         // Silently handle if trail_images table doesn't exist yet
         error_log("Storage stats error (table may not exist): " . $e->getMessage());
+    }
+
+    // Get duplicate entry stats
+    $duplicateStats = ['total_duplicate_groups' => 0, 'total_extra_entries' => 0, 'text_duplicate_groups' => 0, 'url_duplicate_groups' => 0];
+    try {
+        $entryModel = new Entry($db);
+        $duplicateStats = $entryModel->getDuplicateStats();
+    } catch (Exception $e) {
+        error_log("Duplicate stats error: " . $e->getMessage());
     }
 
 } catch (Exception $e) {
@@ -198,18 +208,71 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     </div>
                 <?php endif; ?>
             </div>
+            <?php if ($duplicateStats['total_duplicate_groups'] > 0): ?>
+            <div class="stat-card duplicates">
+                <div class="stat-label"><i class="fa-solid fa-clone"></i> Duplicate Entries</div>
+                <div class="stat-value"><?= number_format($duplicateStats['total_duplicate_groups']) ?></div>
+                <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                    <?= number_format($duplicateStats['total_extra_entries']) ?> extra entries to clean up
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                    <span><i class="fa-solid fa-font"></i> <?= $duplicateStats['text_duplicate_groups'] ?> text</span>
+                    <span><i class="fa-solid fa-link"></i> <?= $duplicateStats['url_duplicate_groups'] ?> url</span>
+                </div>
+                <button onclick="switchView('duplicates')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                    <i class="fa-solid fa-magnifying-glass"></i> View Duplicates
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="section-header">
-            <h2 class="section-title">All Entries</h2>
+            <h2 class="section-title" id="section-title">All Entries</h2>
             <div class="filter-controls">
-                <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Filter by source:</label>
-                <select id="source-filter" class="source-filter-select">
-                    <option value="">All Sources</option>
-                    <option value="iframely">Iframely</option>
-                    <option value="embed">Fallback</option>
-                    <option value="medium">Medium</option>
-                </select>
+                <div class="view-mode-toggle">
+                    <button id="view-all" class="view-mode-btn active" onclick="switchView('all')">
+                        <i class="fa-solid fa-list"></i> All Entries
+                    </button>
+                    <button id="view-duplicates" class="view-mode-btn" onclick="switchView('duplicates')">
+                        <i class="fa-solid fa-clone"></i> Duplicates
+                        <?php if ($duplicateStats['total_duplicate_groups'] > 0): ?>
+                        <span class="dupe-badge"><?= $duplicateStats['total_duplicate_groups'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                </div>
+                <div id="entries-filters">
+                    <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Filter by source:</label>
+                    <select id="source-filter" class="source-filter-select">
+                        <option value="">All Sources</option>
+                        <option value="iframely">Iframely</option>
+                        <option value="embed">Fallback</option>
+                        <option value="medium">Medium</option>
+                    </select>
+                </div>
+                <div id="duplicates-filters" style="display: none;">
+                    <label for="dupe-match-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Match type:</label>
+                    <select id="dupe-match-filter" class="source-filter-select">
+                        <option value="all">All Duplicates</option>
+                        <option value="text">Same Text</option>
+                        <option value="url">Same URL</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk actions for duplicates view -->
+        <div id="bulk-actions" class="bulk-actions" style="display: none;">
+            <div class="bulk-actions-info">
+                <i class="fa-solid fa-circle-info"></i>
+                <span id="dupe-summary"></span>
+            </div>
+            <div class="bulk-actions-buttons">
+                <button onclick="resolveAllDuplicates('oldest')" class="button primary small">
+                    <i class="fa-solid fa-broom"></i> Resolve All (Keep Oldest)
+                </button>
+                <button onclick="resolveAllDuplicates('newest')" class="button secondary small">
+                    <i class="fa-solid fa-broom"></i> Resolve All (Keep Newest)
+                </button>
             </div>
         </div>
 
@@ -217,14 +280,23 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <!-- Entries will be loaded here -->
         </div>
 
+        <div id="duplicates-container" class="entries-container" style="display: none;">
+            <!-- Duplicate groups will be loaded here -->
+        </div>
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
-            <p style="margin-top: 1rem;">Loading more entries...</p>
+            <p style="margin-top: 1rem;">Loading...</p>
         </div>
 
         <div id="empty-state" class="empty-state" style="display: none;">
             <div class="empty-state-icon"><i class="fa-solid fa-inbox"></i></div>
             <p>No entries yet. Start sharing links!</p>
+        </div>
+
+        <div id="empty-duplicates-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
+            <p>No duplicate entries found. Everything is clean!</p>
         </div>
     </div>
 

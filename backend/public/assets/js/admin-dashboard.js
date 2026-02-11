@@ -34,15 +34,30 @@ function initAdminDashboard() {
         });
     }
 
-    // Infinite scroll
+    // Duplicate match type filter change handler
+    const dupeMatchFilter = document.getElementById('dupe-match-filter');
+    if (dupeMatchFilter) {
+        dupeMatchFilter.addEventListener('change', (e) => {
+            currentMatchType = e.target.value;
+            // Reset and reload duplicates
+            document.getElementById('duplicates-container').innerHTML = '';
+            duplicatePage = 0;
+            duplicateHasMore = true;
+            loadDuplicates();
+        });
+    }
+
+    // Infinite scroll — supports both views
     window.addEventListener('scroll', () => {
-        if (loading || !hasMore) return;
-        
         const scrollPosition = window.innerHeight + window.scrollY;
         const threshold = document.documentElement.scrollHeight - 500;
         
         if (scrollPosition >= threshold) {
-            loadEntries();
+            if (currentView === 'all' && !loading && hasMore) {
+                loadEntries();
+            } else if (currentView === 'duplicates' && !duplicateLoading && duplicateHasMore) {
+                loadDuplicates();
+            }
         }
     });
 
@@ -412,10 +427,389 @@ async function pruneViews() {
     }
 }
 
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdminDashboard);
-} else {
-    // DOM is already ready
-    initAdminDashboard();
+// ============================================================
+// Duplicates View
+// ============================================================
+
+let currentView = 'all'; // 'all' or 'duplicates'
+let currentMatchType = 'all'; // 'all', 'text', 'url'
+let duplicatePage = 0;
+let duplicateLoading = false;
+let duplicateHasMore = true;
+
+/**
+ * Switch between All Entries and Duplicates view
+ */
+function switchView(view) {
+    currentView = view;
+
+    const entriesContainer = document.getElementById('entries-container');
+    const duplicatesContainer = document.getElementById('duplicates-container');
+    const entriesFilters = document.getElementById('entries-filters');
+    const duplicatesFilters = document.getElementById('duplicates-filters');
+    const bulkActions = document.getElementById('bulk-actions');
+    const emptyState = document.getElementById('empty-state');
+    const emptyDuplicatesState = document.getElementById('empty-duplicates-state');
+    const sectionTitle = document.getElementById('section-title');
+
+    // Toggle active button
+    document.getElementById('view-all').classList.toggle('active', view === 'all');
+    document.getElementById('view-duplicates').classList.toggle('active', view === 'duplicates');
+
+    if (view === 'all') {
+        entriesContainer.style.display = '';
+        duplicatesContainer.style.display = 'none';
+        entriesFilters.style.display = '';
+        duplicatesFilters.style.display = 'none';
+        bulkActions.style.display = 'none';
+        emptyDuplicatesState.style.display = 'none';
+        sectionTitle.textContent = 'All Entries';
+    } else {
+        entriesContainer.style.display = 'none';
+        duplicatesContainer.style.display = '';
+        entriesFilters.style.display = 'none';
+        duplicatesFilters.style.display = '';
+        emptyState.style.display = 'none';
+        sectionTitle.textContent = 'Duplicate Entries';
+
+        // Load duplicates if not already loaded
+        if (duplicatesContainer.children.length === 0) {
+            duplicatePage = 0;
+            duplicateHasMore = true;
+            loadDuplicates();
+        }
+    }
+}
+
+/**
+ * Load duplicate groups from API
+ */
+async function loadDuplicates() {
+    if (duplicateLoading || !duplicateHasMore) return;
+
+    duplicateLoading = true;
+    document.getElementById('loading').style.display = 'block';
+
+    try {
+        const url = `/api/admin/duplicates?page=${duplicatePage}&limit=20&match_type=${encodeURIComponent(currentMatchType)}`;
+        const response = await fetch(url, { credentials: 'same-origin' });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (data.groups && data.groups.length > 0) {
+            renderDuplicateGroups(data.groups);
+            duplicatePage++;
+            duplicateHasMore = data.groups.length === 20;
+
+            // Show bulk actions
+            const bulkActions = document.getElementById('bulk-actions');
+            bulkActions.style.display = '';
+            document.getElementById('dupe-summary').textContent =
+                `${data.total_groups} duplicate group${data.total_groups !== 1 ? 's' : ''} found`;
+        } else {
+            duplicateHasMore = false;
+            if (duplicatePage === 0) {
+                document.getElementById('empty-duplicates-state').style.display = 'block';
+                document.getElementById('bulk-actions').style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading duplicates:', error);
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to load duplicates.', 'error');
+        }
+    } finally {
+        duplicateLoading = false;
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+/**
+ * Render duplicate groups to the page
+ */
+function renderDuplicateGroups(groups) {
+    const container = document.getElementById('duplicates-container');
+
+    groups.forEach(group => {
+        const card = createDuplicateGroupCard(group);
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Create a duplicate group card element
+ */
+function createDuplicateGroupCard(group) {
+    const card = document.createElement('div');
+    card.className = 'duplicate-group-card';
+    card.dataset.matchType = group.match_type;
+
+    const matchIcon = group.match_type === 'text' ? 'fa-font' : 'fa-link';
+    const matchLabel = group.match_type === 'text' ? 'Same Text' : 'Same URL';
+    const displayName = group.user_nickname || group.user_name || 'Unknown';
+    const avatarUrl = group.avatar_url || '';
+
+    // Build entries list
+    let entriesHtml = '';
+    const entryIds = group.entries.map(e => e.id);
+
+    group.entries.forEach((entry, index) => {
+        const isFirst = index === 0;
+        const claps = entry.clap_count || 0;
+        const comments = entry.comment_count || 0;
+        const views = entry.view_count || 0;
+        const hashId = entry.hash_id || entry.id;
+        const timestamp = formatTimestamp(entry.created_at);
+        const hasEngagement = claps > 0 || comments > 0 || views > 0;
+
+        entriesHtml += `
+            <div class="duplicate-entry-item ${isFirst ? 'keep' : 'removable'}">
+                <div class="duplicate-entry-header">
+                    <div class="duplicate-entry-info">
+                        ${isFirst ? '<span class="keep-badge"><i class="fa-solid fa-star"></i> Keep (oldest)</span>' : ''}
+                        <span class="duplicate-entry-id">#${entry.id}</span>
+                        <span class="duplicate-entry-time">${timestamp}</span>
+                    </div>
+                    <div class="duplicate-entry-actions">
+                        <a href="/status/${hashId}" target="_blank" class="button secondary tiny" title="View entry">
+                            <i class="fa-solid fa-external-link-alt"></i>
+                        </a>
+                        ${!isFirst ? `
+                            <button onclick="deleteSingleDuplicate(${entry.id}, this)" class="button danger tiny" title="Delete this entry">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="duplicate-entry-stats">
+                    <span><i class="fa-solid fa-heart"></i> ${claps}</span>
+                    <span><i class="fa-regular fa-comment"></i> ${comments}</span>
+                    <span><i class="fa-solid fa-chart-simple"></i> ${views}</span>
+                    ${hasEngagement && !isFirst ? '<span class="engagement-warning"><i class="fa-solid fa-triangle-exclamation"></i> Has engagement</span>' : ''}
+                </div>
+                ${entry.text ? `<div class="duplicate-entry-text">${escapeHtml(entry.text).substring(0, 150)}${entry.text.length > 150 ? '...' : ''}</div>` : ''}
+            </div>
+        `;
+    });
+
+    card.innerHTML = `
+        <div class="duplicate-group-header">
+            <div class="duplicate-group-user">
+                ${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" class="avatar-small">` : ''}
+                <div>
+                    <span class="duplicate-group-username">${escapeHtml(displayName)}</span>
+                    <span class="duplicate-group-count">${group.dupe_count} duplicates</span>
+                </div>
+            </div>
+            <div class="duplicate-match-badge ${group.match_type}">
+                <i class="fa-solid ${matchIcon}"></i>
+                <span>${matchLabel}</span>
+            </div>
+        </div>
+        <div class="duplicate-matched-value">
+            <i class="fa-solid fa-quote-left" style="opacity: 0.4;"></i>
+            <span>${escapeHtml(group.matched_value)}</span>
+        </div>
+        <div class="duplicate-entries-list">
+            ${entriesHtml}
+        </div>
+        <div class="duplicate-group-actions">
+            <button onclick="resolveDuplicateGroup([${entryIds.join(',')}], 'oldest', this)" class="button primary small">
+                <i class="fa-solid fa-check"></i> Keep Oldest &amp; Remove Duplicates
+            </button>
+            <button onclick="resolveDuplicateGroup([${entryIds.join(',')}], 'newest', this)" class="button secondary small">
+                <i class="fa-solid fa-arrow-up"></i> Keep Newest
+            </button>
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Resolve a single duplicate group
+ */
+async function resolveDuplicateGroup(entryIds, keep, buttonElement) {
+    const groupCard = buttonElement.closest('.duplicate-group-card');
+    const count = entryIds.length - 1;
+
+    if (!confirm(`Delete ${count} duplicate entr${count === 1 ? 'y' : 'ies'} and keep the ${keep}?`)) {
+        return;
+    }
+
+    // Disable buttons
+    const buttons = groupCard.querySelectorAll('button');
+    buttons.forEach(b => b.disabled = true);
+    buttonElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resolving...';
+
+    try {
+        const response = await fetch('/api/admin/duplicates/resolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ entry_ids: entryIds, keep })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Animate removal
+            groupCard.style.transition = 'opacity 0.3s, transform 0.3s';
+            groupCard.style.opacity = '0';
+            groupCard.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                groupCard.remove();
+                // Update badge count
+                updateDuplicateBadge(-1);
+                // Check if empty
+                const container = document.getElementById('duplicates-container');
+                if (container.children.length === 0) {
+                    document.getElementById('empty-duplicates-state').style.display = 'block';
+                    document.getElementById('bulk-actions').style.display = 'none';
+                }
+            }, 300);
+
+            if (typeof showSnackbar === 'function') {
+                showSnackbar(data.message, 'success');
+            }
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (error) {
+        console.error('Error resolving duplicates:', error);
+        buttons.forEach(b => b.disabled = false);
+        buttonElement.innerHTML = '<i class="fa-solid fa-check"></i> Keep Oldest &amp; Remove Duplicates';
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to resolve duplicates: ' + error.message, 'error');
+        }
+    }
+}
+
+/**
+ * Delete a single duplicate entry
+ */
+async function deleteSingleDuplicate(entryId, buttonElement) {
+    if (!confirm('Delete this duplicate entry?')) return;
+
+    buttonElement.disabled = true;
+    buttonElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    try {
+        const response = await fetch(`/api/admin/entries/${entryId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+            const entryItem = buttonElement.closest('.duplicate-entry-item');
+            const groupCard = entryItem.closest('.duplicate-group-card');
+
+            entryItem.style.transition = 'opacity 0.3s, height 0.3s, margin 0.3s, padding 0.3s';
+            entryItem.style.opacity = '0';
+            setTimeout(() => {
+                entryItem.remove();
+
+                // Check remaining entries in this group
+                if (groupCard) {
+                    const remainingEntries = groupCard.querySelectorAll('.duplicate-entry-item');
+                    if (remainingEntries.length <= 1) {
+                        // No more duplicates in this group
+                        groupCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                        groupCard.style.opacity = '0';
+                        groupCard.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            groupCard.remove();
+                            updateDuplicateBadge(-1);
+                            const container = document.getElementById('duplicates-container');
+                            if (container.children.length === 0) {
+                                document.getElementById('empty-duplicates-state').style.display = 'block';
+                                document.getElementById('bulk-actions').style.display = 'none';
+                            }
+                        }, 300);
+                    } else {
+                        // Update count in header
+                        const countEl = groupCard.querySelector('.duplicate-group-count');
+                        if (countEl) {
+                            countEl.textContent = `${remainingEntries.length} duplicates`;
+                        }
+                    }
+                }
+            }, 300);
+
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('Entry deleted', 'success');
+            }
+        } else {
+            throw new Error('Failed to delete entry');
+        }
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to delete entry', 'error');
+        }
+    }
+}
+
+/**
+ * Resolve all duplicate groups at once
+ */
+async function resolveAllDuplicates(keep) {
+    const matchType = currentMatchType;
+    const container = document.getElementById('duplicates-container');
+    const groupCount = container.children.length;
+
+    if (!confirm(`Resolve ALL ${groupCount} duplicate groups? This will keep the ${keep} entry in each group and delete all others.\n\nThis action cannot be undone.`)) {
+        return;
+    }
+
+    const bulkButtons = document.querySelectorAll('.bulk-actions-buttons button');
+    bulkButtons.forEach(b => b.disabled = true);
+
+    try {
+        const response = await fetch('/api/admin/duplicates/resolve-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ match_type: matchType, keep })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (typeof showSnackbar === 'function') {
+                showSnackbar(data.message, 'success');
+            }
+
+            // Reload page to update stat cards
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (error) {
+        console.error('Error resolving all duplicates:', error);
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Failed to resolve duplicates: ' + error.message, 'error');
+        }
+    } finally {
+        bulkButtons.forEach(b => b.disabled = false);
+    }
+}
+
+/**
+ * Update the duplicate badge count in the view toggle
+ */
+function updateDuplicateBadge(delta) {
+    const badge = document.querySelector('#view-duplicates .dupe-badge');
+    if (badge) {
+        const current = parseInt(badge.textContent, 10) || 0;
+        const newCount = Math.max(0, current + delta);
+        badge.textContent = newCount;
+        if (newCount === 0) {
+            badge.style.display = 'none';
+        }
+    }
 }

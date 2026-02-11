@@ -68,9 +68,9 @@ class AdminController
         $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
         $hashIdService = new \Trail\Services\HashIdService($hashSalt);
 
-        // Add avatar URLs and hash IDs
+        // Add avatar URLs and hash IDs (no HTML escaping — this is a JSON API response)
         foreach ($entries as &$entry) {
-            $entry['avatar_url'] = self::getAvatarUrl($entry);
+            $entry['avatar_url'] = self::getAvatarUrl($entry, 96, false);
             try {
                 $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
             } catch (\Throwable $e) {
@@ -209,6 +209,162 @@ class AdminController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
+    /**
+     * Get duplicate entry groups (paginated)
+     */
+    public static function duplicates(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $queryParams = $request->getQueryParams();
+        $page = isset($queryParams['page']) ? max(0, (int)$queryParams['page']) : 0;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
+        $offset = $page * $limit;
+        $matchType = 'all';
+        if (isset($queryParams['match_type']) && in_array($queryParams['match_type'], ['all', 'text', 'url'], true)) {
+            $matchType = $queryParams['match_type'];
+        }
+
+        $result = $entryModel->getDuplicateGroups($limit, $offset, $matchType);
+
+        // Initialize HashIdService
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+
+        // Add avatar URLs and hash IDs to entries within each group
+        foreach ($result['groups'] as &$group) {
+            foreach ($group['entries'] as &$entry) {
+                $entry['avatar_url'] = self::getAvatarUrl($entry, 96, false);
+                try {
+                    $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+                } catch (\Throwable $e) {
+                    $entry['hash_id'] = (string) $entry['id'];
+                }
+            }
+            // Set group-level user info from first entry
+            if (!empty($group['entries'])) {
+                $first = $group['entries'][0];
+                $group['user_name'] = $first['user_name'] ?? '';
+                $group['user_nickname'] = $first['user_nickname'] ?? '';
+                $group['avatar_url'] = $first['avatar_url'] ?? '';
+            }
+        }
+
+        $response->getBody()->write(json_encode([
+            'groups' => $result['groups'],
+            'page' => $page,
+            'limit' => $limit,
+            'total_groups' => $result['total_groups'],
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get duplicate entry statistics
+     */
+    public static function duplicateStats(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $stats = $entryModel->getDuplicateStats();
+
+        $response->getBody()->write(json_encode($stats));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Resolve a single duplicate group (keep one, delete others)
+     */
+    public static function resolveDuplicates(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $data = json_decode((string) $request->getBody(), true);
+
+        $entryIds = $data['entry_ids'] ?? [];
+        $keep = $data['keep'] ?? 'oldest';
+
+        if (empty($entryIds) || !is_array($entryIds)) {
+            $response->getBody()->write(json_encode(['error' => 'entry_ids is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (!in_array($keep, ['oldest', 'newest'], true)) {
+            $response->getBody()->write(json_encode(['error' => 'keep must be oldest or newest']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        $entryIds = array_map('intval', $entryIds);
+        $deleted = $entryModel->deleteDuplicates($entryIds, $keep);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'deleted' => $deleted,
+            'message' => "Resolved duplicate group: deleted {$deleted} entries, kept {$keep}",
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Resolve all duplicate groups at once
+     */
+    public static function resolveAllDuplicates(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $data = json_decode((string) $request->getBody(), true);
+
+        $matchType = $data['match_type'] ?? 'all';
+        $keep = $data['keep'] ?? 'oldest';
+
+        if (!in_array($matchType, ['all', 'text', 'url'], true)) {
+            $response->getBody()->write(json_encode(['error' => 'match_type must be all, text, or url']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (!in_array($keep, ['oldest', 'newest'], true)) {
+            $response->getBody()->write(json_encode(['error' => 'keep must be oldest or newest']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $entryModel = new Entry($db);
+
+        // Fetch all duplicate groups (large limit to get all)
+        $result = $entryModel->getDuplicateGroups(1000, 0, $matchType);
+
+        $totalDeleted = 0;
+        $groupsResolved = 0;
+
+        foreach ($result['groups'] as $group) {
+            $entryIds = array_map(function ($e) {
+                return (int) $e['id'];
+            }, $group['entries']);
+
+            if (count($entryIds) >= 2) {
+                $deleted = $entryModel->deleteDuplicates($entryIds, $keep);
+                $totalDeleted += $deleted;
+                $groupsResolved++;
+            }
+        }
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'groups_resolved' => $groupsResolved,
+            'total_deleted' => $totalDeleted,
+            'message' => "Resolved {$groupsResolved} duplicate groups: deleted {$totalDeleted} entries (kept {$keep})",
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     private static function renderTemplate(string $name, array $data = []): string
     {
         $templatePath = __DIR__ . '/../../templates/admin/' . $name . '.php';
@@ -228,13 +384,16 @@ class AdminController
      * 
      * @param array $user User data with photo_url, gravatar_hash, and email
      * @param int $size Avatar size in pixels
-     * @return string Avatar URL (already HTML-escaped)
+     * @param bool $htmlEscape Whether to HTML-escape the URL (true for HTML templates, false for JSON API responses)
+     * @return string Avatar URL
      */
-    private static function getAvatarUrl(array $user, int $size = 96): string
+    private static function getAvatarUrl(array $user, int $size = 96, bool $htmlEscape = true): string
     {
         // Use Google photo if available
         if (!empty($user['photo_url'])) {
-            return htmlspecialchars($user['photo_url'], ENT_QUOTES, 'UTF-8');
+            return $htmlEscape 
+                ? htmlspecialchars($user['photo_url'], ENT_QUOTES, 'UTF-8')
+                : $user['photo_url'];
         }
 
         // Fallback to Gravatar using hash if available

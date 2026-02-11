@@ -858,4 +858,296 @@ class Entry
         
         return (int) ($result['total'] ?? 0);
     }
+
+    /**
+     * Get statistics about duplicate entries (same user, same content)
+     * 
+     * @return array ['text_duplicate_groups' => int, 'url_duplicate_groups' => int,
+     *                'text_duplicate_entries' => int, 'url_duplicate_entries' => int,
+     *                'total_duplicate_groups' => int, 'total_extra_entries' => int]
+     */
+    public function getDuplicateStats(): array
+    {
+        // Count text duplicate groups
+        $stmt = $this->db->query(
+            "SELECT COUNT(*) as group_count, COALESCE(SUM(cnt), 0) as entry_count FROM (
+                SELECT COUNT(*) as cnt
+                FROM {$this->table}
+                WHERE text IS NOT NULL AND text != ''
+                GROUP BY user_id, text
+                HAVING COUNT(*) > 1
+            ) as text_dupes"
+        );
+        $textStats = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        // Count URL duplicate groups
+        $stmt = $this->db->query(
+            "SELECT COUNT(*) as group_count, COALESCE(SUM(cnt), 0) as entry_count FROM (
+                SELECT COUNT(*) as cnt
+                FROM {$this->table}
+                WHERE url_preview_id IS NOT NULL
+                GROUP BY user_id, url_preview_id
+                HAVING COUNT(*) > 1
+            ) as url_dupes"
+        );
+        $urlStats = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        $textGroups = (int) ($textStats['group_count'] ?? 0);
+        $urlGroups = (int) ($urlStats['group_count'] ?? 0);
+        $textEntries = (int) ($textStats['entry_count'] ?? 0);
+        $urlEntries = (int) ($urlStats['entry_count'] ?? 0);
+
+        return [
+            'text_duplicate_groups' => $textGroups,
+            'url_duplicate_groups' => $urlGroups,
+            'text_duplicate_entries' => $textEntries,
+            'url_duplicate_entries' => $urlEntries,
+            'total_duplicate_groups' => $textGroups + $urlGroups,
+            'total_extra_entries' => ($textEntries - $textGroups) + ($urlEntries - $urlGroups),
+        ];
+    }
+
+    /**
+     * Find duplicate entry groups (same user, same content)
+     * 
+     * @param int $limit Max number of duplicate groups to return
+     * @param int $offset Offset for pagination
+     * @param string $matchType Filter: 'all', 'text', 'url'
+     * @return array ['groups' => [...], 'total_groups' => int]
+     */
+    public function getDuplicateGroups(int $limit = 20, int $offset = 0, string $matchType = 'all'): array
+    {
+        $groups = [];
+        $totalGroups = 0;
+
+        if ($matchType === 'all' || $matchType === 'text') {
+            $result = $this->getTextDuplicateGroups($limit, $offset);
+            $groups = array_merge($groups, $result['groups']);
+            $totalGroups += $result['total'];
+        }
+
+        if ($matchType === 'all' || $matchType === 'url') {
+            $remainingLimit = $limit - count($groups);
+            if ($remainingLimit > 0 || $matchType === 'url') {
+                $urlOffset = $matchType === 'url' ? $offset : max(0, $offset - $totalGroups);
+                $urlLimit = $matchType === 'url' ? $limit : $remainingLimit;
+                if ($urlLimit > 0) {
+                    $result = $this->getUrlDuplicateGroups($urlLimit, max(0, $urlOffset));
+                    $groups = array_merge($groups, $result['groups']);
+                    $totalGroups += $result['total'];
+                }
+            }
+        }
+
+        // Sort by duplicate count descending
+        usort($groups, function ($a, $b) {
+            return $b['dupe_count'] - $a['dupe_count'];
+        });
+
+        return [
+            'groups' => array_slice($groups, 0, $limit),
+            'total_groups' => $totalGroups,
+        ];
+    }
+
+    /**
+     * Find text-based duplicate groups
+     */
+    private function getTextDuplicateGroups(int $limit, int $offset): array
+    {
+        // Count total groups
+        $countStmt = $this->db->query(
+            "SELECT COUNT(*) as total FROM (
+                SELECT 1 FROM {$this->table}
+                WHERE text IS NOT NULL AND text != ''
+                GROUP BY user_id, text
+                HAVING COUNT(*) > 1
+            ) as t"
+        );
+        $total = (int) $countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+
+        if ($total === 0) {
+            return ['groups' => [], 'total' => 0];
+        }
+
+        // Get duplicate groups
+        $stmt = $this->db->prepare(
+            "SELECT user_id, text, COUNT(*) as dupe_count,
+                    MIN(created_at) as first_posted, MAX(created_at) as last_posted,
+                    GROUP_CONCAT(id ORDER BY created_at ASC) as entry_ids
+             FROM {$this->table}
+             WHERE text IS NOT NULL AND text != ''
+             GROUP BY user_id, text
+             HAVING COUNT(*) > 1
+             ORDER BY dupe_count DESC, last_posted DESC
+             LIMIT ? OFFSET ?"
+        );
+        $stmt->execute([$limit, $offset]);
+        $rawGroups = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $groups = [];
+        foreach ($rawGroups as $raw) {
+            $entryIds = array_map('intval', explode(',', $raw['entry_ids']));
+            $entries = $this->getEntriesByIds($entryIds);
+
+            $groups[] = [
+                'match_type' => 'text',
+                'user_id' => (int) $raw['user_id'],
+                'matched_value' => mb_substr($raw['text'], 0, 200),
+                'dupe_count' => (int) $raw['dupe_count'],
+                'first_posted' => $raw['first_posted'],
+                'last_posted' => $raw['last_posted'],
+                'entries' => $entries,
+            ];
+        }
+
+        return ['groups' => $groups, 'total' => $total];
+    }
+
+    /**
+     * Find URL-based duplicate groups
+     */
+    private function getUrlDuplicateGroups(int $limit, int $offset): array
+    {
+        // Count total groups
+        $countStmt = $this->db->query(
+            "SELECT COUNT(*) as total FROM (
+                SELECT 1 FROM {$this->table}
+                WHERE url_preview_id IS NOT NULL
+                GROUP BY user_id, url_preview_id
+                HAVING COUNT(*) > 1
+            ) as t"
+        );
+        $total = (int) $countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+
+        if ($total === 0) {
+            return ['groups' => [], 'total' => 0];
+        }
+
+        // Get duplicate groups
+        $stmt = $this->db->prepare(
+            "SELECT e.user_id, e.url_preview_id, COUNT(*) as dupe_count,
+                    MIN(e.created_at) as first_posted, MAX(e.created_at) as last_posted,
+                    GROUP_CONCAT(e.id ORDER BY e.created_at ASC) as entry_ids,
+                    p.url as preview_url, p.title as preview_title
+             FROM {$this->table} e
+             LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
+             WHERE e.url_preview_id IS NOT NULL
+             GROUP BY e.user_id, e.url_preview_id
+             HAVING COUNT(*) > 1
+             ORDER BY dupe_count DESC, last_posted DESC
+             LIMIT ? OFFSET ?"
+        );
+        $stmt->execute([$limit, $offset]);
+        $rawGroups = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $groups = [];
+        foreach ($rawGroups as $raw) {
+            $entryIds = array_map('intval', explode(',', $raw['entry_ids']));
+            $entries = $this->getEntriesByIds($entryIds);
+
+            $matchedValue = $raw['preview_title'] ?: $raw['preview_url'] ?: 'URL #' . $raw['url_preview_id'];
+
+            $groups[] = [
+                'match_type' => 'url',
+                'user_id' => (int) $raw['user_id'],
+                'matched_value' => $matchedValue,
+                'url_preview_id' => (int) $raw['url_preview_id'],
+                'dupe_count' => (int) $raw['dupe_count'],
+                'first_posted' => $raw['first_posted'],
+                'last_posted' => $raw['last_posted'],
+                'entries' => $entries,
+            ];
+        }
+
+        return ['groups' => $groups, 'total' => $total];
+    }
+
+    /**
+     * Fetch full entry details for a list of entry IDs
+     * Used by duplicate detection to hydrate grouped entries
+     * 
+     * @param array $entryIds Array of entry IDs
+     * @return array Array of entry details with user info, preview data, engagement stats
+     */
+    private function getEntriesByIds(array $entryIds): array
+    {
+        if (empty($entryIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, 
+                       u.gravatar_hash, u.photo_url,
+                       p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                       p.image as preview_image, p.site_name as preview_site_name, p.source as preview_source,
+                       COALESCE(clap_totals.total_claps, 0) as clap_count,
+                       COALESCE(comment_counts.comment_count, 0) as comment_count,
+                       COALESCE(view_counts.view_count, 0) as view_count
+                FROM {$this->table} e
+                JOIN trail_users u ON e.user_id = u.id
+                LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
+                LEFT JOIN (
+                    SELECT entry_id, SUM(clap_count) as total_claps
+                    FROM trail_claps
+                    GROUP BY entry_id
+                ) clap_totals ON e.id = clap_totals.entry_id
+                LEFT JOIN (
+                    SELECT entry_id, COUNT(*) as comment_count
+                    FROM trail_comments
+                    GROUP BY entry_id
+                ) comment_counts ON e.id = comment_counts.entry_id
+                LEFT JOIN trail_view_counts view_counts 
+                    ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
+                WHERE e.id IN ($placeholders)
+                ORDER BY FIELD(e.id, $placeholders)";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge($entryIds, $entryIds));
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Delete duplicate entries from a group, keeping one entry
+     * 
+     * @param array $entryIds All entry IDs in the duplicate group
+     * @param string $keep 'oldest' keeps the first entry, 'newest' keeps the last
+     * @return int Number of entries deleted
+     */
+    public function deleteDuplicates(array $entryIds, string $keep = 'oldest'): int
+    {
+        if (count($entryIds) < 2) {
+            return 0;
+        }
+
+        // Fetch entries to determine which to keep
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT id, created_at FROM {$this->table} WHERE id IN ($placeholders) ORDER BY created_at ASC"
+        );
+        $stmt->execute($entryIds);
+        $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (count($entries) < 2) {
+            return 0;
+        }
+
+        // Determine which entry to keep
+        $keepId = $keep === 'newest'
+            ? (int) $entries[count($entries) - 1]['id']
+            : (int) $entries[0]['id'];
+
+        $deleted = 0;
+        foreach ($entries as $entry) {
+            if ((int) $entry['id'] !== $keepId) {
+                if ($this->delete((int) $entry['id'])) {
+                    $deleted++;
+                }
+            }
+        }
+
+        return $deleted;
+    }
 }
