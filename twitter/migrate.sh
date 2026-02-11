@@ -17,6 +17,8 @@ DRY_RUN=false
 LIMIT=""
 DELAY="100"
 EXTRACTED_DIR=""
+INCLUDE_DMS=false
+INCLUDE_REPLIES=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -64,6 +66,8 @@ Options:
   --dry-run             Test run without creating entries
   --limit N             Import only first N tweets
   --delay MS            Delay between requests in milliseconds (default: 100)
+  --include-dms         Include direct messages (excluded by default)
+  --include-replies     Include replies to other users (excluded by default)
   -v, --verbose         Enable verbose output (show curl equivalents)
   -h, --help            Show this help message
 
@@ -204,11 +208,41 @@ extract_archive() {
     
     mkdir -p "$TEMP_DIR"
     
-    # Extract to temp directory
-    if ! unzip -q "$ARCHIVE_PATH" -d "$TEMP_DIR"; then
+    # Build exclusion list based on flags
+    local exclude_args=""
+    
+    if [ "$INCLUDE_DMS" = false ]; then
+        # Exclude direct messages files and media:
+        # - data/direct-messages.js (1-on-1 DMs)
+        # - data/direct-messages-group.js (group DMs)
+        # - data/direct_messages_media/* (DM media files)
+        # - data/direct_messages_group_media/* (group DM media files)
+        exclude_args="$exclude_args -x '*/data/direct-messages.js'"
+        exclude_args="$exclude_args -x '*/data/direct-messages-group.js'"
+        exclude_args="$exclude_args -x '*/data/direct_messages_media/*'"
+        exclude_args="$exclude_args -x '*/data/direct_messages_group_media/*'"
+        exclude_args="$exclude_args -x 'data/direct-messages.js'"
+        exclude_args="$exclude_args -x 'data/direct-messages-group.js'"
+        exclude_args="$exclude_args -x 'data/direct_messages_media/*'"
+        exclude_args="$exclude_args -x 'data/direct_messages_group_media/*'"
+    fi
+    
+    # Extract archive with exclusions
+    if ! eval "unzip -q \"$ARCHIVE_PATH\" -d \"$TEMP_DIR\" $exclude_args"; then
         print_error "Failed to extract archive"
         cleanup_on_error
         exit 1
+    fi
+    
+    # Log what was excluded
+    if [ "$INCLUDE_DMS" = false ]; then
+        print_success "Direct messages excluded from extraction"
+    else
+        print_info "Direct messages included in extraction"
+    fi
+    
+    if [ "$INCLUDE_REPLIES" = false ]; then
+        print_info "Replies will be filtered during import"
     fi
     
     # Check if files were extracted to a subdirectory or directly
@@ -305,6 +339,11 @@ run_migration() {
     
     if [ -n "$DELAY" ]; then
         cmd="$cmd --delay $DELAY"
+    fi
+    
+    # Pass reply filtering flag (exclude replies by default)
+    if [ "$INCLUDE_REPLIES" = false ]; then
+        cmd="$cmd --exclude-replies"
     fi
     
     print_info "Running import script..."
@@ -406,6 +445,14 @@ main() {
                 ;;
             -v|--verbose)
                 VERBOSE=true
+                shift
+                ;;
+            --include-dms)
+                INCLUDE_DMS=true
+                shift
+                ;;
+            --include-replies)
+                INCLUDE_REPLIES=true
                 shift
                 ;;
             -h|--help)

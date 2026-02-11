@@ -40,6 +40,8 @@ export TRAIL_API_KEY="your_api_key"
 - `--dry-run` - Test mode
 - `--limit N` - Import first N tweets
 - `--delay MS` - Rate limit (default: 100ms)
+- `--include-dms` - Include direct messages (excluded by default)
+- `--include-replies` - Include replies to others (excluded by default)
 - `--keep-extracted` - Keep temp files
 - `-v` - Verbose (show curl equivalents)
 
@@ -52,7 +54,7 @@ uv run import_twitter_archive.py --api-key KEY --archive ./twitter-2026-01-30-xx
 
 **Included:** Tweet text (280 chars), original timestamps, images (JPG/PNG/GIF/WebP, <20MB), favorites → claps (capped at 50)
 
-**Excluded:** Videos, reply threading, retweet counts, metadata
+**Excluded by default:** Direct messages (DMs), replies to others (self-replies/threads kept), videos, reply threading, retweet counts, metadata
 
 ## How It Works
 
