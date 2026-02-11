@@ -1,6 +1,8 @@
-# Twitter Archive Importer for Trail API
+# Twitter Archive Importer for Trail
 
-Migrate your Twitter archive to Trail API. One command. ~5 minutes for 2,788 tweets.
+Migrate your Twitter/X archive to Trail. Own your tweets, escape the platform.
+
+See [../README.md](../README.md) for what Trail is.
 
 ## Quick Start
 
@@ -8,7 +10,7 @@ Migrate your Twitter archive to Trail API. One command. ~5 minutes for 2,788 twe
 ./migrate.sh --api-key YOUR_API_KEY --archive twitter-backup.zip
 ```
 
-Done. The script installs dependencies, extracts the ZIP, migrates tweets with original timestamps, caches progress, and cleans up.  
+The script installs dependencies, extracts the ZIP, migrates tweets with original timestamps, caches progress, and cleans up.
 
 ## Prerequisites
 
