@@ -7,8 +7,11 @@
  * - Edit/delete functionality
  */
 
-(function() {
+(async function() {
     'use strict';
+
+    // Load configuration first
+    await loadConfig();
 
     // Get data from body attributes
     const body = document.body;
@@ -135,4 +138,6 @@
     window.saveEdit = function(entryId) {
         entriesManager.saveEdit(entryId);
     };
-})();
+})().catch(error => {
+    console.error('Failed to initialize user page:', error);
+});

@@ -6,7 +6,52 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>@<?= htmlspecialchars($nickname ?? 'user') ?> - Trail</title>
+    
+    <?php
+    // Generate meta tags from user data
+    $displayName = $user['nickname'] ?? $user['name'] ?? 'User';
+    $pageTitle = htmlspecialchars("@{$displayName} on Trail");
+    $description = htmlspecialchars("View posts and updates from @{$displayName} on Trail");
+    $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+    $ogUrl = htmlspecialchars("{$baseUrl}/@{$nickname}");
+    
+    // Determine OG image - use user's photo or app icon
+    $ogImage = !empty($user['photo_url']) 
+        ? htmlspecialchars($user['photo_url']) 
+        : htmlspecialchars("{$baseUrl}/assets/app-icon.webp");
+    ?>
+    
+    <!-- Open Graph meta tags -->
+    <meta property="og:type" content="profile">
+    <meta property="og:site_name" content="Trail">
+    <meta property="og:title" content="<?= $pageTitle ?>">
+    <meta property="og:description" content="<?= $description ?>">
+    <meta property="og:url" content="<?= $ogUrl ?>">
+    <meta property="og:image" content="<?= $ogImage ?>">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<?= $pageTitle ?>">
+    <meta name="twitter:description" content="<?= $description ?>">
+    <meta name="twitter:image" content="<?= $ogImage ?>">
+    
+    <!-- JSON-LD structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      "mainEntity": {
+        "@type": "Person",
+        "name": <?= json_encode($displayName) ?>,
+        "url": <?= json_encode($ogUrl) ?>,
+        "image": <?= json_encode($ogImage) ?>
+      }
+    }
+    </script>
+    
+    <title><?= $pageTitle ?></title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
@@ -142,6 +187,7 @@
     </main>
 
     <!-- Core JavaScript Modules -->
+    <script src="/assets/js/config.js"></script>
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/card-template.js"></script>
     <script src="/assets/js/ui-interactions.js"></script>

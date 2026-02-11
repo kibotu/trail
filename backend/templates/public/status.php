@@ -7,12 +7,66 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <!-- Dynamic Open Graph meta tags will be set by JavaScript -->
+    <?php
+    // Generate meta tags from entry data
+    $displayName = $entry['user_nickname'] ?? $entry['user_name'] ?? 'User';
+    $entryText = $entry['text'] ?? '';
+    $description = mb_strlen($entryText) > 200 
+        ? mb_substr($entryText, 0, 200) . '...' 
+        : $entryText;
+    $pageTitle = htmlspecialchars("@{$displayName} on Trail" . ($entryText ? ": \"{$description}\"" : ''));
+    $ogDescription = htmlspecialchars($description);
+    $ogUrl = htmlspecialchars("{$baseUrl}/status/{$hashId}");
+    
+    // Determine OG image
+    $ogImage = null;
+    $twitterCard = 'summary';
+    
+    // Priority: preview image endpoint > entry images > app icon
+    if (!empty($entry['text']) || !empty($entry['images'])) {
+        $ogImage = htmlspecialchars("{$baseUrl}/api/preview-image/{$hashId}.png");
+        $twitterCard = 'summary_large_image';
+    } elseif (!empty($entry['images']) && is_array($entry['images'])) {
+        $firstImage = $entry['images'][0];
+        $ogImage = htmlspecialchars($baseUrl . $firstImage['url']);
+        $twitterCard = 'summary_large_image';
+    } else {
+        $ogImage = htmlspecialchars("{$baseUrl}/assets/app-icon.webp");
+    }
+    ?>
+    
+    <!-- Open Graph meta tags -->
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Trail">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:title" content="<?= $pageTitle ?>">
+    <meta property="og:description" content="<?= $ogDescription ?>">
+    <meta property="og:url" content="<?= $ogUrl ?>">
+    <meta property="og:image" content="<?= $ogImage ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     
-    <title>Entry - Trail</title>
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="<?= htmlspecialchars($twitterCard) ?>">
+    <meta name="twitter:title" content="<?= $pageTitle ?>">
+    <meta name="twitter:description" content="<?= $ogDescription ?>">
+    <meta name="twitter:image" content="<?= $ogImage ?>">
+    
+    <!-- JSON-LD structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SocialMediaPosting",
+      "headline": <?= json_encode($description) ?>,
+      "author": {
+        "@type": "Person",
+        "name": <?= json_encode($displayName) ?>
+      },
+      "datePublished": <?= json_encode($entry['created_at']) ?>,
+      "url": <?= json_encode($ogUrl) ?>
+    }
+    </script>
+    
+    <title><?= $pageTitle ?></title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">

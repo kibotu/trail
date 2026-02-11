@@ -34,6 +34,9 @@
         if (!container) return;
         
         try {
+            // Preload config before loading entry
+            await loadConfig();
+            
             const entry = await entriesManager.loadSingleEntry(hashId);
             currentEntry = entry;
             

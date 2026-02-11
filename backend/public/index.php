@@ -211,8 +211,43 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
         $isAdmin = $session['is_admin'] ?? false;
         $jwtToken = $session['jwt_token'] ?? null;
         
-        // Get the hash ID from the route (not decoded here, will be decoded by API)
+        // Get the hash ID from the route
         $hashId = $args['id'] ?? '';
+        
+        // Decode hash ID and fetch entry data for meta tags
+        $entry = null;
+        $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+        
+        try {
+            $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+            $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+            $entryId = $hashIdService->decode($hashId);
+            
+            if ($entryId !== null) {
+                $entryModel = new \Trail\Models\Entry($db);
+                $entry = $entryModel->findByIdWithImages($entryId, $userId);
+                
+                // Generate nickname if not set
+                if ($entry && empty($entry['user_nickname']) && !empty($entry['google_id'])) {
+                    $userModel = new \Trail\Models\User($db);
+                    $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+                    $entry['user_nickname'] = $userModel->getOrGenerateNickname(
+                        (int) $entry['user_id'],
+                        $entry['google_id'],
+                        $salt
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("Status page: Failed to fetch entry for hash {$hashId}: " . $e->getMessage());
+            $entry = null;
+        }
+        
+        // If entry not found, show 404
+        if ($entry === null) {
+            require_once __DIR__ . '/helpers/error.php';
+            return sendErrorPage($response, 404, $config);
+        }
         
         // Build Google OAuth URL for the login button (only if not logged in)
         $googleOAuth = $config['google_oauth'] ?? null;
@@ -320,6 +355,106 @@ $app->get('/api/entries/{id}', [EntryController::class, 'getById']);
 
 // User entries by nickname (public read)
 $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
+
+// Preview image generation endpoint (public, no auth required for crawlers)
+$app->get('/api/preview-image/{id}.png', function ($request, $response, array $args) use ($config) {
+    $hashId = $args['id'] ?? '';
+    
+    try {
+        // Decode hash ID
+        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+        $entryId = $hashIdService->decode($hashId);
+        
+        if ($entryId === null) {
+            error_log("Preview image: Invalid hash ID: {$hashId}");
+            $response->getBody()->write('Invalid entry ID');
+            return $response->withStatus(400)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        error_log("Preview image: Decoded hash {$hashId} to entry ID {$entryId}");
+        
+        // Fetch entry data
+        $db = \Trail\Database\Database::getInstance($config);
+        $entryModel = new \Trail\Models\Entry($db);
+        $entry = $entryModel->findByIdWithImages($entryId, null);
+        
+        if (!$entry) {
+            error_log("Preview image: Entry not found for ID {$entryId} (hash: {$hashId})");
+            $response->getBody()->write('Entry not found');
+            return $response->withStatus(404)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        error_log("Preview image: Found entry {$entryId}, generating preview");
+        
+        // Generate nickname if not set
+        if (empty($entry['user_nickname']) && !empty($entry['google_id'])) {
+            $userModel = new \Trail\Models\User($db);
+            $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+            $entry['user_nickname'] = $userModel->getOrGenerateNickname(
+                (int) $entry['user_id'],
+                $entry['google_id'],
+                $salt
+            );
+        }
+        
+        // Generate or retrieve cached preview
+        // Note: Domain points to backend/public/, so paths are relative to public/
+        $cacheDir = __DIR__ . '/../storage/preview-cache';
+        $fontPath = __DIR__ . '/assets/fonts/inter/Inter-Regular.ttf';
+        $fontBoldPath = __DIR__ . '/assets/fonts/inter/Inter-Bold.ttf';
+        
+        // Verify paths exist
+        if (!file_exists($fontPath)) {
+            error_log("Preview image: Font not found at {$fontPath}");
+            $response->getBody()->write('Font files not found');
+            return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        if (!file_exists($fontBoldPath)) {
+            error_log("Preview image: Bold font not found at {$fontBoldPath}");
+            $response->getBody()->write('Font files not found');
+            return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        // Ensure cache directory exists
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        
+        $previewService = new \Trail\Services\PreviewImageService($cacheDir, $fontPath, $fontBoldPath);
+        $imagePath = $previewService->getOrGeneratePreview($hashId, $entry);
+        
+        // Read image file
+        $imageData = file_get_contents($imagePath);
+        if ($imageData === false) {
+            $response->getBody()->write('Failed to read preview image');
+            return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        // Generate ETag
+        $etag = md5($imageData);
+        
+        // Check If-None-Match header
+        $ifNoneMatch = $request->getHeaderLine('If-None-Match');
+        if ($ifNoneMatch === $etag) {
+            return $response->withStatus(304); // Not Modified
+        }
+        
+        // Return image with caching headers
+        $response->getBody()->write($imageData);
+        return $response
+            ->withHeader('Content-Type', 'image/png')
+            ->withHeader('Cache-Control', 'public, max-age=604800') // 7 days
+            ->withHeader('ETag', $etag)
+            ->withHeader('Content-Length', (string) strlen($imageData));
+            
+    } catch (\Throwable $e) {
+        error_log("Preview image generation failed for {$hashId}: " . $e->getMessage());
+        $response->getBody()->write('Preview generation failed');
+        return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+    }
+})->add(new RateLimitMiddleware(60, 60, $rateLimitEnabled)); // 60 req/min
 
 // Clap routes (authenticated write, public read)
 $app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
