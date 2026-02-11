@@ -298,7 +298,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="filter-controls">
                 <div class="view-mode-toggle">
                     <button id="view-all" class="view-mode-btn active" onclick="switchView('all')">
-                        <i class="fa-solid fa-list"></i> All Entries
+                        <i class="fa-solid fa-list"></i>
                     </button>
                     <button id="view-duplicates" class="view-mode-btn" onclick="switchView('duplicates')">
                         <i class="fa-solid fa-clone"></i> Duplicates

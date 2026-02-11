@@ -277,37 +277,20 @@ class LinkHealth
      */
     public function getUrlsToCheck(int $limit): array
     {
-        // Get unchecked URLs first (URLs in entries but not in link_health)
+        // Get ONLY unchecked URLs (URLs in entries but not in link_health)
+        // Do NOT recheck already-checked URLs
+        // Order by URL preview ID to ensure consistent, deterministic ordering
         $stmt = $this->db->prepare(
             "SELECT DISTINCT up.id, up.url
              FROM trail_url_previews up
              INNER JOIN trail_entries e ON e.url_preview_id = up.id
              LEFT JOIN {$this->table} lh ON lh.url_preview_id = up.id
              WHERE lh.id IS NULL
+             ORDER BY up.id ASC
              LIMIT ?"
         );
         $stmt->execute([$limit]);
-        $unchecked = $stmt->fetchAll();
-        
-        $remaining = $limit - count($unchecked);
-        
-        if ($remaining > 0) {
-            // Get stale URLs (oldest checked first)
-            $stmt = $this->db->prepare(
-                "SELECT DISTINCT up.id, up.url, lh.id as health_id, lh.last_checked_at
-                 FROM trail_url_previews up
-                 INNER JOIN trail_entries e ON e.url_preview_id = up.id
-                 INNER JOIN {$this->table} lh ON lh.url_preview_id = up.id
-                 ORDER BY lh.last_checked_at ASC
-                 LIMIT ?"
-            );
-            $stmt->execute([$remaining]);
-            $stale = $stmt->fetchAll();
-            
-            return array_merge($unchecked, $stale);
-        }
-        
-        return $unchecked;
+        return $stmt->fetchAll();
     }
 
     /**
@@ -321,13 +304,15 @@ class LinkHealth
      */
     public function getBrokenUrlsToRecheck(int $limit): array
     {
+        // Get failing URLs, prioritized by least recently checked
+        // This ensures we recheck the oldest failing links first
         $stmt = $this->db->prepare(
-            "SELECT DISTINCT up.id, up.url, lh.consecutive_failures, lh.is_broken
+            "SELECT DISTINCT up.id, up.url, lh.consecutive_failures, lh.is_broken, lh.last_checked_at
              FROM trail_url_previews up
              INNER JOIN trail_entries e ON e.url_preview_id = up.id
              INNER JOIN {$this->table} lh ON lh.url_preview_id = up.id
              WHERE lh.consecutive_failures >= 1
-             ORDER BY lh.consecutive_failures DESC, lh.last_checked_at ASC
+             ORDER BY lh.last_checked_at ASC NULLS FIRST
              LIMIT ?"
         );
         $stmt->execute([$limit]);

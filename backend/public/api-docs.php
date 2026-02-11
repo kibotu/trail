@@ -644,9 +644,22 @@ $groups = [
     
     <div class="container">
         <div class="main-grid">
+            <!-- Mobile TOC Toggle -->
+            <button class="toc-toggle" id="toc-toggle" aria-label="Open navigation">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Mobile TOC Overlay -->
+            <div class="toc-overlay" id="toc-overlay"></div>
+
             <!-- Table of Contents -->
-            <aside class="toc">
-                <h3 style="margin-top: 0;">Contents</h3>
+            <aside class="toc" id="toc-sidebar">
+                <div class="toc-header">
+                    <h3 style="margin-top: 0;">Contents</h3>
+                    <button class="toc-close" id="toc-close" aria-label="Close navigation">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
                 <a href="#overview" class="toc-link">Overview</a>
                 <a href="#quick-start" class="toc-link">Quick Start</a>
                 <a href="#authentication" class="toc-link">Authentication</a>
@@ -1082,10 +1095,12 @@ curl -X POST \
                                         <div class="endpoint-header">
                                             <span class="method <?= $methodClass ?>"><?= $endpoint['method'] ?></span>
                                             <span class="path"><?= htmlspecialchars($endpoint['path']) ?></span>
-                                            <span class="auth-level-<?= $endpoint['auth_level'] ?>"><?= strtoupper($endpoint['auth_level']) ?></span>
-                                            <?php if ($endpoint['rate_limit'] !== 'None'): ?>
-                                                <span class="rate-limit-badge"><?= htmlspecialchars($endpoint['rate_limit']) ?></span>
-                                            <?php endif; ?>
+                                            <span class="endpoint-badges">
+                                                <span class="auth-level-<?= $endpoint['auth_level'] ?>"><?= strtoupper($endpoint['auth_level']) ?></span>
+                                                <?php if ($endpoint['rate_limit'] !== 'None'): ?>
+                                                    <span class="rate-limit-badge"><?= htmlspecialchars($endpoint['rate_limit']) ?></span>
+                                                <?php endif; ?>
+                                            </span>
                                         </div>
                                         <div class="description"><?= htmlspecialchars($endpoint['description']) ?></div>
                                         <div class="curl-container">
@@ -1254,6 +1269,7 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                     </div>
                     
                     <h3>Content Limits</h3>
+                    <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
@@ -1310,6 +1326,7 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                     
                     <div class="feature-card">
                         <h3><i class="fa-solid fa-list"></i> Pagination Limits</h3>
@@ -1398,6 +1415,7 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                     </div>
                     
                     <h3>HTTP Status Codes</h3>
+                    <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
@@ -1449,8 +1467,10 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                     
                     <h3>Error Codes</h3>
+                    <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
@@ -1477,6 +1497,7 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                     
                     <h3>Date Formats</h3>
                     <div class="feature-card">
@@ -1518,6 +1539,11 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
         </div>
     </div>
     
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
     <script src="/assets/js/mermaid.min.js"></script>
     <script src="/assets/js/api-docs.js"></script>
 </body>

@@ -90,7 +90,50 @@ function toggleCollapsible(header) {
     }
 }
 
-// Smooth scroll for TOC links
+// ============================================
+// Mobile TOC Drawer
+// ============================================
+
+const tocToggle = document.getElementById('toc-toggle');
+const tocSidebar = document.getElementById('toc-sidebar');
+const tocOverlay = document.getElementById('toc-overlay');
+const tocClose = document.getElementById('toc-close');
+
+function openToc() {
+    tocSidebar.classList.add('open');
+    tocOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeToc() {
+    tocSidebar.classList.remove('open');
+    tocOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+if (tocToggle) {
+    tocToggle.addEventListener('click', openToc);
+}
+
+if (tocClose) {
+    tocClose.addEventListener('click', closeToc);
+}
+
+if (tocOverlay) {
+    tocOverlay.addEventListener('click', closeToc);
+}
+
+// Close TOC on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tocSidebar && tocSidebar.classList.contains('open')) {
+        closeToc();
+    }
+});
+
+// ============================================
+// TOC Navigation with smooth scroll
+// ============================================
+
 document.querySelectorAll('.toc-link').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -98,6 +141,12 @@ document.querySelectorAll('.toc-link').forEach(link => {
         const targetElement = document.getElementById(targetId);
         
         if (targetElement) {
+            // Close mobile TOC if open
+            if (tocSidebar && tocSidebar.classList.contains('open')) {
+                closeToc();
+            }
+
+            // Smooth scroll to target
             targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             
             // Update active link
@@ -107,7 +156,10 @@ document.querySelectorAll('.toc-link').forEach(link => {
     });
 });
 
+// ============================================
 // Intersection Observer for TOC active state
+// ============================================
+
 const observerOptions = {
     root: null,
     rootMargin: '-20% 0px -70% 0px',
@@ -128,13 +180,45 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, observerOptions);
 
-// Observe all sections
-document.querySelectorAll('section[id]').forEach(section => {
+// Observe all sections and endpoint groups
+document.querySelectorAll('section[id], .endpoint-group[id]').forEach(section => {
     observer.observe(section);
 });
 
-// Initialize - set first TOC link as active
+// ============================================
+// Back to Top Button
+// ============================================
+
+const backToTop = document.getElementById('back-to-top');
+
+if (backToTop) {
+    let ticking = false;
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                if (window.scrollY > 400) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+
+    backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+// ============================================
+// Initialize
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Set first TOC link as active
     const firstLink = document.querySelector('.toc-link');
     if (firstLink) {
         firstLink.classList.add('active');
