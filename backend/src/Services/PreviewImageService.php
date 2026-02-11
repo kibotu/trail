@@ -80,6 +80,142 @@ class PreviewImageService
      */
     private function generatePreview(string $outputPath, array $entry): void
     {
+        // Check if entry has URL preview with image - create Medium-style card
+        $hasUrlPreview = !empty($entry['preview_image']) && !empty($entry['preview_title']);
+        
+        if ($hasUrlPreview) {
+            $this->generateUrlPreviewCard($outputPath, $entry);
+        } else {
+            $this->generateTextCard($outputPath, $entry);
+        }
+    }
+    
+    /**
+     * Generate card matching the existing link-preview-card style
+     * Horizontal layout: square image on left, content on right
+     */
+    private function generateUrlPreviewCard(string $outputPath, array $entry): void
+    {
+        // Create canvas
+        $img = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
+        if ($img === false) {
+            throw new RuntimeException("Failed to create image canvas");
+        }
+        
+        // Allocate colors matching CSS variables
+        $bgColor = imagecolorallocate($img, ...self::BG_COLOR);  // var(--bg-tertiary)
+        $textColor = imagecolorallocate($img, ...self::TEXT_COLOR);  // var(--text-primary)
+        $textSecondary = imagecolorallocate($img, ...self::MUTED_COLOR);  // var(--text-secondary)
+        $accentColor = imagecolorallocate($img, ...self::ACCENT_COLOR);  // var(--accent)
+        $borderColor = imagecolorallocate($img, 51, 65, 85);  // var(--border)
+        
+        // Fill background
+        imagefilledrectangle($img, 0, 0, self::WIDTH, self::HEIGHT, $bgColor);
+        
+        // Draw border around entire card (1px)
+        imagerectangle($img, 0, 0, self::WIDTH - 1, self::HEIGHT - 1, $borderColor);
+        
+        // Define layout matching CSS: image on left (square), content on right
+        $imageSize = 300;  // Square image (scaled up from 120px for 1200px width)
+        $imageX = self::PADDING;
+        $imageY = self::PADDING;
+        $contentX = $imageX + $imageSize + self::PADDING;
+        $contentWidth = self::WIDTH - $contentX - self::PADDING;
+        
+        // Load and draw preview image on the left (square)
+        if (!empty($entry['preview_image'])) {
+            try {
+                $previewImg = $this->loadImageFromUrl($entry['preview_image']);
+                if ($previewImg) {
+                    // Draw square image with object-fit: cover behavior
+                    $srcW = imagesx($previewImg);
+                    $srcH = imagesy($previewImg);
+                    
+                    // Calculate crop to maintain aspect ratio (cover behavior)
+                    $srcAspect = $srcW / $srcH;
+                    if ($srcAspect > 1) {
+                        // Wider than tall - crop width
+                        $newSrcW = $srcH;
+                        $srcX = ($srcW - $newSrcW) / 2;
+                        $srcY = 0;
+                        $newSrcH = $srcH;
+                    } else {
+                        // Taller than wide - crop height
+                        $newSrcH = $srcW;
+                        $srcY = ($srcH - $newSrcH) / 2;
+                        $srcX = 0;
+                        $newSrcW = $srcW;
+                    }
+                    
+                    imagecopyresampled(
+                        $img, $previewImg,
+                        $imageX, $imageY,
+                        (int)$srcX, (int)$srcY,
+                        $imageSize, $imageSize,
+                        (int)$newSrcW, (int)$newSrcH
+                    );
+                    
+                    imagedestroy($previewImg);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to load preview image: " . $e->getMessage());
+            }
+        }
+        
+        // Content area (right side)
+        $y = $imageY + 30;
+        
+        // Draw preview title (font-weight: 600, 2 lines max)
+        $previewTitle = $entry['preview_title'] ?? '';
+        if (!empty($previewTitle)) {
+            $lines = $this->wordWrap($previewTitle, 50, $contentWidth);
+            $maxLines = 2;
+            $lineCount = 0;
+            
+            foreach ($lines as $line) {
+                if ($lineCount >= $maxLines) break;
+                $this->drawText($img, $line, $this->fontBoldPath, 32, $textColor, $contentX, $y);
+                $y += 44;
+                $lineCount++;
+            }
+            $y += 20;
+        }
+        
+        // Draw preview description (3 lines max, smaller, secondary color)
+        $previewDesc = $entry['preview_description'] ?? '';
+        if (!empty($previewDesc)) {
+            $lines = $this->wordWrap($previewDesc, 60, $contentWidth);
+            $maxLines = 3;
+            $lineCount = 0;
+            
+            foreach ($lines as $line) {
+                if ($lineCount >= $maxLines) break;
+                $this->drawText($img, $line, $this->fontPath, 26, $textSecondary, $contentX, $y);
+                $y += 38;
+                $lineCount++;
+            }
+            $y += 20;
+        }
+        
+        // Draw site name/URL at bottom with link icon (matching .link-preview-url)
+        $siteName = $entry['preview_site_name'] ?? parse_url($entry['preview_url'] ?? '', PHP_URL_HOST) ?? '';
+        if (!empty($siteName)) {
+            // Draw link icon (🔗) and site name
+            $urlY = self::HEIGHT - self::PADDING - 30;
+            $this->drawText($img, '🔗 ' . $siteName, $this->fontPath, 24, $accentColor, $contentX, $urlY);
+        }
+        
+        // Save as PNG
+        imagepng($img, $outputPath, 9);
+        imagedestroy($img);
+        chmod($outputPath, 0644);
+    }
+    
+    /**
+     * Generate simple text card (no URL preview)
+     */
+    private function generateTextCard(string $outputPath, array $entry): void
+    {
         // Create canvas
         $img = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
         if ($img === false) {
@@ -91,11 +227,6 @@ class PreviewImageService
         $textColor = imagecolorallocate($img, ...self::TEXT_COLOR);
         $accentColor = imagecolorallocate($img, ...self::ACCENT_COLOR);
         $mutedColor = imagecolorallocate($img, ...self::MUTED_COLOR);
-        
-        if ($bgColor === false || $textColor === false || $accentColor === false || $mutedColor === false) {
-            imagedestroy($img);
-            throw new RuntimeException("Failed to allocate colors");
-        }
         
         // Fill background
         imagefilledrectangle($img, 0, 0, self::WIDTH, self::HEIGHT, $bgColor);
@@ -111,11 +242,17 @@ class PreviewImageService
         
         $y = self::PADDING;
         
-        // Draw Trail branding
-        $this->drawText($img, 'Trail', $this->fontBoldPath, 42, $accentColor, self::PADDING, $y);
-        $y += 70;
+        // Draw Trail branding (top left)
+        $this->drawText($img, 'Trail', $this->fontBoldPath, 32, $accentColor, self::PADDING, $y);
         
-        // Draw post content
+        // Draw timestamp (top right)
+        $timestamp = $this->formatTimestamp($entry['created_at']);
+        $timestampX = self::WIDTH - self::PADDING - 250;
+        $this->drawText($img, $timestamp, $this->fontPath, 22, $mutedColor, $timestampX, $y);
+        
+        $y += 100;
+        
+        // Draw post content (larger, more prominent)
         $text = $entry['text'] ?? '';
         if (!empty($text)) {
             // Truncate if too long
@@ -124,37 +261,31 @@ class PreviewImageService
                 $text = mb_substr($text, 0, $maxChars) . '...';
             }
             
-            // Word wrap and draw
-            $lines = $this->wordWrap($text, 32, self::WIDTH - (self::PADDING * 2));
-            $maxLines = 8; // Limit to 8 lines
+            // Word wrap and draw with larger font
+            $lines = $this->wordWrap($text, 30, self::WIDTH - (self::PADDING * 2));
+            $maxLines = 8;
             $lineCount = 0;
+            $fontSize = 40;
             
             foreach ($lines as $line) {
                 if ($lineCount >= $maxLines) {
                     break;
                 }
-                $this->drawText($img, $line, $this->fontPath, 32, $textColor, self::PADDING, $y);
-                $y += (int) (32 * self::LINE_HEIGHT);
+                $this->drawText($img, $line, $this->fontPath, $fontSize, $textColor, self::PADDING, $y);
+                $y += (int) ($fontSize * self::LINE_HEIGHT);
                 $lineCount++;
             }
-            
-            $y += 30;
         }
         
-        // Position footer at bottom
-        $footerY = self::HEIGHT - self::PADDING - 40;
-        
-        // Draw author info
-        $displayName = $entry['user_nickname'] ?? $entry['user_name'] ?? 'User';
-        $authorText = "@{$displayName}";
-        $this->drawText($img, $authorText, $this->fontBoldPath, 24, $textColor, self::PADDING, $footerY);
-        
-        // Draw timestamp
-        $timestamp = $this->formatTimestamp($entry['created_at']);
-        $this->drawText($img, $timestamp, $this->fontPath, 20, $mutedColor, self::PADDING, $footerY + 35);
+        // Add decorative line at bottom
+        $lineY = self::HEIGHT - 20;
+        $lineColor = imagecolorallocatealpha($img, self::ACCENT_COLOR[0], self::ACCENT_COLOR[1], self::ACCENT_COLOR[2], 100);
+        if ($lineColor !== false) {
+            imagefilledrectangle($img, self::PADDING, $lineY, self::WIDTH - self::PADDING, $lineY + 3, $lineColor);
+        }
         
         // Save as PNG
-        $success = imagepng($img, $outputPath, 9); // Max compression
+        $success = imagepng($img, $outputPath, 9);
         imagedestroy($img);
         
         if (!$success) {
@@ -225,13 +356,14 @@ class PreviewImageService
      * Format timestamp for display
      * 
      * @param string $timestamp ISO 8601 timestamp
-     * @return string Formatted date
+     * @return string Formatted date and time
      */
     private function formatTimestamp(string $timestamp): string
     {
         try {
             $date = new \DateTime($timestamp);
-            return $date->format('M j, Y');
+            // Format like: "Feb 11, 2026 at 11:44 AM"
+            return $date->format('M j, Y \a\t g:i A');
         } catch (\Exception $e) {
             return '';
         }
@@ -301,6 +433,37 @@ class PreviewImageService
             foreach ($files as $file) {
                 @unlink($file);
             }
+        }
+    }
+    
+    /**
+     * Load image from URL
+     * 
+     * @param string $url Image URL
+     * @return resource|false GD image resource or false on failure
+     */
+    private function loadImageFromUrl(string $url)
+    {
+        try {
+            // Download image with timeout
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'user_agent' => 'Trail/1.0 (+https://trail.services.kibotu.net)'
+                ]
+            ]);
+            
+            $imageData = @file_get_contents($url, false, $context);
+            if ($imageData === false) {
+                return false;
+            }
+            
+            // Create image from string
+            $img = @imagecreatefromstring($imageData);
+            return $img;
+        } catch (\Exception $e) {
+            error_log("Failed to load image from URL {$url}: " . $e->getMessage());
+            return false;
         }
     }
 }

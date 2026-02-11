@@ -23,7 +23,6 @@
     
     <!-- Open Graph meta tags -->
     <meta property="og:type" content="profile">
-    <meta property="og:site_name" content="Trail">
     <meta property="og:title" content="<?= $pageTitle ?>">
     <meta property="og:description" content="<?= $description ?>">
     <meta property="og:url" content="<?= $ogUrl ?>">
