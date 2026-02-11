@@ -373,7 +373,7 @@ function createEntryCard(entry, options = {}) {
                         <span style="color: var(--text-muted);">·</span>
                         <span class="timestamp">${formatTimestamp(entry.created_at)}</span>
                     </div>
-                    ${canModify || isLoggedIn ? `
+                    ${(canModify || (isLoggedIn && currentUserId && currentUserId !== entry.user_id)) ? `
                         <div class="entry-menu">
                             <button class="menu-button" data-entry-id="${entry.id}" data-action="toggle-menu" data-no-navigate aria-label="More options">
                                 ⋯
@@ -614,7 +614,7 @@ function createEntryCard(entry, options = {}) {
     }
     
     // Add event listeners for menu buttons
-    if (canModify || isLoggedIn) {
+    if (canModify || (isLoggedIn && currentUserId && currentUserId !== entry.user_id)) {
         const menuButton = card.querySelector('[data-action="toggle-menu"]');
         const editButton = card.querySelector('[data-action="edit"]');
         const deleteButton = card.querySelector('[data-action="delete"]');

@@ -21,6 +21,8 @@ Features:
 - Supports rate limiting and retry logic
 - Maintains Twitter ID → Trail ID mapping
 - Excludes videos (MP4 files)
+- Excludes direct messages (only tweets.js is processed)
+- Optionally excludes replies to other users (self-replies/threads are preserved)
 
 Note on View Counts:
     Twitter's data archive does NOT include view/impression counts for tweets.
@@ -85,6 +87,7 @@ class TwitterArchiveImporter:
         verbose: bool = False,
         skip_ids: Optional[List[str]] = None,
         cache_file: Optional[str] = None,
+        exclude_replies: bool = False,
     ):
         self.archive_path = Path(archive_path)
         self.api_key = api_key
@@ -100,6 +103,7 @@ class TwitterArchiveImporter:
         self.verbose = verbose
         self.skip_ids = set(skip_ids) if skip_ids else set()
         self.cache_file = cache_file
+        self.exclude_replies = exclude_replies
 
         # Statistics
         self.stats = {
@@ -108,6 +112,7 @@ class TwitterArchiveImporter:
             "tweets_imported": 0,
             "tweets_failed": 0,
             "tweets_skipped": 0,
+            "replies_skipped": 0,
             "retweets_imported": 0,
             "original_tweets_imported": 0,
             "media_files_processed": 0,
@@ -263,6 +268,25 @@ class TwitterArchiveImporter:
         """
         full_text = tweet.get("full_text", "")
         return full_text.startswith("RT @")
+
+    def is_reply(self, tweet: Dict) -> bool:
+        """
+        Check if a tweet is a reply to another user.
+        
+        Replies have in_reply_to_user_id_str set to another user's ID.
+        Self-replies (threads) are NOT considered replies for filtering purposes.
+        """
+        in_reply_to_user = tweet.get("in_reply_to_user_id_str")
+        if not in_reply_to_user:
+            return False
+        
+        # Get the tweet author's user ID to detect self-replies (threads)
+        # Self-replies should not be filtered out
+        user_id = tweet.get("user_id_str") or tweet.get("user", {}).get("id_str")
+        if user_id and in_reply_to_user == user_id:
+            return False  # This is a self-reply (thread continuation)
+        
+        return True
 
     def map_favorites_to_claps(self, favorite_count: int) -> Optional[int]:
         """
@@ -454,6 +478,13 @@ class TwitterArchiveImporter:
                 self.stats["tweets_skipped"] += 1
                 continue
             
+            # Skip replies if exclude_replies is enabled
+            if self.exclude_replies and self.is_reply(tweet):
+                self.stats["replies_skipped"] += 1
+                if self.verbose:
+                    print(f"[{idx}/{len(tweets_data)}] ⏭️  Skipping reply: {text[:50]}...")
+                continue
+            
             # Get media files for this tweet
             media_files = media_map.get(tweet_id, [])
             
@@ -555,6 +586,7 @@ class TwitterArchiveImporter:
         print(f"  - Original tweets:        {self.stats['original_tweets_imported']}")
         print(f"  - Retweets:               {self.stats['retweets_imported']} 🔁")
         print(f"Tweets skipped (cached):    {self.stats['tweets_skipped']} ⏭️")
+        print(f"Replies skipped:            {self.stats['replies_skipped']} 💬")
         print(f"Tweets failed:              {self.stats['tweets_failed']} ❌")
         print(f"Tweets with media:          {self.stats['tweets_with_media']}")
         print(f"Media files processed:      {self.stats['media_files_processed']}")
@@ -678,6 +710,12 @@ Examples:
         "--cache-file",
         help="Path to cache file for storing migration progress",
     )
+    
+    parser.add_argument(
+        "--exclude-replies",
+        action="store_true",
+        help="Exclude replies to other users (self-replies/threads are kept)",
+    )
 
     args = parser.parse_args()
 
@@ -702,6 +740,7 @@ Examples:
         verbose=args.verbose,
         skip_ids=skip_ids,
         cache_file=args.cache_file,
+        exclude_replies=args.exclude_replies,
     )
 
     try:

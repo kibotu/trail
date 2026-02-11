@@ -55,9 +55,9 @@
             cardOptions: {
                 showSourceBadge: false,
                 canModify: (entry) => canModifyEntry(entry, sessionState),
-                isAdmin: false,
+                isAdmin: sessionState.isAdmin,
                 isLoggedIn: sessionState.isLoggedIn,
-                currentUserId: null
+                currentUserId: sessionState.userId
             }
         });
 

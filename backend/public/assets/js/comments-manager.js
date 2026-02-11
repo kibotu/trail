@@ -334,7 +334,7 @@ class CommentsManager {
                         ${comment.updated_at && comment.updated_at !== comment.created_at ? 
                             '<span class="comment-edited">• edited</span>' : ''}
                     </div>
-                    ${canModify || isLoggedIn ? `
+                    ${(canModify || (isLoggedIn && currentUserId && currentUserId !== comment.user_id)) ? `
                         <button class="comment-menu-button" data-comment-id="${comment.id}" data-no-navigate>
                             ⋯
                         </button>
