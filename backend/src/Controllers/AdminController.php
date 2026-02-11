@@ -688,4 +688,183 @@ class AdminController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
     }
+
+    /**
+     * Get paginated list of broken links
+     */
+    public static function brokenLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        // Get query parameters
+        $queryParams = $request->getQueryParams();
+        $page = isset($queryParams['page']) ? max(0, (int)$queryParams['page']) : 0;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
+        $offset = $page * $limit;
+        $errorType = $queryParams['error_type'] ?? null;
+        $includeDismissed = isset($queryParams['include_dismissed']) && $queryParams['include_dismissed'] === 'true';
+
+        // Get broken links
+        $brokenLinks = $linkHealthModel->getBrokenLinks($limit, $offset, $errorType, $includeDismissed);
+        $total = $linkHealthModel->getBrokenLinksCount($errorType, $includeDismissed);
+
+        $response->getBody()->write(json_encode([
+            'broken_links' => $brokenLinks,
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $total
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get broken link statistics
+     */
+    public static function brokenLinkStats(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        $stats = $linkHealthModel->getStats();
+
+        $response->getBody()->write(json_encode($stats));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Dismiss a broken link
+     */
+    public static function dismissBrokenLink(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        $success = $linkHealthModel->dismiss($id);
+
+        $response->getBody()->write(json_encode([
+            'success' => $success,
+            'message' => $success ? 'Link dismissed' : 'Failed to dismiss link'
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Undismiss a broken link
+     */
+    public static function undismissBrokenLink(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        $success = $linkHealthModel->undismiss($id);
+
+        $response->getBody()->write(json_encode([
+            'success' => $success,
+            'message' => $success ? 'Link undismissed' : 'Failed to undismiss link'
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Check broken links (run link health checker)
+     */
+    public static function checkBrokenLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            
+            // Get batch size from query params, or use config default
+            $queryParams = $request->getQueryParams();
+            $defaultBatchSize = $config['link_health']['batch_size'] ?? 50;
+            $batchSize = isset($queryParams['batch_size']) ? min(100, max(1, (int)$queryParams['batch_size'])) : $defaultBatchSize;
+
+            // Run the link health checker
+            $results = \Trail\Services\LinkHealthChecker::run($batchSize);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'checked' => $results['checked'],
+                'healthy' => $results['healthy'],
+                'broken' => $results['broken'],
+                'errors' => $results['errors'],
+                'message' => sprintf(
+                    "Checked %d links: %d healthy, %d broken, %d errors",
+                    $results['checked'],
+                    $results['healthy'],
+                    $results['broken'],
+                    $results['errors']
+                )
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Check broken links error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Recheck only broken/failing links
+     */
+    public static function recheckBrokenLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            
+            // Get batch size from query params, or use config default
+            $queryParams = $request->getQueryParams();
+            $defaultBatchSize = $config['link_health']['batch_size'] ?? 50;
+            $batchSize = isset($queryParams['batch_size']) ? min(100, max(1, (int)$queryParams['batch_size'])) : $defaultBatchSize;
+
+            // Run the link health checker on broken links only
+            $results = \Trail\Services\LinkHealthChecker::recheckBroken($batchSize);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'checked' => $results['checked'],
+                'healthy' => $results['healthy'],
+                'broken' => $results['broken'],
+                'errors' => $results['errors'],
+                'message' => sprintf(
+                    "Rechecked %d broken links: %d recovered, %d still broken, %d errors",
+                    $results['checked'],
+                    $results['healthy'],
+                    $results['broken'],
+                    $results['errors']
+                )
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Recheck broken links error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
 }

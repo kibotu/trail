@@ -102,6 +102,21 @@ try {
         error_log("Duplicate stats error: " . $e->getMessage());
     }
 
+    // Get broken link stats
+    $brokenLinkStats = ['total_urls' => 0, 'checked' => 0, 'healthy' => 0, 'broken' => 0, 'dismissed' => 0, 'unchecked' => 0];
+    try {
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+        $brokenLinkStats = $linkHealthModel->getStats();
+    } catch (Exception $e) {
+        error_log("Broken link stats error: " . $e->getMessage());
+    }
+
+    // Get link health config for JavaScript
+    $linkHealthConfig = [
+        'batch_size' => $config['link_health']['batch_size'] ?? 50,
+        'rate_limit_ms' => $config['link_health']['rate_limit_ms'] ?? 500
+    ];
+
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
     header('Location: /?error=' . urlencode($e->getMessage()));
@@ -169,14 +184,14 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 <div class="stat-label">Storage Size</div>
                 <div class="stat-value" style="font-size: 1.5rem;"><?= $totalDiskSizeFormatted ?></div>
                 <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">Temp: <?= $tempSizeFormatted ?></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
                     <?php if ($tempSize > 0): ?>
-                    <button onclick="clearCache()" class="btn-clear-cache" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp</button>
+                    <button onclick="clearCache()" class="btn-clear-cache" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">Clear Temp</button>
                     <?php endif; ?>
-                    <button onclick="pruneImages()" class="btn-prune-images" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                    <button onclick="pruneImages()" class="btn-prune-images" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
                         <i class="fa-solid fa-broom"></i> Prune Images
                     </button>
-                    <button onclick="pruneViews()" class="btn-prune-views" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                    <button onclick="pruneViews()" class="btn-prune-views" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
                         <i class="fa-solid fa-eye-slash"></i> Prune Views
                     </button>
                 </div>
@@ -225,6 +240,57 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 </button>
             </div>
             <?php endif; ?>
+            <div class="stat-card broken-links">
+                <div class="stat-label"><i class="fa-solid fa-link-slash"></i> Link Health</div>
+                <div class="stat-value">
+                    <?php if ($brokenLinkStats['broken'] > 0): ?>
+                        <span style="color: var(--error);"><?= number_format($brokenLinkStats['broken']) ?></span>
+                    <?php else: ?>
+                        <span style="color: var(--success);">All Healthy</span>
+                    <?php endif; ?>
+                </div>
+                <?php 
+                    $checkProgress = $brokenLinkStats['total_urls'] > 0 
+                        ? ($brokenLinkStats['checked'] / $brokenLinkStats['total_urls']) * 100 
+                        : 0;
+                ?>
+                <div class="usage-bar-container" style="margin-top: 0.5rem;">
+                    <div class="usage-bar <?= $checkProgress >= 100 ? '' : 'warning' ?>" 
+                         style="width: <?= min(100, $checkProgress) ?>%"></div>
+                </div>
+                <div class="usage-details" style="margin-top: 0.25rem;">
+                    <span><?= number_format($brokenLinkStats['checked']) ?> / <?= number_format($brokenLinkStats['total_urls']) ?> checked</span>
+                    <span><?= number_format($checkProgress, 1) ?>%</span>
+                </div>
+                <?php if ($brokenLinkStats['unchecked'] > 0): ?>
+                <div class="stat-label" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">
+                    <?= number_format($brokenLinkStats['unchecked']) ?> unchecked
+                </div>
+                <?php endif; ?>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button onclick="checkBrokenLinks()" class="btn-check-links" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-rotate"></i> Check Links
+                    </button>
+                    <?php 
+                    // Count links with at least 1 failure (not just fully broken)
+                    $failingLinksCount = 0;
+                    try {
+                        $stmt = $db->query("SELECT COUNT(*) as count FROM trail_link_health WHERE consecutive_failures >= 1 AND is_dismissed = 0");
+                        $failingLinksCount = (int) $stmt->fetch()['count'];
+                    } catch (Exception $e) {
+                        // Ignore
+                    }
+                    ?>
+                    <?php if ($failingLinksCount > 0): ?>
+                    <button onclick="recheckBrokenLinks()" class="btn-recheck-broken" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Recheck Failing (<?= $failingLinksCount ?>)
+                    </button>
+                    <button onclick="switchView('broken-links')" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-magnifying-glass"></i> View Failing
+                    </button>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
 
         <div class="section-header">
@@ -238,6 +304,12 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                         <i class="fa-solid fa-clone"></i> Duplicates
                         <?php if ($duplicateStats['total_duplicate_groups'] > 0): ?>
                         <span class="dupe-badge"><?= $duplicateStats['total_duplicate_groups'] ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <button id="view-broken-links" class="view-mode-btn" onclick="switchView('broken-links')">
+                        <i class="fa-solid fa-link-slash"></i> Broken Links
+                        <?php if ($brokenLinkStats['broken'] > 0): ?>
+                        <span class="dupe-badge"><?= $brokenLinkStats['broken'] ?></span>
                         <?php endif; ?>
                     </button>
                 </div>
@@ -258,6 +330,21 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                         <option value="url">Same URL Preview</option>
                         <option value="text_url">Same URL in Text</option>
                     </select>
+                </div>
+                <div id="broken-links-filters" style="display: none;">
+                    <label for="error-type-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Error type:</label>
+                    <select id="error-type-filter" class="source-filter-select">
+                        <option value="">All Types</option>
+                        <option value="http_error">HTTP Error</option>
+                        <option value="timeout">Timeout</option>
+                        <option value="dns_error">DNS Error</option>
+                        <option value="ssl_error">SSL Error</option>
+                        <option value="connection_refused">Connection Refused</option>
+                        <option value="redirect_loop">Redirect Loop</option>
+                    </select>
+                    <label style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                        <input type="checkbox" id="hide-dismissed" checked> Hide dismissed
+                    </label>
                 </div>
             </div>
         </div>
@@ -286,6 +373,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <!-- Duplicate groups will be loaded here -->
         </div>
 
+        <div id="broken-links-container" class="entries-container" style="display: none;">
+            <!-- Broken links will be loaded here -->
+        </div>
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p style="margin-top: 1rem;">Loading...</p>
@@ -300,11 +391,21 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
             <p>No duplicate entries found. Everything is clean!</p>
         </div>
+
+        <div id="empty-broken-links-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
+            <p>No broken links found. All links are healthy!</p>
+        </div>
     </div>
 
+    <script>
+        // Link health config from backend
+        window.LINK_HEALTH_CONFIG = <?= json_encode($linkHealthConfig) ?>;
+    </script>
     <script src="/assets/js/config.js"></script>
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/card-template.js"></script>
     <script src="/assets/js/admin-dashboard.js"></script>
+    <script src="/assets/js/admin-broken-links.js"></script>
 </body>
 </html>

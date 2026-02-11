@@ -531,6 +531,12 @@ $app->group('/api/admin', function ($group) {
     $group->get('/duplicates/stats', [AdminController::class, 'duplicateStats']);
     $group->post('/duplicates/resolve', [AdminController::class, 'resolveDuplicates']);
     $group->post('/duplicates/resolve-all', [AdminController::class, 'resolveAllDuplicates']);
+    $group->get('/broken-links', [AdminController::class, 'brokenLinks']);
+    $group->get('/broken-links/stats', [AdminController::class, 'brokenLinkStats']);
+    $group->post('/broken-links/{id}/dismiss', [AdminController::class, 'dismissBrokenLink']);
+    $group->post('/broken-links/{id}/undismiss', [AdminController::class, 'undismissBrokenLink']);
+    $group->post('/broken-links/check', [AdminController::class, 'checkBrokenLinks']);
+    $group->post('/broken-links/recheck', [AdminController::class, 'recheckBrokenLinks']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes

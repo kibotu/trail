@@ -445,31 +445,41 @@ function switchView(view) {
 
     const entriesContainer = document.getElementById('entries-container');
     const duplicatesContainer = document.getElementById('duplicates-container');
+    const brokenLinksContainer = document.getElementById('broken-links-container');
     const entriesFilters = document.getElementById('entries-filters');
     const duplicatesFilters = document.getElementById('duplicates-filters');
+    const brokenLinksFilters = document.getElementById('broken-links-filters');
     const bulkActions = document.getElementById('bulk-actions');
     const emptyState = document.getElementById('empty-state');
     const emptyDuplicatesState = document.getElementById('empty-duplicates-state');
+    const emptyBrokenLinksState = document.getElementById('empty-broken-links-state');
     const sectionTitle = document.getElementById('section-title');
 
     // Toggle active button
     document.getElementById('view-all').classList.toggle('active', view === 'all');
     document.getElementById('view-duplicates').classList.toggle('active', view === 'duplicates');
+    document.getElementById('view-broken-links').classList.toggle('active', view === 'broken-links');
 
     if (view === 'all') {
         entriesContainer.style.display = '';
         duplicatesContainer.style.display = 'none';
+        brokenLinksContainer.style.display = 'none';
         entriesFilters.style.display = '';
         duplicatesFilters.style.display = 'none';
+        brokenLinksFilters.style.display = 'none';
         bulkActions.style.display = 'none';
         emptyDuplicatesState.style.display = 'none';
+        emptyBrokenLinksState.style.display = 'none';
         sectionTitle.textContent = 'All Entries';
-    } else {
+    } else if (view === 'duplicates') {
         entriesContainer.style.display = 'none';
         duplicatesContainer.style.display = '';
+        brokenLinksContainer.style.display = 'none';
         entriesFilters.style.display = 'none';
         duplicatesFilters.style.display = '';
+        brokenLinksFilters.style.display = 'none';
         emptyState.style.display = 'none';
+        emptyBrokenLinksState.style.display = 'none';
         sectionTitle.textContent = 'Duplicate Entries';
 
         // Load duplicates if not already loaded
@@ -477,6 +487,24 @@ function switchView(view) {
             duplicatePage = 0;
             duplicateHasMore = true;
             loadDuplicates();
+        }
+    } else if (view === 'broken-links') {
+        entriesContainer.style.display = 'none';
+        duplicatesContainer.style.display = 'none';
+        brokenLinksContainer.style.display = '';
+        entriesFilters.style.display = 'none';
+        duplicatesFilters.style.display = 'none';
+        brokenLinksFilters.style.display = '';
+        bulkActions.style.display = 'none';
+        emptyState.style.display = 'none';
+        emptyDuplicatesState.style.display = 'none';
+        sectionTitle.textContent = 'Broken Links';
+
+        // Load broken links if not already loaded
+        if (brokenLinksContainer.children.length === 0) {
+            brokenLinksPage = 0;
+            brokenLinksHasMore = true;
+            loadBrokenLinks();
         }
     }
 }

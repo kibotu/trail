@@ -5613,3 +5613,104 @@ main {
         font-size: 2.5rem;
     }
 }
+
+/* ===== Broken Links Cards ===== */
+.broken-link-card {
+    cursor: default !important;
+}
+
+.broken-link-card:hover {
+    background: var(--bg-secondary) !important;
+}
+
+.broken-link-card .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.broken-link-card .entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.broken-link-card .entry-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.error-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--error);
+    color: white;
+}
+
+.error-badge.warning {
+    background: var(--warning);
+}
+
+.error-badge.danger {
+    background: var(--error);
+}
+
+.broken-link-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.broken-link-url {
+    font-size: 0.875rem;
+    word-break: break-all;
+}
+
+.broken-link-url a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.broken-link-url a:hover {
+    color: var(--primary);
+}
+
+.broken-link-url a:visited {
+    color: var(--text-secondary);
+}
+
+.broken-link-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.broken-link-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.broken-link-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.broken-link-error {
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid var(--error);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
