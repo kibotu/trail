@@ -35,8 +35,10 @@ class SecurityMiddleware implements MiddlewareInterface
         $path = $request->getUri()->getPath();
         $publicPaths = ['/', '/api', '/api/health', '/api/entries'];
         
-        // Allow RSS feeds (starts with /api/rss) and public entries
-        if (in_array($path, $publicPaths) || str_starts_with($path, '/api/rss')) {
+        // Allow RSS feeds (starts with /api/rss), public entries, and preview images
+        if (in_array($path, $publicPaths) || 
+            str_starts_with($path, '/api/rss') || 
+            str_starts_with($path, '/api/preview-image/')) {
             return $handler->handle($request);
         }
 

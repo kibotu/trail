@@ -14,30 +14,20 @@
     $description = mb_strlen($entryText) > 200 
         ? mb_substr($entryText, 0, 200) . '...' 
         : $entryText;
-    $pageTitle = htmlspecialchars("@{$displayName} on Trail" . ($entryText ? ": \"{$description}\"" : ''));
+    
+    // Better title: just "@username on Trail" without redundant content
+    $pageTitle = htmlspecialchars("@{$displayName} on Trail");
     $ogDescription = htmlspecialchars($description);
     $ogUrl = htmlspecialchars("{$baseUrl}/status/{$hashId}");
     
-    // Determine OG image
-    $ogImage = null;
-    $twitterCard = 'summary';
-    
-    // Priority: preview image endpoint > entry images > app icon
-    if (!empty($entry['text']) || !empty($entry['images'])) {
-        $ogImage = htmlspecialchars("{$baseUrl}/api/preview-image/{$hashId}.png");
-        $twitterCard = 'summary_large_image';
-    } elseif (!empty($entry['images']) && is_array($entry['images'])) {
-        $firstImage = $entry['images'][0];
-        $ogImage = htmlspecialchars($baseUrl . $firstImage['url']);
-        $twitterCard = 'summary_large_image';
-    } else {
-        $ogImage = htmlspecialchars("{$baseUrl}/assets/app-icon.webp");
-    }
+    // Always use generated preview card for Trail entry pages
+    // This ensures nice preview cards when sharing Trail URLs on other platforms
+    $ogImage = htmlspecialchars("{$baseUrl}/api/preview-image/{$hashId}.png");
+    $twitterCard = 'summary_large_image';
     ?>
     
     <!-- Open Graph meta tags -->
     <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Trail">
     <meta property="og:title" content="<?= $pageTitle ?>">
     <meta property="og:description" content="<?= $ogDescription ?>">
     <meta property="og:url" content="<?= $ogUrl ?>">

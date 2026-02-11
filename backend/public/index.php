@@ -401,18 +401,40 @@ $app->get('/api/preview-image/{id}.png', function ($request, $response, array $a
         // Generate or retrieve cached preview
         // Note: Domain points to backend/public/, so paths are relative to public/
         $cacheDir = __DIR__ . '/../storage/preview-cache';
-        $fontPath = __DIR__ . '/assets/fonts/inter/Inter-Regular.ttf';
-        $fontBoldPath = __DIR__ . '/assets/fonts/inter/Inter-Bold.ttf';
         
-        // Verify paths exist
-        if (!file_exists($fontPath)) {
-            error_log("Preview image: Font not found at {$fontPath}");
-            $response->getBody()->write('Font files not found');
-            return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+        // Try multiple font paths (TTF fonts, then system fonts)
+        $fontPaths = [
+            __DIR__ . '/assets/fonts/inter/Inter-Regular.ttf',
+            __DIR__ . '/assets/fontawesome/webfonts/fa-regular-400.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/TTF/DejaVuSans.ttf',
+        ];
+        
+        $fontBoldPaths = [
+            __DIR__ . '/assets/fonts/inter/Inter-Bold.ttf',
+            __DIR__ . '/assets/fontawesome/webfonts/fa-solid-900.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
+        ];
+        
+        $fontPath = null;
+        foreach ($fontPaths as $path) {
+            if (file_exists($path) && filesize($path) > 1000) {
+                $fontPath = $path;
+                break;
+            }
         }
         
-        if (!file_exists($fontBoldPath)) {
-            error_log("Preview image: Bold font not found at {$fontBoldPath}");
+        $fontBoldPath = null;
+        foreach ($fontBoldPaths as $path) {
+            if (file_exists($path) && filesize($path) > 1000) {
+                $fontBoldPath = $path;
+                break;
+            }
+        }
+        
+        if (!$fontPath || !$fontBoldPath) {
+            error_log("Preview image: No valid fonts found");
             $response->getBody()->write('Font files not found');
             return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
         }
