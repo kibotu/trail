@@ -91,56 +91,62 @@ class PreviewImageService
     }
     
     /**
-     * Generate card matching the existing link-preview-card style
+     * Generate card matching the existing link-preview-card style on status page
      * Horizontal layout: square image on left, content on right
+     * Fixed 1200x630 size for OG images
      */
     private function generateUrlPreviewCard(string $outputPath, array $entry): void
     {
+        // Fixed OG image size
+        $width = 1200;
+        $height = 630;
+        
         // Create canvas
-        $img = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
+        $img = imagecreatetruecolor($width, $height);
         if ($img === false) {
             throw new RuntimeException("Failed to create image canvas");
         }
         
         // Allocate colors matching CSS variables
-        $bgColor = imagecolorallocate($img, ...self::BG_COLOR);  // var(--bg-tertiary)
-        $textColor = imagecolorallocate($img, ...self::TEXT_COLOR);  // var(--text-primary)
-        $textSecondary = imagecolorallocate($img, ...self::MUTED_COLOR);  // var(--text-secondary)
-        $accentColor = imagecolorallocate($img, ...self::ACCENT_COLOR);  // var(--accent)
-        $borderColor = imagecolorallocate($img, 51, 65, 85);  // var(--border)
+        $bgColor = imagecolorallocate($img, 30, 41, 59);  // #1e293b - var(--bg-tertiary)
+        $textColor = imagecolorallocate($img, 241, 245, 249);  // #f1f5f9 - var(--text-primary)
+        $textSecondary = imagecolorallocate($img, 148, 163, 184);  // #94a3b8 - var(--text-secondary)
+        $accentColor = imagecolorallocate($img, 59, 130, 246);  // #3b82f6 - var(--accent)
+        $borderColor = imagecolorallocate($img, 51, 65, 85);  // #334155 - var(--border)
         
         // Fill background
-        imagefilledrectangle($img, 0, 0, self::WIDTH, self::HEIGHT, $bgColor);
+        imagefilledrectangle($img, 0, 0, $width, $height, $bgColor);
         
-        // Draw border around entire card (1px)
-        imagerectangle($img, 0, 0, self::WIDTH - 1, self::HEIGHT - 1, $borderColor);
+        // Draw border
+        imagerectangle($img, 0, 0, $width - 1, $height - 1, $borderColor);
         
-        // Define layout matching CSS: image on left (square), content on right
-        $imageSize = 300;  // Square image (scaled up from 120px for 1200px width)
-        $imageX = self::PADDING;
-        $imageY = self::PADDING;
-        $contentX = $imageX + $imageSize + self::PADDING;
-        $contentWidth = self::WIDTH - $contentX - self::PADDING;
+        // Layout: minimal padding, larger image
+        $padding = 24;  // Reduced from 40
+        $imageSize = 300;  // Increased from 240 to match status page better
+        $gap = 24;  // Reduced from 30
         
-        // Load and draw preview image on the left (square)
+        $imageX = $padding;
+        $imageY = ($height - $imageSize) / 2;  // Center vertically
+        $contentX = $imageX + $imageSize + $gap;
+        $contentWidth = $width - $contentX - $padding;  // Proper right padding
+        
+        // Load and draw preview image on the left (square, object-fit: cover)
         if (!empty($entry['preview_image'])) {
             try {
                 $previewImg = $this->loadImageFromUrl($entry['preview_image']);
                 if ($previewImg) {
-                    // Draw square image with object-fit: cover behavior
                     $srcW = imagesx($previewImg);
                     $srcH = imagesy($previewImg);
                     
-                    // Calculate crop to maintain aspect ratio (cover behavior)
-                    $srcAspect = $srcW / $srcH;
-                    if ($srcAspect > 1) {
-                        // Wider than tall - crop width
+                    // Calculate crop for square (object-fit: cover)
+                    if ($srcW > $srcH) {
+                        // Wider - crop width
                         $newSrcW = $srcH;
                         $srcX = ($srcW - $newSrcW) / 2;
                         $srcY = 0;
                         $newSrcH = $srcH;
                     } else {
-                        // Taller than wide - crop height
+                        // Taller - crop height
                         $newSrcH = $srcW;
                         $srcY = ($srcH - $newSrcH) / 2;
                         $srcX = 0;
@@ -149,7 +155,7 @@ class PreviewImageService
                     
                     imagecopyresampled(
                         $img, $previewImg,
-                        $imageX, $imageY,
+                        (int)$imageX, (int)$imageY,
                         (int)$srcX, (int)$srcY,
                         $imageSize, $imageSize,
                         (int)$newSrcW, (int)$newSrcH
@@ -162,47 +168,63 @@ class PreviewImageService
             }
         }
         
-        // Content area (right side)
-        $y = $imageY + 30;
+        // Content area (right side) - vertically centered
+        $y = $imageY + 10;  // Small offset from top of image
         
-        // Draw preview title (font-weight: 600, 2 lines max)
+        // Title: bold, 32px, 2 lines max
         $previewTitle = $entry['preview_title'] ?? '';
         if (!empty($previewTitle)) {
-            $lines = $this->wordWrap($previewTitle, 50, $contentWidth);
+            $titleFontSize = 32;
+            // Use pixel-based wrapping for accurate width control
+            $lines = $this->wordWrapByPixels($previewTitle, $this->fontBoldPath, $titleFontSize, $contentWidth);
             $maxLines = 2;
             $lineCount = 0;
+            $lineHeight = $titleFontSize * 1.4;
             
             foreach ($lines as $line) {
-                if ($lineCount >= $maxLines) break;
-                $this->drawText($img, $line, $this->fontBoldPath, 32, $textColor, $contentX, $y);
-                $y += 44;
+                if ($lineCount >= $maxLines) {
+                    // Truncate last line with ellipsis if needed
+                    if ($lineCount === $maxLines - 1 && count($lines) > $maxLines) {
+                        $line = rtrim($line) . '...';
+                    }
+                    break;
+                }
+                $this->drawText($img, $line, $this->fontBoldPath, $titleFontSize, $textColor, (int)$contentX, (int)$y);
+                $y += $lineHeight;
                 $lineCount++;
             }
-            $y += 20;
+            $y += 12;
         }
         
-        // Draw preview description (3 lines max, smaller, secondary color)
+        // Description: regular, 26px, 3 lines max
         $previewDesc = $entry['preview_description'] ?? '';
         if (!empty($previewDesc)) {
-            $lines = $this->wordWrap($previewDesc, 60, $contentWidth);
+            $descFontSize = 26;
+            $lines = $this->wordWrapByPixels($previewDesc, $this->fontPath, $descFontSize, $contentWidth);
             $maxLines = 3;
             $lineCount = 0;
+            $lineHeight = $descFontSize * 1.5;
             
             foreach ($lines as $line) {
-                if ($lineCount >= $maxLines) break;
-                $this->drawText($img, $line, $this->fontPath, 26, $textSecondary, $contentX, $y);
-                $y += 38;
+                if ($lineCount >= $maxLines) {
+                    // Truncate last line with ellipsis if needed
+                    if ($lineCount === $maxLines - 1 && count($lines) > $maxLines) {
+                        $line = rtrim($line) . '...';
+                    }
+                    break;
+                }
+                $this->drawText($img, $line, $this->fontPath, $descFontSize, $textSecondary, (int)$contentX, (int)$y);
+                $y += $lineHeight;
                 $lineCount++;
             }
-            $y += 20;
+            $y += 12;
         }
         
-        // Draw site name/URL at bottom with link icon (matching .link-preview-url)
+        // Site name: 24px, accent color
         $siteName = $entry['preview_site_name'] ?? parse_url($entry['preview_url'] ?? '', PHP_URL_HOST) ?? '';
         if (!empty($siteName)) {
-            // Draw link icon (🔗) and site name
-            $urlY = self::HEIGHT - self::PADDING - 30;
-            $this->drawText($img, '🔗 ' . $siteName, $this->fontPath, 24, $accentColor, $contentX, $urlY);
+            $urlFontSize = 24;
+            $this->drawText($img, '• ' . $siteName, $this->fontPath, $urlFontSize, $accentColor, (int)$contentX, (int)$y);
         }
         
         // Save as PNG
@@ -318,16 +340,16 @@ class PreviewImageService
     }
     
     /**
-     * Word wrap text to fit within width
+     * Wrap text to fit within specified width using actual pixel measurements
      * 
      * @param string $text Text to wrap
-     * @param int $maxCharsPerLine Approximate max chars per line
-     * @param int $maxWidth Max pixel width (unused for now, using char count)
-     * @return array Lines of text
+     * @param string $fontPath Path to font file
+     * @param int $fontSize Font size in pixels
+     * @param int $maxWidth Maximum width in pixels
+     * @return array Array of text lines
      */
-    private function wordWrap(string $text, int $maxCharsPerLine, int $maxWidth): array
+    private function wordWrapByPixels(string $text, string $fontPath, int $fontSize, int $maxWidth): array
     {
-        // Simple word wrap by character count
         $words = explode(' ', $text);
         $lines = [];
         $currentLine = '';
@@ -335,7 +357,24 @@ class PreviewImageService
         foreach ($words as $word) {
             $testLine = $currentLine === '' ? $word : $currentLine . ' ' . $word;
             
-            if (mb_strlen($testLine) <= $maxCharsPerLine) {
+            // Measure actual text width
+            $bbox = imagettfbbox($fontSize, 0, $fontPath, $testLine);
+            if ($bbox === false) {
+                // Fallback to character-based wrapping if measurement fails
+                if (mb_strlen($testLine) <= 50) {
+                    $currentLine = $testLine;
+                } else {
+                    if ($currentLine !== '') {
+                        $lines[] = $currentLine;
+                    }
+                    $currentLine = $word;
+                }
+                continue;
+            }
+            
+            $textWidth = abs($bbox[4] - $bbox[0]);
+            
+            if ($textWidth <= $maxWidth) {
                 $currentLine = $testLine;
             } else {
                 if ($currentLine !== '') {
@@ -350,6 +389,20 @@ class PreviewImageService
         }
         
         return $lines;
+    }
+    
+    /**
+     * Word wrap text to fit within width (legacy method)
+     * 
+     * @param string $text Text to wrap
+     * @param int $maxCharsPerLine Approximate max chars per line
+     * @param int $maxWidth Max pixel width
+     * @return array Lines of text
+     */
+    private function wordWrap(string $text, int $maxCharsPerLine, int $maxWidth): array
+    {
+        // Use pixel-based wrapping for accuracy
+        return $this->wordWrapByPixels($text, $this->fontPath, 30, $maxWidth);
     }
     
     /**
@@ -379,7 +432,8 @@ class PreviewImageService
     {
         // Sanitize hash ID to prevent directory traversal
         $safeHashId = preg_replace('/[^a-zA-Z0-9]/', '', $hashId);
-        return "{$this->cacheDir}/{$safeHashId}.png";
+        // Add version to cache key to bust old cached images
+        return "{$this->cacheDir}/{$safeHashId}_v2.png";
     }
     
     /**
