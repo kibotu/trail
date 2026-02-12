@@ -172,9 +172,25 @@ function initShaderBackground(canvasElement, options = {}) {
 
         void main() {
             time = u_time;
-            vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-            vec2 v = -1.0+2.0*uv;
-            v.x *= u_resolution.x/u_resolution.y;
+            
+            // Clamp the visible shader to a centered 1920px region
+            float maxWidth = 1920.0;
+            float effectiveWidth = min(u_resolution.x, maxWidth);
+            float sideMargin = (u_resolution.x - effectiveWidth) * 0.5;
+            
+            // Pixels outside the centered region are black
+            if (gl_FragCoord.x < sideMargin || gl_FragCoord.x > u_resolution.x - sideMargin) {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                return;
+            }
+            
+            // Remap UVs to the clamped viewport so the scene never stretches beyond 1920px
+            vec2 uv = vec2(
+                (gl_FragCoord.x - sideMargin) / effectiveWidth,
+                gl_FragCoord.y / u_resolution.y
+            );
+            vec2 v = -1.0 + 2.0 * uv;
+            v.x *= effectiveWidth / u_resolution.y;
             
             vec3 ro = vec3(-1.5,-.4,1.2);
             vec3 rd = normalize(vec3(v, 2.5));
@@ -209,6 +225,15 @@ function initShaderBackground(canvasElement, options = {}) {
             
             float vignetting = pow(uv.x*uv.y*(1.-uv.x)*(1.-uv.y), .3)*2.5;
             col *= vignetting;
+            
+            // Edge fade: gradually appears from 1600px, fully black edges at 1920px+
+            float fadeIntensity = smoothstep(1600.0, 1920.0, u_resolution.x);
+            float edgeFade = 400.0 / effectiveWidth;
+            float fadeL = smoothstep(0.0, edgeFade, uv.x);
+            float fadeR = smoothstep(0.0, edgeFade, 1.0 - uv.x);
+            float fade = fadeL * fadeR;
+            fade = pow(fade, 0.6);
+            col *= mix(1.0, fade, fadeIntensity);
             
             gl_FragColor = vec4(col, 1.0);
         }
