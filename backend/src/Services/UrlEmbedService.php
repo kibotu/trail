@@ -93,6 +93,137 @@ class UrlEmbedService
     }
 
     /**
+     * Resolve a short URL to its final destination
+     * 
+     * Uses cURL to follow redirects and return the final URL.
+     * Returns null if resolution fails, allowing fallback to the original URL.
+     * 
+     * @param string $url The short URL to resolve
+     * @return string|null The resolved final URL, or null if resolution failed
+     */
+    public static function resolveShortUrl(string $url): ?string
+    {
+        try {
+            // Validate URL format
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                return null;
+            }
+            
+            $parsed = parse_url($url);
+            if (!isset($parsed['scheme']) || !in_array(strtolower($parsed['scheme']), ['http', 'https'])) {
+                return null;
+            }
+            
+            // Block localhost/private IPs (SSRF protection)
+            $host = $parsed['host'] ?? '';
+            if (in_array(strtolower($host), ['localhost', '127.0.0.1', '::1', '0.0.0.0'])) {
+                return null;
+            }
+            
+            $ch = curl_init($url);
+            
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_NOBODY => true,  // HEAD request
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrailBot/1.0; +https://trail.app)',
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            ]);
+            
+            curl_exec($ch);
+            
+            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+            $curlError = curl_errno($ch);
+            
+            curl_close($ch);
+            
+            // If HEAD fails with 405, try GET
+            if ($statusCode === 405) {
+                return self::resolveShortUrlWithGet($url);
+            }
+            
+            // Check for errors or non-success status
+            if ($curlError !== 0 || $statusCode < 200 || $statusCode >= 400) {
+                return null;
+            }
+            
+            // Validate final URL
+            if (!filter_var($finalUrl, FILTER_VALIDATE_URL)) {
+                return null;
+            }
+            
+            return $finalUrl;
+            
+        } catch (\Throwable $e) {
+            error_log("UrlEmbedService::resolveShortUrl: Error resolving {$url}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Resolve short URL using GET request (fallback when HEAD is not supported)
+     */
+    private static function resolveShortUrlWithGet(string $url): ?string
+    {
+        try {
+            $ch = curl_init($url);
+            
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrailBot/1.0; +https://trail.app)',
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                // Limit body size
+                CURLOPT_BUFFERSIZE => 128,
+                CURLOPT_NOPROGRESS => false,
+                CURLOPT_PROGRESSFUNCTION => function($resource, $download_size, $downloaded, $upload_size, $uploaded) {
+                    return ($downloaded > 8192) ? 1 : 0;
+                },
+            ]);
+            
+            curl_exec($ch);
+            
+            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+            $curlError = curl_errno($ch);
+            
+            curl_close($ch);
+            
+            // CURLE_ABORTED_BY_CALLBACK is expected when we stop after 8KB
+            if ($curlError !== 0 && $curlError !== CURLE_ABORTED_BY_CALLBACK) {
+                return null;
+            }
+            
+            if ($statusCode < 200 || $statusCode >= 400) {
+                return null;
+            }
+            
+            if (!filter_var($finalUrl, FILTER_VALIDATE_URL)) {
+                return null;
+            }
+            
+            return $finalUrl;
+            
+        } catch (\Throwable $e) {
+            error_log("UrlEmbedService::resolveShortUrlWithGet: Error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Extract the first URL from text and fetch its metadata (legacy method)
      * 
      * @deprecated Use extractAndGetPreviewId() instead for caching support
@@ -162,9 +293,10 @@ class UrlEmbedService
      * Get or fetch URL preview ID with cache-first strategy
      * 
      * 1. Normalize the URL
-     * 2. Check if preview exists in cache (by URL hash)
-     * 3. If cached, return the preview ID
-     * 4. If not cached, fetch from API and store in cache
+     * 2. Resolve short URLs to their final destination (if applicable)
+     * 3. Check if preview exists in cache (by URL hash)
+     * 4. If cached, return the preview ID
+     * 5. If not cached, fetch from API and store in cache
      * 
      * @param string $url The URL to get preview for
      * @return int|null Preview ID or null if fetch failed
@@ -178,8 +310,21 @@ class UrlEmbedService
         }
 
         try {
-            // Normalize URL for consistent caching
+            // Normalize URL first
             $normalized = self::normalizeUrl($url);
+
+            // Resolve short URLs to their final destination after normalization
+            if (ShortLinkResolver::isShortUrl($normalized)) {
+                $resolvedUrl = self::resolveShortUrl($normalized);
+                if ($resolvedUrl !== null && $resolvedUrl !== $normalized) {
+                    error_log("UrlEmbedService::getOrFetchPreviewId: Resolved short URL {$normalized} -> {$resolvedUrl}");
+                    // Re-normalize the resolved URL
+                    $normalized = self::normalizeUrl($resolvedUrl);
+                } else {
+                    error_log("UrlEmbedService::getOrFetchPreviewId: Failed to resolve short URL {$normalized}, using as-is");
+                }
+            }
+
             $urlHash = UrlPreview::hashUrl($normalized);
             
             // 1. Check cache first

@@ -6470,6 +6470,86 @@ main {
 }
 
 /* ============================================
+   SHORT LINKS STYLES
+   ============================================ */
+
+.short-link-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.status-badge.pending {
+    background: var(--primary);
+    color: white;
+}
+
+.status-badge.failed {
+    background: var(--warning);
+    color: white;
+}
+
+.status-badge.resolved {
+    background: var(--success);
+    color: white;
+}
+
+.short-link-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.short-link-url {
+    font-size: 0.875rem;
+    word-break: break-all;
+}
+
+.short-link-url a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.short-link-url a:hover {
+    color: var(--primary);
+}
+
+.short-link-url a:visited {
+    color: var(--text-secondary);
+}
+
+.short-link-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.short-link-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.short-link-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* ============================================
    TAGS MANAGEMENT STYLES
    ============================================ */
 

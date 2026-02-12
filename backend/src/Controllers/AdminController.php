@@ -876,4 +876,97 @@ class AdminController
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
     }
+
+    /**
+     * Get short link statistics
+     */
+    public static function shortLinkStats(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $urlPreviewModel = new \Trail\Models\UrlPreview($db);
+        
+        $shortenerDomains = \Trail\Services\ShortLinkResolver::getShortenerDomains();
+        $stats = $urlPreviewModel->getShortLinkStats($shortenerDomains);
+
+        $response->getBody()->write(json_encode($stats));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get paginated list of short links
+     */
+    public static function shortLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $urlPreviewModel = new \Trail\Models\UrlPreview($db);
+
+        // Get query parameters
+        $queryParams = $request->getQueryParams();
+        $page = isset($queryParams['page']) ? max(0, (int)$queryParams['page']) : 0;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 20;
+        $offset = $page * $limit;
+
+        $shortenerDomains = \Trail\Services\ShortLinkResolver::getShortenerDomains();
+        $shortLinks = $urlPreviewModel->getShortLinks($shortenerDomains, $limit, $offset);
+        $stats = $urlPreviewModel->getShortLinkStats($shortenerDomains);
+
+        $response->getBody()->write(json_encode([
+            'short_links' => $shortLinks,
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $stats['total']
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Resolve short links (run short link resolver)
+     */
+    public static function resolveShortLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            
+            // Get batch size from query params, or use config default
+            $queryParams = $request->getQueryParams();
+            $defaultBatchSize = $config['short_link_resolver']['batch_size'] ?? 1000;
+            $batchSize = isset($queryParams['batch_size']) ? min(100, max(1, (int)$queryParams['batch_size'])) : $defaultBatchSize;
+
+            // Run the short link resolver
+            $results = \Trail\Services\ShortLinkResolver::run($batchSize);
+
+            $response->getBody()->write(json_encode([
+                'success' => true,
+                'processed' => $results['processed'],
+                'resolved' => $results['resolved'],
+                'failed' => $results['failed'],
+                'skipped' => $results['skipped'],
+                'errors' => $results['errors'],
+                'message' => sprintf(
+                    "Processed %d short links: %d resolved, %d failed, %d skipped, %d errors",
+                    $results['processed'],
+                    $results['resolved'],
+                    $results['failed'],
+                    $results['skipped'],
+                    $results['errors']
+                )
+            ]));
+            
+            return $response->withHeader('Content-Type', 'application/json');
+            
+        } catch (\Throwable $e) {
+            error_log("Resolve short links error: " . $e->getMessage());
+            
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]));
+            
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
 }

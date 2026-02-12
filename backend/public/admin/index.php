@@ -117,6 +117,22 @@ try {
         'rate_limit_ms' => $config['link_health']['rate_limit_ms'] ?? 500
     ];
 
+    // Get short link stats
+    $shortLinkStats = ['total' => 0, 'pending' => 0, 'failed' => 0, 'oldest_failure' => null];
+    try {
+        $urlPreviewModel = new \Trail\Models\UrlPreview($db);
+        $shortenerDomains = \Trail\Services\ShortLinkResolver::getShortenerDomains();
+        $shortLinkStats = $urlPreviewModel->getShortLinkStats($shortenerDomains);
+    } catch (Exception $e) {
+        error_log("Short link stats error: " . $e->getMessage());
+    }
+
+    // Get short link resolver config for JavaScript
+    $shortLinkConfig = [
+        'batch_size' => $config['short_link_resolver']['batch_size'] ?? 1000,
+        'rate_limit_ms' => $config['short_link_resolver']['rate_limit_ms'] ?? 500
+    ];
+
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
     header('Location: /?error=' . urlencode($e->getMessage()));
@@ -291,6 +307,28 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <?php endif; ?>
                 </div>
             </div>
+            <?php if ($shortLinkStats['total'] > 0): ?>
+            <div class="stat-card short-links">
+                <div class="stat-label"><i class="fa-solid fa-compress"></i> Short Links</div>
+                <div class="stat-value"><?= number_format($shortLinkStats['total']) ?></div>
+                <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                    <?= number_format($shortLinkStats['pending']) ?> pending, <?= number_format($shortLinkStats['failed']) ?> failed
+                </div>
+                <?php if ($shortLinkStats['oldest_failure']): ?>
+                <div class="stat-label" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">
+                    Oldest failure: <?= date('M j, Y', strtotime($shortLinkStats['oldest_failure'])) ?>
+                </div>
+                <?php endif; ?>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button onclick="resolveShortLinks()" class="btn-resolve-short-links" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Resolve Short Links
+                    </button>
+                    <button onclick="switchView('short-links')" style="width: 100%; padding: 0.25rem 0.75rem; font-size: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                        <i class="fa-solid fa-magnifying-glass"></i> View Short Links
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="section-header">
@@ -315,6 +353,12 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <button id="view-tags" class="view-mode-btn" onclick="switchView('tags')">
                         <i class="fa-solid fa-tags"></i> Tags
                     </button>
+                    <?php if ($shortLinkStats['total'] > 0): ?>
+                    <button id="view-short-links" class="view-mode-btn" onclick="switchView('short-links')">
+                        <i class="fa-solid fa-compress"></i> Short Links
+                        <span class="dupe-badge"><?= $shortLinkStats['total'] ?></span>
+                    </button>
+                    <?php endif; ?>
                 </div>
                 <div id="entries-filters">
                     <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Source:</label>
@@ -358,6 +402,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <label for="tags-search" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Search tags:</label>
                     <input type="text" id="tags-search" class="source-filter-select" placeholder="Search..." style="width: 200px;">
                 </div>
+                <div id="short-links-filters" style="display: none;">
+                    <label style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Short URLs (t.co, bit.ly, etc.) that need to be resolved to their final destinations
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -393,6 +442,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <!-- Tags will be loaded here -->
         </div>
 
+        <div id="short-links-container" class="entries-container" style="display: none;">
+            <!-- Short links will be loaded here -->
+        </div>
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p style="margin-top: 1rem;">Loading...</p>
@@ -417,11 +470,18 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="empty-state-icon"><i class="fa-solid fa-tags"></i></div>
             <p>No tags found.</p>
         </div>
+
+        <div id="empty-short-links-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
+            <p>No short links found. All URLs are already resolved!</p>
+        </div>
     </div>
 
     <script>
         // Link health config from backend
         window.LINK_HEALTH_CONFIG = <?= json_encode($linkHealthConfig) ?>;
+        // Short link resolver config from backend
+        window.SHORT_LINK_CONFIG = <?= json_encode($shortLinkConfig) ?>;
     </script>
     <script src="/assets/js/config.js"></script>
     <script src="/assets/js/snackbar.js"></script>
@@ -429,5 +489,6 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/assets/js/admin-dashboard.js"></script>
     <script src="/assets/js/admin-broken-links.js"></script>
     <script src="/assets/js/admin-tags.js"></script>
+    <script src="/assets/js/admin-short-links.js"></script>
 </body>
 </html>

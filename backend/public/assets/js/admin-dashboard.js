@@ -454,15 +454,18 @@ function switchView(view) {
     const duplicatesContainer = document.getElementById('duplicates-container');
     const brokenLinksContainer = document.getElementById('broken-links-container');
     const tagsContainer = document.getElementById('tags-container');
+    const shortLinksContainer = document.getElementById('short-links-container');
     const entriesFilters = document.getElementById('entries-filters');
     const duplicatesFilters = document.getElementById('duplicates-filters');
     const brokenLinksFilters = document.getElementById('broken-links-filters');
     const tagsFilters = document.getElementById('tags-filters');
+    const shortLinksFilters = document.getElementById('short-links-filters');
     const bulkActions = document.getElementById('bulk-actions');
     const emptyState = document.getElementById('empty-state');
     const emptyDuplicatesState = document.getElementById('empty-duplicates-state');
     const emptyBrokenLinksState = document.getElementById('empty-broken-links-state');
     const emptyTagsState = document.getElementById('empty-tags-state');
+    const emptyShortLinksState = document.getElementById('empty-short-links-state');
     const sectionTitle = document.getElementById('section-title');
 
     // Toggle active button
@@ -470,21 +473,28 @@ function switchView(view) {
     document.getElementById('view-duplicates').classList.toggle('active', view === 'duplicates');
     document.getElementById('view-broken-links').classList.toggle('active', view === 'broken-links');
     document.getElementById('view-tags').classList.toggle('active', view === 'tags');
+    const viewShortLinksBtn = document.getElementById('view-short-links');
+    if (viewShortLinksBtn) {
+        viewShortLinksBtn.classList.toggle('active', view === 'short-links');
+    }
 
     // Hide all containers and filters first
     entriesContainer.style.display = 'none';
     duplicatesContainer.style.display = 'none';
     brokenLinksContainer.style.display = 'none';
     tagsContainer.style.display = 'none';
+    if (shortLinksContainer) shortLinksContainer.style.display = 'none';
     entriesFilters.style.display = 'none';
     duplicatesFilters.style.display = 'none';
     brokenLinksFilters.style.display = 'none';
     tagsFilters.style.display = 'none';
+    if (shortLinksFilters) shortLinksFilters.style.display = 'none';
     bulkActions.style.display = 'none';
     emptyState.style.display = 'none';
     emptyDuplicatesState.style.display = 'none';
     emptyBrokenLinksState.style.display = 'none';
     emptyTagsState.style.display = 'none';
+    if (emptyShortLinksState) emptyShortLinksState.style.display = 'none';
 
     if (view === 'all') {
         entriesContainer.style.display = '';
@@ -520,6 +530,19 @@ function switchView(view) {
         // Load tags if not already loaded
         if (typeof loadTags === 'function' && !tagsLoaded) {
             loadTags();
+        }
+    } else if (view === 'short-links') {
+        if (shortLinksContainer) shortLinksContainer.style.display = '';
+        if (shortLinksFilters) shortLinksFilters.style.display = '';
+        sectionTitle.textContent = 'Short Links';
+
+        // Load short links if not already loaded
+        if (shortLinksContainer && shortLinksContainer.children.length === 0) {
+            if (typeof loadShortLinks === 'function') {
+                shortLinksPage = 0;
+                shortLinksHasMore = true;
+                loadShortLinks();
+            }
         }
     }
 }

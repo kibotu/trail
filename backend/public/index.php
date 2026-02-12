@@ -546,6 +546,12 @@ $app->group('/api/admin', function ($group) {
     $group->post('/broken-links/{id}/undismiss', [AdminController::class, 'undismissBrokenLink']);
     $group->post('/broken-links/check', [AdminController::class, 'checkBrokenLinks']);
     $group->post('/broken-links/recheck', [AdminController::class, 'recheckBrokenLinks']);
+    
+    // Short link resolver routes
+    $group->get('/short-links', [AdminController::class, 'shortLinks']);
+    $group->get('/short-links/stats', [AdminController::class, 'shortLinkStats']);
+    $group->post('/short-links/resolve', [AdminController::class, 'resolveShortLinks']);
+    
     $group->put('/entries/tags', [TagController::class, 'batchSetTags']);
     
     // Tag management routes
