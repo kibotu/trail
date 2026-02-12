@@ -17,11 +17,8 @@ function initTagsManagement() {
     const tagFilter = document.getElementById('tag-filter');
     if (tagFilter) {
         tagFilter.addEventListener('change', (e) => {
-            // Update the global variable (declared in admin-dashboard.js)
-            if (typeof window.currentTagFilter !== 'undefined') {
-                window.currentTagFilter = e.target.value;
-            }
-            currentTagFilter = e.target.value;
+            // Update the global variable (declared in admin-dashboard.js on window)
+            window.currentTagFilter = e.target.value;
             resetAndLoadEntries();
         });
     }
@@ -39,8 +36,7 @@ function initTagsManagement() {
     }
 }
 
-// Current tag filter for entries
-let currentTagFilter = '';
+// Current tag filter for entries is now on window.currentTagFilter (declared in admin-dashboard.js)
 
 /**
  * Load tags for the filter dropdown
@@ -505,7 +501,7 @@ function filterEntriesByTag(tagId) {
     const tagFilter = document.getElementById('tag-filter');
     if (tagFilter) {
         tagFilter.value = tagId;
-        currentTagFilter = tagId.toString();
+        window.currentTagFilter = tagId.toString();
     }
 
     // Switch to entries view
@@ -520,7 +516,7 @@ const originalResetAndLoadEntries = typeof resetAndLoadEntries !== 'undefined' ?
 
 // Will be called from admin-dashboard.js but we need to track tag filter
 function getTagFilterValue() {
-    return currentTagFilter;
+    return window.currentTagFilter || '';
 }
 
 // Initialize when DOM is ready

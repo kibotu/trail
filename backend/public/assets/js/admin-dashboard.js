@@ -16,7 +16,8 @@ let currentPage = 0;
 let loading = false;
 let hasMore = true;
 let currentSourceFilter = '';
-let currentTagFilter = '';
+// Note: currentTagFilter is declared globally (on window) so admin-tags.js can access it
+window.currentTagFilter = '';
 const pageSize = 20;
 
 /**
@@ -103,8 +104,9 @@ async function loadEntries() {
         if (currentSourceFilter) {
             url += `&source=${encodeURIComponent(currentSourceFilter)}`;
         }
-        if (currentTagFilter) {
-            url += `&tag=${encodeURIComponent(currentTagFilter)}`;
+        // Use window.currentTagFilter to ensure we get the value set by admin-tags.js
+        if (window.currentTagFilter) {
+            url += `&tag=${encodeURIComponent(window.currentTagFilter)}`;
         }
         const response = await fetch(url, {
             credentials: 'same-origin' // Include httpOnly cookie with JWT
