@@ -101,12 +101,60 @@ fun HomeScreen(
                     .padding(paddingValues)
                     .nestedScroll(scrollConnection)
             ) {
+                // Calculate top padding based on header content:
+                // - Status bar + Search field (~56dp) + padding (16dp) = ~72dp
+                val headerTopPadding = statusBarTop + 72.dp // Just search field
+
+                // Entry list (placed first so search field renders on top)
+                EntryList(
+                    entries = homeEntries,
+                    isLoading = homeLoading && homeEntries.isEmpty(),
+                    currentUserId = currentUserId,
+                    isAdmin = isAdmin,
+                    baseUrl = BuildConfig.API_BASE_URL,
+                    currentlyPlayingVideoId = currentlyPlayingVideoId,
+                    onVideoPlay = { viewModel.playVideo(it) },
+                    onUpdateEntry = { entryId, text ->
+                        viewModel.updateEntry(entryId, text)
+                    },
+                    onDeleteEntry = { entryId ->
+                        viewModel.deleteEntry(entryId)
+                    },
+                    commentsState = commentsState,
+                    onToggleComments = { entryId, hashId -> viewModel.toggleComments(entryId, hashId) },
+                    onLoadComments = { entryId, hashId -> viewModel.loadComments(entryId, hashId) },
+                    onCreateComment = { entryId, hashId, text -> viewModel.createComment(entryId, hashId, text) },
+                    onUpdateComment = { commentId, text, entryId ->
+                        viewModel.updateComment(commentId, text, entryId)
+                    },
+                    onDeleteComment = { commentId, entryId ->
+                        viewModel.deleteComment(commentId, entryId)
+                    },
+                    onClapComment = { commentId, count, entryId ->
+                        viewModel.clapComment(commentId, count, entryId)
+                    },
+                    onReportComment = { commentId, entryId ->
+                        viewModel.reportComment(commentId, entryId)
+                    },
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = headerTopPadding,
+                        bottom = navigationBarBottom + 80.dp // Extra space for floating tab bar
+                    ),
+                    emptyMessage = if (searchQuery.isNotBlank()) {
+                        "No entries found for \"$searchQuery\""
+                    } else {
+                        "No entries yet. Be the first to post!"
+                    }
+                )
+
+                // Search field at the top (rendered after EntryList so it's on top and clickable)
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .statusBarsPadding()
                 ) {
-                    // Search field at the top
                     TextField(
                         value = searchText,
                         onValueChange = {
@@ -160,56 +208,7 @@ fun HomeScreen(
                             }
                         )
                     )
-                    // Post creation card removed - posting is only available in My Feed tab after login
                 }
-
-                // Entry list
-                // Calculate top padding based on header content:
-                // - Status bar + Search field (~56dp) + padding (16dp) = ~72dp
-                val headerTopPadding = statusBarTop + 72.dp // Just search field
-                
-                EntryList(
-                    entries = homeEntries,
-                    isLoading = homeLoading && homeEntries.isEmpty(),
-                    currentUserId = currentUserId,
-                    isAdmin = isAdmin,
-                    baseUrl = BuildConfig.API_BASE_URL,
-                    currentlyPlayingVideoId = currentlyPlayingVideoId,
-                    onVideoPlay = { viewModel.playVideo(it) },
-                    onUpdateEntry = { entryId, text ->
-                        viewModel.updateEntry(entryId, text)
-                    },
-                    onDeleteEntry = { entryId ->
-                        viewModel.deleteEntry(entryId)
-                    },
-                    commentsState = commentsState,
-                    onToggleComments = { entryId, hashId -> viewModel.toggleComments(entryId, hashId) },
-                    onLoadComments = { entryId, hashId -> viewModel.loadComments(entryId, hashId) },
-                    onCreateComment = { entryId, hashId, text -> viewModel.createComment(entryId, hashId, text) },
-                    onUpdateComment = { commentId, text, entryId ->
-                        viewModel.updateComment(commentId, text, entryId)
-                    },
-                    onDeleteComment = { commentId, entryId ->
-                        viewModel.deleteComment(commentId, entryId)
-                    },
-                    onClapComment = { commentId, count, entryId ->
-                        viewModel.clapComment(commentId, count, entryId)
-                    },
-                    onReportComment = { commentId, entryId ->
-                        viewModel.reportComment(commentId, entryId)
-                    },
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = headerTopPadding,
-                        bottom = navigationBarBottom + 80.dp // Extra space for floating tab bar
-                    ),
-                    emptyMessage = if (searchQuery.isNotBlank()) {
-                        "No entries found for \"$searchQuery\""
-                    } else {
-                        "No entries yet. Be the first to post!"
-                    }
-                )
             }
         }
 
