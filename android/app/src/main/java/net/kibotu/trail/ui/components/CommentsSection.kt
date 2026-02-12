@@ -1,16 +1,45 @@
 package net.kibotu.trail.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,98 +78,96 @@ fun CommentsSection(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
     ) {
-                // Comment input (only if logged in)
-                if (currentUserId != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = commentText,
-                                onValueChange = { 
-                                    if (it.length <= maxCharacters) {
-                                        commentText = it
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("Add a comment...") },
-                                minLines = 2,
-                                maxLines = 4,
-                                supportingText = {
-                                    Text(
-                                        text = "${commentText.length}/$maxCharacters",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                },
-                                isError = commentText.length > maxCharacters
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Button(
-                                onClick = {
-                                    if (commentText.isNotBlank() && commentText.length <= maxCharacters) {
-                                        onCreateComment(commentText)
-                                        commentText = ""
-                                    }
-                                },
-                                modifier = Modifier.align(Alignment.End),
-                                enabled = commentText.isNotBlank() && commentText.length <= maxCharacters
-                            ) {
-                                Text("Comment")
+        // Comment input (only if logged in)
+        if (currentUserId != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = {
+                            if (it.length <= maxCharacters) {
+                                commentText = it
                             }
-                        }
-                    }
-                }
-
-                // Loading indicator
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                // Comments list
-                if (comments.isEmpty() && !isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No comments yet. Be the first to comment!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        comments.forEach { comment ->
-                            CommentItem(
-                                comment = comment,
-                                canModify = currentUserId != null && 
-                                    (comment.userId == currentUserId || isAdmin),
-                                onEdit = { onUpdateComment(comment.id, it) },
-                                onDelete = { onDeleteComment(comment.id) },
-                                onClap = { count -> onClapComment(comment.id, count) },
-                                onReport = { onReportComment(comment.id) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Add a comment...") },
+                        minLines = 2,
+                        maxLines = 4,
+                        supportingText = {
+                            Text(
+                                text = "${commentText.length}/$maxCharacters",
+                                style = MaterialTheme.typography.bodySmall
                             )
-                            HorizontalDivider()
-                        }
+                        },
+                        isError = commentText.length > maxCharacters
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (commentText.isNotBlank() && commentText.length <= maxCharacters) {
+                                onCreateComment(commentText)
+                                commentText = ""
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                        enabled = commentText.isNotBlank() && commentText.length <= maxCharacters
+                    ) {
+                        Text("Comment")
                     }
+                }
+            }
+        }
+
+        // Loading indicator
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        // Comments list
+        if (comments.isEmpty() && !isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No comments yet. Be the first to comment!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                comments.forEach { comment ->
+                    CommentItem(
+                        comment = comment,
+                        canModify = currentUserId != null &&
+                                (comment.userId == currentUserId || isAdmin),
+                        onEdit = { onUpdateComment(comment.id, it) },
+                        onDelete = { onDeleteComment(comment.id) },
+                        onClap = { count -> onClapComment(comment.id, count) },
+                        onReport = { onReportComment(comment.id) }
+                    )
+                    HorizontalDivider()
                 }
             }
         }
@@ -180,9 +207,9 @@ fun CommentItem(
                     .size(40.dp)
                     .clip(CircleShape)
             )
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -195,7 +222,7 @@ fun CommentItem(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
-                        
+
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -205,19 +232,21 @@ fun CommentItem(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            
+
                             // Show "edited" indicator if comment was modified
                             if (comment.updatedAt != null && comment.updatedAt != comment.createdAt) {
                                 Text(
                                     text = "• edited",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        alpha = 0.7f
+                                    )
                                 )
                             }
                         }
                     }
-                    
+
                     // Action menu
                     Box {
                         IconButton(
@@ -230,7 +259,7 @@ fun CommentItem(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
@@ -285,41 +314,41 @@ fun CommentItem(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
                     text = comment.text,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Clap button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             val newCount = if (comment.userClapCount > 0) 0 else 1
                             onClap(newCount)
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = if (comment.userClapCount > 0) 
-                                Icons.Default.Favorite 
-                            else 
+                            imageVector = if (comment.userClapCount > 0)
+                                Icons.Default.Favorite
+                            else
                                 Icons.Default.FavoriteBorder,
                             contentDescription = "Clap",
-                            tint = if (comment.userClapCount > 0) 
-                                MaterialTheme.colorScheme.error 
-                            else 
+                            tint = if (comment.userClapCount > 0)
+                                MaterialTheme.colorScheme.error
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     if (comment.clapCount > 0) {
                         Text(
                             text = comment.clapCount.toString(),
@@ -365,7 +394,7 @@ fun EditCommentDialog(
 ) {
     var editedText by remember { mutableStateOf(comment.text) }
     val maxCharacters = 140
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Comment") },
@@ -373,7 +402,7 @@ fun EditCommentDialog(
             Column {
                 OutlinedTextField(
                     value = editedText,
-                    onValueChange = { 
+                    onValueChange = {
                         if (it.length <= maxCharacters) {
                             editedText = it
                         }
@@ -394,9 +423,9 @@ fun EditCommentDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(editedText) },
-                enabled = editedText.isNotBlank() && 
-                    editedText.length <= maxCharacters && 
-                    editedText != comment.text
+                enabled = editedText.isNotBlank() &&
+                        editedText.length <= maxCharacters &&
+                        editedText != comment.text
             ) {
                 Text("Save")
             }
@@ -466,7 +495,7 @@ private fun formatDate(dateString: String): String {
         val instant = Instant.parse(dateString)
         val now = Instant.now()
         val duration = ChronoUnit.SECONDS.between(instant, now)
-        
+
         when {
             duration < 60 -> "just now"
             duration < 3600 -> "${duration / 60}m"

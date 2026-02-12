@@ -1,13 +1,32 @@
 package net.kibotu.trail.data.api
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import net.kibotu.trail.data.model.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import net.kibotu.trail.data.model.AuthResponse
+import net.kibotu.trail.data.model.CommentClapRequest
+import net.kibotu.trail.data.model.CommentClapResponse
+import net.kibotu.trail.data.model.CommentsResponse
+import net.kibotu.trail.data.model.CreateCommentRequest
+import net.kibotu.trail.data.model.CreateCommentResponse
+import net.kibotu.trail.data.model.CreateEntryRequest
+import net.kibotu.trail.data.model.CreateEntryResponse
+import net.kibotu.trail.data.model.EntriesResponse
+import net.kibotu.trail.data.model.GoogleAuthRequest
+import net.kibotu.trail.data.model.UpdateCommentRequest
+import net.kibotu.trail.data.model.UpdateCommentResponse
+import net.kibotu.trail.data.model.UpdateEntryRequest
+import net.kibotu.trail.data.model.UpdateEntryResponse
 
 class TrailApi(private val client: HttpClient) {
-    
+
     suspend fun googleAuth(request: GoogleAuthRequest): Result<AuthResponse> {
         return try {
             val response = client.post("api/auth/google") {
@@ -44,7 +63,10 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun updateEntry(entryId: Int, request: UpdateEntryRequest): Result<UpdateEntryResponse> {
+    suspend fun updateEntry(
+        entryId: Int,
+        request: UpdateEntryRequest
+    ): Result<UpdateEntryResponse> {
         return try {
             val response = client.put("api/entries/$entryId") {
                 contentType(ContentType.Application.Json)
@@ -66,7 +88,11 @@ class TrailApi(private val client: HttpClient) {
     }
 
     // Comment endpoints
-    suspend fun getComments(entryId: Int, limit: Int = 50, before: String? = null): Result<CommentsResponse> {
+    suspend fun getComments(
+        entryId: Int,
+        limit: Int = 50,
+        before: String? = null
+    ): Result<CommentsResponse> {
         return try {
             val response = client.get("api/entries/$entryId/comments") {
                 parameter("limit", limit)
@@ -78,7 +104,10 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun createComment(entryId: Int, request: CreateCommentRequest): Result<CreateCommentResponse> {
+    suspend fun createComment(
+        entryId: Int,
+        request: CreateCommentRequest
+    ): Result<CreateCommentResponse> {
         return try {
             val response = client.post("api/entries/$entryId/comments") {
                 contentType(ContentType.Application.Json)
@@ -90,7 +119,10 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun updateComment(commentId: Int, request: UpdateCommentRequest): Result<UpdateCommentResponse> {
+    suspend fun updateComment(
+        commentId: Int,
+        request: UpdateCommentRequest
+    ): Result<UpdateCommentResponse> {
         return try {
             val response = client.put("api/comments/$commentId") {
                 contentType(ContentType.Application.Json)

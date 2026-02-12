@@ -99,7 +99,8 @@ var Window.showSystemStatusBar: Boolean
             if (value) {
                 show(WindowInsetsCompat.Type.statusBars())
             } else {
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 hide(WindowInsetsCompat.Type.statusBars())
             }
         }
@@ -114,7 +115,8 @@ var Window.showSystemNavigationBar: Boolean
             if (value) {
                 show(WindowInsetsCompat.Type.navigationBars())
             } else {
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 hide(WindowInsetsCompat.Type.navigationBars())
             }
         }

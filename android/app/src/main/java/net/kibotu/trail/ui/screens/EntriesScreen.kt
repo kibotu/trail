@@ -3,38 +3,74 @@ package net.kibotu.trail.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Color
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.data.model.Comment
+import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.ui.components.CommentsSection
 import net.kibotu.trail.ui.viewmodel.CommentState
-import androidx.compose.material3.HorizontalDivider
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,10 +104,11 @@ fun EntriesScreen(
     var editingEntry by remember { mutableStateOf<Entry?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Entry?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     val isPublicMode = userName == null
 
-    val isDarkTheme = MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
+    val isDarkTheme =
+        MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
 
     // Show celebration when post is successful
     LaunchedEffect(showCelebration) {
@@ -97,7 +134,7 @@ fun EntriesScreen(
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    
+
                     if (isPublicMode) {
                         onLogin?.let { loginAction ->
                             Button(
@@ -145,10 +182,10 @@ fun EntriesScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         OutlinedTextField(
                             value = entryText,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.length <= maxCharacters) {
                                     entryText = it
                                 }
@@ -165,9 +202,9 @@ fun EntriesScreen(
                             },
                             isError = entryText.length > maxCharacters
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Button(
                             onClick = {
                                 if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
@@ -213,7 +250,7 @@ fun EntriesScreen(
                 ) {
                     items(entries) { entry ->
                         val commentState = commentsState[entry.id] ?: CommentState()
-                        
+
                         EntryItem(
                             entry = entry,
                             canModify = !isPublicMode && (isAdmin || entry.userId == currentUserId),
@@ -227,16 +264,28 @@ fun EntriesScreen(
                             onToggleComments = { onToggleComments(entry.id) },
                             onLoadComments = { onLoadComments(entry.id) },
                             onCreateComment = { text -> onCreateComment(entry.id, text) },
-                            onUpdateComment = { commentId, text -> onUpdateComment(commentId, text, entry.id) },
+                            onUpdateComment = { commentId, text ->
+                                onUpdateComment(
+                                    commentId,
+                                    text,
+                                    entry.id
+                                )
+                            },
                             onDeleteComment = { commentId -> onDeleteComment(commentId, entry.id) },
-                            onClapComment = { commentId, count -> onClapComment(commentId, count, entry.id) },
+                            onClapComment = { commentId, count ->
+                                onClapComment(
+                                    commentId,
+                                    count,
+                                    entry.id
+                                )
+                            },
                             onReportComment = { commentId -> onReportComment(commentId, entry.id) }
                         )
                     }
                 }
             }
         }
-        
+
         // Edit Dialog
         editingEntry?.let { entry ->
             EditEntryDialog(
@@ -248,7 +297,7 @@ fun EntriesScreen(
                 }
             )
         }
-        
+
         // Delete Confirmation Dialog
         showDeleteDialog?.let { entry ->
             DeleteConfirmationDialog(
@@ -283,7 +332,7 @@ fun EntryItem(
     onReportComment: (Int) -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -302,9 +351,9 @@ fun EntryItem(
                         .size(48.dp)
                         .clip(CircleShape)
                 )
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -316,7 +365,7 @@ fun EntryItem(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
-                        
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -329,18 +378,20 @@ fun EntryItem(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                
+
                                 // Show "edited" indicator if entry was modified
                                 if (entry.updatedAt != null && entry.updatedAt != entry.createdAt) {
                                     Text(
                                         text = "edited ${formatRelativeTime(entry.updatedAt)}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontStyle = FontStyle.Italic,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.7f
+                                        )
                                     )
                                 }
                             }
-                            
+
                             // Action menu for entry creator or admin
                             if (canModify) {
                                 Box {
@@ -354,7 +405,7 @@ fun EntryItem(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    
+
                                     DropdownMenu(
                                         expanded = showMenu,
                                         onDismissRequest = { showMenu = false }
@@ -394,14 +445,14 @@ fun EntryItem(
                             }
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     Text(
                         text = entry.text,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    
+
                     // URL Preview Card (only if we have valid preview data)
                     if (entry.previewUrl != null && hasValidPreviewData(entry)) {
                         Spacer(modifier = Modifier.height(12.dp))
@@ -409,7 +460,7 @@ fun EntryItem(
                     }
                 }
             }
-            
+
             // Action bar with chat icon
             Row(
                 modifier = Modifier
@@ -427,31 +478,31 @@ fun EntryItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = if (commentsExpanded) 
-                            Icons.Default.ChatBubble 
-                        else 
+                        imageVector = if (commentsExpanded)
+                            Icons.Default.ChatBubble
+                        else
                             Icons.Outlined.ChatBubbleOutline,
                         contentDescription = "Comments",
                         modifier = Modifier.size(20.dp),
-                        tint = if (commentsExpanded) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
+                        tint = if (commentsExpanded)
+                            MaterialTheme.colorScheme.primary
+                        else
                             MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     if (entry.commentCount > 0) {
                         Text(
                             text = entry.commentCount.toString(),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (commentsExpanded) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
+                            color = if (commentsExpanded)
+                                MaterialTheme.colorScheme.primary
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
-            
+
             // Comments Section (conditionally shown)
             if (commentsExpanded) {
                 CommentsSection(
@@ -476,15 +527,15 @@ fun EntryItem(
 // Check if entry has valid preview data (not just "Just a moment..." etc)
 private fun hasValidPreviewData(entry: Entry): Boolean {
     val hasValidTitle = entry.previewTitle?.let { title ->
-        title.length > 3 && 
-        !title.lowercase().contains("just a moment") &&
-        !title.lowercase().contains("please wait")
+        title.length > 3 &&
+                !title.lowercase().contains("just a moment") &&
+                !title.lowercase().contains("please wait")
     } ?: false
-    
+
     val hasValidDescription = entry.previewDescription?.let { desc ->
         desc.length > 10
     } ?: false
-    
+
     // Show card if we have at least title, description, OR image
     return hasValidTitle || hasValidDescription || entry.previewImage != null
 }
@@ -492,7 +543,7 @@ private fun hasValidPreviewData(entry: Entry): Boolean {
 @Composable
 fun LinkPreviewCard(entry: Entry) {
     val context = LocalContext.current
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -522,7 +573,7 @@ fun LinkPreviewCard(entry: Entry) {
                         .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 )
             }
-            
+
             // Preview Content
             Column(
                 modifier = Modifier
@@ -540,7 +591,7 @@ fun LinkPreviewCard(entry: Entry) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
-                
+
                 // Description
                 entry.previewDescription?.let { description ->
                     Text(
@@ -551,7 +602,7 @@ fun LinkPreviewCard(entry: Entry) {
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                 }
-                
+
                 // Site Name / URL
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -594,7 +645,7 @@ fun EditEntryDialog(
 ) {
     var editedText by remember { mutableStateOf(entry.text) }
     val maxCharacters = 140
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Entry") },
@@ -602,7 +653,7 @@ fun EditEntryDialog(
             Column {
                 OutlinedTextField(
                     value = editedText,
-                    onValueChange = { 
+                    onValueChange = {
                         if (it.length <= maxCharacters) {
                             editedText = it
                         }
@@ -703,14 +754,14 @@ private fun formatRelativeTime(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val date = inputFormat.parse(dateString) ?: return dateString
-        
+
         val now = Date()
         val diffInMillis = now.time - date.time
         val diffInSeconds = diffInMillis / 1000
         val diffInMinutes = diffInSeconds / 60
         val diffInHours = diffInMinutes / 60
         val diffInDays = diffInHours / 24
-        
+
         when {
             diffInSeconds < 60 -> "just now"
             diffInMinutes < 60 -> "${diffInMinutes}m ago"

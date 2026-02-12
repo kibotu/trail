@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import net.kibotu.trail.extensions.isLightNavigationBar
 import net.kibotu.trail.extensions.isLightStatusBar
 import net.kibotu.trail.extensions.statusBarColor

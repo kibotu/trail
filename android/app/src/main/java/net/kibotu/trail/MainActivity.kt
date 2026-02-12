@@ -30,13 +30,13 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         viewModel = TrailViewModel(applicationContext)
         themePreferences = ThemePreferences(applicationContext)
 
         setContent {
             val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
-            
+
             GoogleAuthTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        
+
         // Handle shared content from other apps after setContent
         handleSharedContent(intent)
     }
@@ -96,6 +96,7 @@ fun TrailApp(
                 CircularProgressIndicator()
             }
         }
+
         is UiState.PublicEntries -> {
             EntriesScreen(
                 entries = state.entries,
@@ -118,6 +119,7 @@ fun TrailApp(
                 }
             )
         }
+
         is UiState.Login -> {
             LoginScreen(
                 onLoginSuccess = { idToken ->
@@ -126,9 +128,10 @@ fun TrailApp(
                 }
             )
         }
+
         is UiState.Entries -> {
             val commentsState by viewModel.commentsState.collectAsState()
-            
+
             EntriesScreen(
                 entries = state.entries,
                 isLoading = state.isLoading,
@@ -163,12 +166,35 @@ fun TrailApp(
                 onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
                 onLoadComments = { entryId -> viewModel.loadComments(entryId) },
                 onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
-                onUpdateComment = { commentId, text, entryId -> viewModel.updateComment(commentId, text, entryId) },
-                onDeleteComment = { commentId, entryId -> viewModel.deleteComment(commentId, entryId) },
-                onClapComment = { commentId, count, entryId -> viewModel.clapComment(commentId, count, entryId) },
-                onReportComment = { commentId, entryId -> viewModel.reportComment(commentId, entryId) }
+                onUpdateComment = { commentId, text, entryId ->
+                    viewModel.updateComment(
+                        commentId,
+                        text,
+                        entryId
+                    )
+                },
+                onDeleteComment = { commentId, entryId ->
+                    viewModel.deleteComment(
+                        commentId,
+                        entryId
+                    )
+                },
+                onClapComment = { commentId, count, entryId ->
+                    viewModel.clapComment(
+                        commentId,
+                        count,
+                        entryId
+                    )
+                },
+                onReportComment = { commentId, entryId ->
+                    viewModel.reportComment(
+                        commentId,
+                        entryId
+                    )
+                }
             )
         }
+
         is UiState.Error -> {
             // Show error state - for now just go back to login
             LoginScreen(

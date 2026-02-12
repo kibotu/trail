@@ -10,7 +10,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.kibotu.trail.data.api.ApiClient
-import net.kibotu.trail.data.model.*
+import net.kibotu.trail.data.model.Comment
+import net.kibotu.trail.data.model.CreateCommentRequest
+import net.kibotu.trail.data.model.CreateEntryRequest
+import net.kibotu.trail.data.model.Entry
+import net.kibotu.trail.data.model.GoogleAuthRequest
+import net.kibotu.trail.data.model.UpdateCommentRequest
+import net.kibotu.trail.data.model.UpdateEntryRequest
 import net.kibotu.trail.data.storage.TokenManager
 
 sealed class UiState {
@@ -20,6 +26,7 @@ sealed class UiState {
         val entries: List<Entry> = emptyList(),
         val isLoading: Boolean = false
     ) : UiState()
+
     data class Entries(
         val entries: List<Entry> = emptyList(),
         val userName: String = "",
@@ -27,6 +34,7 @@ sealed class UiState {
         val isAdmin: Boolean = false,
         val isLoading: Boolean = false
     ) : UiState()
+
     data class Error(val message: String) : UiState()
 }
 
@@ -62,7 +70,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     // Get user info from token manager
                     val userName = tokenManager.userName.first() ?: ""
                     val userId = tokenManager.userId.first()?.toIntOrNull() ?: 0
-                    
+
                     ApiClient.setAuthToken(token)
                     _uiState.value = UiState.Entries(
                         userName = userName,
@@ -70,7 +78,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         isAdmin = false // Will be updated from auth response if needed
                     )
                     loadEntries()
-                    
+
                     // If there's pending shared text, submit it
                     pendingSharedText?.let { text ->
                         submitEntry(text)
@@ -96,9 +104,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 if (currentState is UiState.PublicEntries) {
                     _uiState.value = currentState.copy(isLoading = true)
                 }
-                
+
                 val result = ApiClient.api.getEntries()
-                
+
                 result.onSuccess { entriesResponse ->
                     if (currentState is UiState.PublicEntries) {
                         _uiState.value = currentState.copy(
@@ -130,9 +138,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 _uiState.value = UiState.Loading
-                
+
                 val result = ApiClient.api.googleAuth(GoogleAuthRequest(idToken))
-                
+
                 result.onSuccess { authResponse ->
                     // Save token
                     tokenManager.saveAuthToken(
@@ -141,10 +149,10 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         name = authResponse.user.name,
                         userId = authResponse.user.id
                     )
-                    
+
                     // Set token for API client
                     ApiClient.setAuthToken(authResponse.token)
-                    
+
                     // Navigate to entries
                     _uiState.value = UiState.Entries(
                         userName = authResponse.user.name,
@@ -152,7 +160,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         isAdmin = authResponse.user.isAdmin
                     )
                     loadEntries()
-                    
+
                     // Submit pending shared text if available
                     pendingSharedText?.let { text ->
                         submitEntry(text)
@@ -176,9 +184,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 if (currentState is UiState.Entries) {
                     _uiState.value = currentState.copy(isLoading = true)
                 }
-                
+
                 val result = ApiClient.api.getEntries()
-                
+
                 result.onSuccess { entriesResponse ->
                     if (currentState is UiState.Entries) {
                         _uiState.value = currentState.copy(
@@ -211,11 +219,11 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.createEntry(CreateEntryRequest(text))
-                
+
                 result.onSuccess {
                     // CELEBRATE! 🎉
                     _celebrationEvent.value = true
-                    
+
                     // Reload entries after successful submission
                     loadEntries()
                 }.onFailure { e ->
@@ -248,7 +256,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.updateEntry(entryId, UpdateEntryRequest(text))
-                
+
                 result.onSuccess {
                     // Reload entries after successful update
                     loadEntries()
@@ -265,7 +273,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.deleteEntry(entryId)
-                
+
                 result.onSuccess {
                     // Reload entries after successful deletion
                     loadEntries()
@@ -291,11 +299,11 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     fun toggleComments(entryId: Int) {
         val currentState = _commentsState.value[entryId] ?: CommentState()
         val newExpanded = !currentState.isExpanded
-        
+
         _commentsState.value = _commentsState.value.toMutableMap().apply {
             put(entryId, currentState.copy(isExpanded = newExpanded))
         }
-        
+
         // Load comments on first expand
         if (newExpanded && currentState.comments.isEmpty()) {
             loadComments(entryId)
@@ -309,16 +317,18 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 _commentsState.value = _commentsState.value.toMutableMap().apply {
                     put(entryId, currentState.copy(isLoading = true))
                 }
-                
+
                 val result = ApiClient.api.getComments(entryId)
-                
+
                 result.onSuccess { response ->
                     _commentsState.value = _commentsState.value.toMutableMap().apply {
-                        put(entryId, CommentState(
-                            comments = response.comments,
-                            isLoading = false,
-                            isExpanded = true
-                        ))
+                        put(
+                            entryId, CommentState(
+                                comments = response.comments,
+                                isLoading = false,
+                                isExpanded = true
+                            )
+                        )
                     }
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to load comments", e)
@@ -336,7 +346,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.createComment(entryId, CreateCommentRequest(text))
-                
+
                 result.onSuccess {
                     // Reload comments and entries (to update comment count)
                     loadComments(entryId)
@@ -354,7 +364,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.updateComment(commentId, UpdateCommentRequest(text))
-                
+
                 result.onSuccess {
                     loadComments(entryId)
                 }.onFailure { e ->
@@ -370,7 +380,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.deleteComment(commentId)
-                
+
                 result.onSuccess {
                     // Reload comments and entries (to update comment count)
                     loadComments(entryId)
@@ -388,7 +398,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.addCommentClap(commentId, count)
-                
+
                 result.onSuccess {
                     loadComments(entryId)
                 }.onFailure { e ->
@@ -404,7 +414,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = ApiClient.api.reportComment(commentId)
-                
+
                 result.onSuccess {
                     // Reload comments (reported comment will be hidden)
                     loadComments(entryId)
