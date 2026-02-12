@@ -8,14 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.RssFeed
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.RssFeed
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,12 +17,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.LocalContentColor
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIconType
+import com.guru.fontawesomecomposelib.FaIcons
 import kotlinx.serialization.Serializable
 import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.components.FloatingTabBar
@@ -38,6 +33,7 @@ import net.kibotu.trail.ui.components.rememberFloatingTabBarScrollConnection
 import net.kibotu.trail.ui.screens.HomeScreen
 import net.kibotu.trail.ui.screens.MyFeedScreen
 import net.kibotu.trail.ui.screens.ProfileScreen
+import net.kibotu.trail.ui.viewmodel.SearchType
 import net.kibotu.trail.ui.viewmodel.TrailViewModel
 
 // Route definitions using type-safe navigation
@@ -57,28 +53,28 @@ sealed class TabRoute {
 data class TabItem(
     val route: TabRoute,
     val title: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val selectedIcon: FaIconType,
+    val unselectedIcon: FaIconType
 )
 
 val tabs = listOf(
     TabItem(
         route = TabRoute.Home,
         title = "Home",
-        selectedIcon = Icons.Filled.Home,
-        unselectedIcon = Icons.Outlined.Home
+        selectedIcon = FaIcons.Home,
+        unselectedIcon = FaIcons.Home
     ),
     TabItem(
         route = TabRoute.MyFeed,
         title = "My Feed",
-        selectedIcon = Icons.Filled.RssFeed,
-        unselectedIcon = Icons.Outlined.RssFeed
+        selectedIcon = FaIcons.Rss,
+        unselectedIcon = FaIcons.Rss
     ),
     TabItem(
         route = TabRoute.Profile,
         title = "Profile",
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person
+        selectedIcon = FaIcons.User,
+        unselectedIcon = FaIcons.User
     )
 )
 
@@ -139,9 +135,10 @@ fun TrailScaffold(
                 key = "home",
                 title = { Text("Home") },
                 icon = {
-                    Icon(
-                        imageVector = if (selectedTabKey == "home") Icons.Filled.Home else Icons.Outlined.Home,
-                        contentDescription = "Home"
+                    FaIcon(
+                        faIcon = FaIcons.Home,
+                        size = 20.dp,
+                        tint = LocalContentColor.current
                     )
                 },
                 onClick = {
@@ -160,9 +157,10 @@ fun TrailScaffold(
                 key = "myfeed",
                 title = { Text("My Feed") },
                 icon = {
-                    Icon(
-                        imageVector = if (selectedTabKey == "myfeed") Icons.Filled.RssFeed else Icons.Outlined.RssFeed,
-                        contentDescription = "My Feed"
+                    FaIcon(
+                        faIcon = FaIcons.Rss,
+                        size = 20.dp,
+                        tint = LocalContentColor.current
                     )
                 },
                 onClick = {
@@ -181,9 +179,10 @@ fun TrailScaffold(
                 key = "profile",
                 title = { Text("Profile") },
                 icon = {
-                    Icon(
-                        imageVector = if (selectedTabKey == "profile") Icons.Filled.Person else Icons.Outlined.Person,
-                        contentDescription = "Profile"
+                    FaIcon(
+                        faIcon = FaIcons.User,
+                        size = 20.dp,
+                        tint = LocalContentColor.current
                     )
                 },
                 onClick = {
@@ -195,6 +194,26 @@ fun TrailScaffold(
                         launchSingleTop = true
                         restoreState = true
                     }
+                }
+            )
+
+            // Search standalone tab
+            standaloneTab(
+                key = "search",
+                icon = {
+                    FaIcon(
+                        faIcon = FaIcons.Search,
+                        size = 20.dp,
+                        tint = LocalContentColor.current
+                    )
+                },
+                onClick = {
+                    // Open search based on current tab
+                    val searchType = when (selectedTabKey) {
+                        "myfeed" -> SearchType.MY_FEED
+                        else -> SearchType.HOME
+                    }
+                    viewModel.openSearch(searchType)
                 }
             )
         }

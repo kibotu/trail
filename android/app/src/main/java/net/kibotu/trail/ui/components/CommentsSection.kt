@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.MoreVert
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -253,9 +248,9 @@ fun CommentItem(
                             onClick = { showMenu = true },
                             modifier = Modifier.size(24.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options",
+                            FaIcon(
+                                faIcon = FaIcons.EllipsisV,
+                                size = 16.dp,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -272,9 +267,10 @@ fun CommentItem(
                                         showEditDialog = true
                                     },
                                     leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = null
+                                        FaIcon(
+                                            faIcon = FaIcons.Edit,
+                                            size = 16.dp,
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 )
@@ -285,9 +281,9 @@ fun CommentItem(
                                         showDeleteDialog = true
                                     },
                                     leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = null,
+                                        FaIcon(
+                                            faIcon = FaIcons.TrashAlt,
+                                            size = 16.dp,
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     },
@@ -303,9 +299,9 @@ fun CommentItem(
                                         onReport()
                                     },
                                     leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Flag,
-                                            contentDescription = null,
+                                        FaIcon(
+                                            faIcon = FaIcons.Flag,
+                                            size = 16.dp,
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
@@ -336,12 +332,9 @@ fun CommentItem(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(
-                            imageVector = if (comment.userClapCount > 0)
-                                Icons.Default.Favorite
-                            else
-                                Icons.Default.FavoriteBorder,
-                            contentDescription = "Clap",
+                        FaIcon(
+                            faIcon = if (comment.userClapCount > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                            size = 18.dp,
                             tint = if (comment.userClapCount > 0)
                                 MaterialTheme.colorScheme.error
                             else
@@ -447,9 +440,9 @@ fun DeleteCommentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
+            FaIcon(
+                faIcon = FaIcons.TrashAlt,
+                size = 24.dp,
                 tint = MaterialTheme.colorScheme.error
             )
         },

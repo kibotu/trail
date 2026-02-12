@@ -19,10 +19,8 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LightMode
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -202,10 +200,10 @@ fun ProfileScreen(
                                         onClick = { isEditingNickname = true },
                                         modifier = Modifier.size(24.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit nickname",
-                                            modifier = Modifier.size(16.dp)
+                                        FaIcon(
+                                            faIcon = FaIcons.Edit,
+                                            size = 14.dp,
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -258,10 +256,10 @@ fun ProfileScreen(
                                         onClick = { isEditingBio = true },
                                         modifier = Modifier.size(32.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit bio",
-                                            modifier = Modifier.size(20.dp)
+                                        FaIcon(
+                                            faIcon = FaIcons.Edit,
+                                            size = 18.dp,
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -460,9 +458,9 @@ fun ProfileScreen(
                                 )
                             }
                             IconButton(onClick = { themePreferences.toggleTheme() }) {
-                                Icon(
-                                    imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                    contentDescription = if (isDarkTheme) "Switch to light mode" else "Switch to dark mode",
+                                FaIcon(
+                                    faIcon = if (isDarkTheme) FaIcons.Sun else FaIcons.Moon,
+                                    size = 24.dp,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }

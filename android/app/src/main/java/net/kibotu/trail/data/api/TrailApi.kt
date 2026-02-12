@@ -97,12 +97,12 @@ class TrailApi(private val client: HttpClient) {
 
     // Comment endpoints
     suspend fun getComments(
-        entryId: Int,
+        entryHashId: String,
         limit: Int = 50,
         before: String? = null
     ): Result<CommentsResponse> {
         return try {
-            val response = client.get("api/entries/$entryId/comments") {
+            val response = client.get("api/entries/$entryHashId/comments") {
                 parameter("limit", limit)
                 before?.let { parameter("before", it) }
             }
@@ -113,11 +113,11 @@ class TrailApi(private val client: HttpClient) {
     }
 
     suspend fun createComment(
-        entryId: Int,
+        entryHashId: String,
         request: CreateCommentRequest
     ): Result<CreateCommentResponse> {
         return try {
-            val response = client.post("api/entries/$entryId/comments") {
+            val response = client.post("api/entries/$entryHashId/comments") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }

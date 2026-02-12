@@ -19,12 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubble
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,9 +64,9 @@ fun EntryList(
     onUpdateEntry: (Int, String) -> Unit,
     onDeleteEntry: (Int) -> Unit,
     commentsState: Map<Int, CommentState> = emptyMap(),
-    onToggleComments: (Int) -> Unit = {},
-    onLoadComments: (Int) -> Unit = {},
-    onCreateComment: (Int, String) -> Unit = { _, _ -> },
+    onToggleComments: (Int, String?) -> Unit = { _, _ -> },
+    onLoadComments: (Int, String?) -> Unit = { _, _ -> },
+    onCreateComment: (Int, String?, String) -> Unit = { _, _, _ -> },
     onUpdateComment: (Int, String, Int) -> Unit = { _, _, _ -> },
     onDeleteComment: (Int, Int) -> Unit = { _, _ -> },
     onClapComment: (Int, Int, Int) -> Unit = { _, _, _ -> },
@@ -117,9 +113,9 @@ fun EntryList(
                     comments = commentState.comments,
                     commentsLoading = commentState.isLoading,
                     commentsExpanded = commentState.isExpanded,
-                    onToggleComments = { onToggleComments(entry.id) },
-                    onLoadComments = { onLoadComments(entry.id) },
-                    onCreateComment = { text -> onCreateComment(entry.id, text) },
+                    onToggleComments = { onToggleComments(entry.id, entry.hashId) },
+                    onLoadComments = { onLoadComments(entry.id, entry.hashId) },
+                    onCreateComment = { text -> onCreateComment(entry.id, entry.hashId, text) },
                     onUpdateComment = { commentId, text ->
                         onUpdateComment(commentId, text, entry.id)
                     },
@@ -225,9 +221,9 @@ fun EntryCard(
                                         onClick = { showMenu = true },
                                         modifier = Modifier.size(24.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "More options",
+                                        FaIcon(
+                                            faIcon = FaIcons.EllipsisV,
+                                            size = 16.dp,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -243,9 +239,10 @@ fun EntryCard(
                                                 editingEntry = true
                                             },
                                             leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Edit,
-                                                    contentDescription = null
+                                                FaIcon(
+                                                    faIcon = FaIcons.Edit,
+                                                    size = 16.dp,
+                                                    tint = MaterialTheme.colorScheme.onSurface
                                                 )
                                             }
                                         )
@@ -256,9 +253,9 @@ fun EntryCard(
                                                 showDeleteDialog = true
                                             },
                                             leadingIcon = {
-                                                Icon(
-                                                    imageVector = Icons.Default.Delete,
-                                                    contentDescription = null,
+                                                FaIcon(
+                                                    faIcon = FaIcons.TrashAlt,
+                                                    size = 16.dp,
                                                     tint = MaterialTheme.colorScheme.error
                                                 )
                                             },
@@ -303,13 +300,9 @@ fun EntryCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = if (commentsExpanded)
-                            Icons.Default.ChatBubble
-                        else
-                            Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = "Comments",
-                        modifier = Modifier.size(20.dp),
+                    FaIcon(
+                        faIcon = if (commentsExpanded) FaIcons.Comment else FaIcons.CommentRegular,
+                        size = 20.dp,
                         tint = if (commentsExpanded)
                             MaterialTheme.colorScheme.primary
                         else
@@ -517,9 +510,9 @@ fun DeleteConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
+            FaIcon(
+                faIcon = FaIcons.TrashAlt,
+                size = 24.dp,
                 tint = MaterialTheme.colorScheme.error
             )
         },

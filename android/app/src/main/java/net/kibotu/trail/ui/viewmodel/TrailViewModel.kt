@@ -47,6 +47,19 @@ data class CommentState(
     val isExpanded: Boolean = false
 )
 
+// Search overlay state
+enum class SearchType { HOME, MY_FEED }
+
+data class SearchOverlayState(
+    val isVisible: Boolean = false,
+    val query: String = "",
+    val results: List<Entry> = emptyList(),
+    val isLoading: Boolean = false,
+    val hasMore: Boolean = false,
+    val nextCursor: String? = null,
+    val searchType: SearchType = SearchType.HOME
+)
+
 class TrailViewModel(private val context: Context) : ViewModel() {
     private val tokenManager = TokenManager(context)
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -79,6 +92,10 @@ class TrailViewModel(private val context: Context) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    // Search overlay state
+    private val _searchOverlayState = MutableStateFlow(SearchOverlayState())
+    val searchOverlayState: StateFlow<SearchOverlayState> = _searchOverlayState.asStateFlow()
 
     private var pendingSharedText: String? = null
     private var currentUserNickname: String? = null
@@ -347,7 +364,15 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     }
 
     // Comment operations
-    fun toggleComments(entryId: Int) {
+    // Store mapping from entryId to hashId for comment operations
+    private val entryHashIdMap = mutableMapOf<Int, String>()
+
+    fun toggleComments(entryId: Int, entryHashId: String?) {
+        // Store the hashId mapping
+        if (entryHashId != null) {
+            entryHashIdMap[entryId] = entryHashId
+        }
+
         val currentState = _commentsState.value[entryId] ?: CommentState()
         val newExpanded = !currentState.isExpanded
 
@@ -357,11 +382,18 @@ class TrailViewModel(private val context: Context) : ViewModel() {
 
         // Load comments on first expand
         if (newExpanded && currentState.comments.isEmpty()) {
-            loadComments(entryId)
+            loadComments(entryId, entryHashId)
         }
     }
 
-    fun loadComments(entryId: Int) {
+    fun loadComments(entryId: Int, entryHashId: String? = null) {
+        // Try to get hashId from parameter or stored mapping
+        val hashId = entryHashId ?: entryHashIdMap[entryId]
+        if (hashId == null) {
+            Log.e("TrailViewModel", "Cannot load comments: no hashId for entryId $entryId")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val currentState = _commentsState.value[entryId] ?: CommentState()
@@ -369,7 +401,7 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     put(entryId, currentState.copy(isLoading = true))
                 }
 
-                val result = ApiClient.api.getComments(entryId)
+                val result = ApiClient.api.getComments(hashId)
 
                 result.onSuccess { response ->
                     _commentsState.value = _commentsState.value.toMutableMap().apply {
@@ -393,14 +425,21 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun createComment(entryId: Int, text: String) {
+    fun createComment(entryId: Int, entryHashId: String?, text: String) {
+        // Try to get hashId from parameter or stored mapping
+        val hashId = entryHashId ?: entryHashIdMap[entryId]
+        if (hashId == null) {
+            Log.e("TrailViewModel", "Cannot create comment: no hashId for entryId $entryId")
+            return
+        }
+
         viewModelScope.launch {
             try {
-                val result = ApiClient.api.createComment(entryId, CreateCommentRequest(text))
+                val result = ApiClient.api.createComment(hashId, CreateCommentRequest(text))
 
                 result.onSuccess {
                     // Reload comments and entries (to update comment count)
-                    loadComments(entryId)
+                    loadComments(entryId, hashId)
                     loadEntries()
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to create comment", e)
@@ -618,5 +657,128 @@ class TrailViewModel(private val context: Context) : ViewModel() {
             )
             loadProfile()
         }
+    }
+
+    // Search overlay functions
+    fun openSearch(type: SearchType) {
+        _searchOverlayState.value = SearchOverlayState(
+            isVisible = true,
+            searchType = type
+        )
+    }
+
+    fun closeSearch() {
+        _searchOverlayState.value = SearchOverlayState()
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchOverlayState.value = _searchOverlayState.value.copy(query = query)
+    }
+
+    fun executeSearch(query: String) {
+        if (query.isBlank()) return
+
+        viewModelScope.launch {
+            try {
+                _searchOverlayState.value = _searchOverlayState.value.copy(
+                    isLoading = true,
+                    results = emptyList(),
+                    nextCursor = null,
+                    hasMore = false
+                )
+
+                val currentState = _searchOverlayState.value
+                val result = when (currentState.searchType) {
+                    SearchType.HOME -> ApiClient.api.getEntries(
+                        limit = PAGE_SIZE,
+                        query = query
+                    )
+                    SearchType.MY_FEED -> {
+                        val nickname = currentUserNickname ?: _profileState.value?.nickname
+                        if (nickname != null) {
+                            ApiClient.api.getUserEntries(
+                                nickname = nickname,
+                                limit = PAGE_SIZE,
+                                query = query
+                            )
+                        } else {
+                            Log.w("TrailViewModel", "Cannot search My Feed: no nickname available")
+                            _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+                            return@launch
+                        }
+                    }
+                }
+
+                result.onSuccess { entriesResponse ->
+                    _searchOverlayState.value = _searchOverlayState.value.copy(
+                        results = entriesResponse.entries,
+                        isLoading = false,
+                        hasMore = entriesResponse.hasMore,
+                        nextCursor = entriesResponse.nextCursor
+                    )
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Search failed", e)
+                    _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error during search", e)
+                _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun loadMoreSearchResults() {
+        val currentState = _searchOverlayState.value
+        if (currentState.isLoading || !currentState.hasMore || currentState.nextCursor == null) {
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _searchOverlayState.value = currentState.copy(isLoading = true)
+
+                val result = when (currentState.searchType) {
+                    SearchType.HOME -> ApiClient.api.getEntries(
+                        limit = PAGE_SIZE,
+                        before = currentState.nextCursor,
+                        query = currentState.query.ifBlank { null }
+                    )
+                    SearchType.MY_FEED -> {
+                        val nickname = currentUserNickname ?: _profileState.value?.nickname
+                        if (nickname != null) {
+                            ApiClient.api.getUserEntries(
+                                nickname = nickname,
+                                limit = PAGE_SIZE,
+                                before = currentState.nextCursor,
+                                query = currentState.query.ifBlank { null }
+                            )
+                        } else {
+                            Log.w("TrailViewModel", "Cannot load more My Feed results: no nickname available")
+                            _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+                            return@launch
+                        }
+                    }
+                }
+
+                result.onSuccess { entriesResponse ->
+                    _searchOverlayState.value = _searchOverlayState.value.copy(
+                        results = currentState.results + entriesResponse.entries,
+                        isLoading = false,
+                        hasMore = entriesResponse.hasMore,
+                        nextCursor = entriesResponse.nextCursor
+                    )
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Load more search results failed", e)
+                    _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading more search results", e)
+                _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    companion object {
+        private const val PAGE_SIZE = 20
     }
 }

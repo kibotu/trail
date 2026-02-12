@@ -21,6 +21,7 @@ datastore = "1.2.0"
 coil = "3.3.0"
 coilNetwork = "3.3.0"
 constraintlayoutCompose = "1.1.1"
+fontAwesomeCompose = "1.0.0"
 
 [libraries]
 androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
@@ -55,6 +56,7 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetwork" }
+font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version.ref = "fontAwesomeCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

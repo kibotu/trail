@@ -1,5 +1,6 @@
 package net.kibotu.trail.ui.screens
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +38,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import net.kibotu.trail.ui.components.EntryList
+import net.kibotu.trail.ui.components.SearchOverlay
+import net.kibotu.trail.ui.viewmodel.SearchType
 import net.kibotu.trail.ui.viewmodel.TrailViewModel
 import net.kibotu.trail.ui.viewmodel.UiState
 
@@ -52,6 +55,7 @@ fun MyFeedScreen(
     val commentsState by viewModel.commentsState.collectAsState()
     val celebrationEvent by viewModel.celebrationEvent.collectAsState()
     val profileState by viewModel.profileState.collectAsState()
+    val searchOverlayState by viewModel.searchOverlayState.collectAsState()
 
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 140
@@ -99,120 +103,159 @@ fun MyFeedScreen(
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = myFeedLoading,
-            onRefresh = { viewModel.refreshMyFeed() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .nestedScroll(scrollConnection)
-        ) {
-            // Post creation card at the top (in a Column that doesn't contain the list)
-            Column(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        ) { paddingValues ->
+            PullToRefreshBox(
+                isRefreshing = myFeedLoading,
+                onRefresh = { viewModel.refreshMyFeed() },
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
+                    .padding(paddingValues)
+                    .nestedScroll(scrollConnection)
             ) {
-                if (userName != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
+                // Post creation card at the top (in a Column that doesn't contain the list)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
+                    if (userName != null) {
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = "What's on your mind, $userName?",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedTextField(
-                                value = entryText,
-                                onValueChange = {
-                                    if (it.length <= maxCharacters) {
-                                        entryText = it
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("Share something...") },
-                                minLines = 3,
-                                maxLines = 5,
-                                supportingText = {
-                                    Text(
-                                        text = "${entryText.length}/$maxCharacters",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                },
-                                isError = entryText.length > maxCharacters
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Button(
-                                onClick = {
-                                    if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
-                                        viewModel.submitEntry(entryText)
-                                        entryText = ""
-                                    }
-                                },
-                                modifier = Modifier.align(Alignment.End),
-                                enabled = entryText.isNotBlank() && entryText.length <= maxCharacters
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
                             ) {
-                                Text("Post")
+                                Text(
+                                    text = "What's on your mind, $userName?",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = entryText,
+                                    onValueChange = {
+                                        if (it.length <= maxCharacters) {
+                                            entryText = it
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Share something...") },
+                                    minLines = 3,
+                                    maxLines = 5,
+                                    supportingText = {
+                                        Text(
+                                            text = "${entryText.length}/$maxCharacters",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    },
+                                    isError = entryText.length > maxCharacters
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
+                                            viewModel.submitEntry(entryText)
+                                            entryText = ""
+                                        }
+                                    },
+                                    modifier = Modifier.align(Alignment.End),
+                                    enabled = entryText.isNotBlank() && entryText.length <= maxCharacters
+                                ) {
+                                    Text("Post")
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // Entry list - placed outside Column to allow proper scrolling
-            EntryList(
-                entries = myFeedEntries,
-                isLoading = myFeedLoading && myFeedEntries.isEmpty(),
-                currentUserId = currentUserId,
-                isAdmin = isAdmin,
-                onUpdateEntry = { entryId, text ->
-                    viewModel.updateEntry(entryId, text)
-                },
-                onDeleteEntry = { entryId ->
-                    viewModel.deleteEntry(entryId)
-                },
-                commentsState = commentsState,
-                onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
-                onLoadComments = { entryId -> viewModel.loadComments(entryId) },
-                onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
-                onUpdateComment = { commentId, text, entryId ->
-                    viewModel.updateComment(commentId, text, entryId)
-                },
-                onDeleteComment = { commentId, entryId ->
-                    viewModel.deleteComment(commentId, entryId)
-                },
-                onClapComment = { commentId, count, entryId ->
-                    viewModel.clapComment(commentId, count, entryId)
-                },
-                onReportComment = { commentId, entryId ->
-                    viewModel.reportComment(commentId, entryId)
-                },
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    // Add enough top padding to clear the post card when authenticated
-                    // Post card is approximately: status bar + 16dp padding + card content (~220dp)
-                    top = if (userName != null) statusBarTop + 250.dp else statusBarTop + 8.dp,
-                    bottom = navigationBarBottom + 8.dp
-                ),
-                emptyMessage = "You haven't posted anything yet. Share your first thought!"
-            )
+                // Entry list - placed outside Column to allow proper scrolling
+                EntryList(
+                    entries = myFeedEntries,
+                    isLoading = myFeedLoading && myFeedEntries.isEmpty(),
+                    currentUserId = currentUserId,
+                    isAdmin = isAdmin,
+                    onUpdateEntry = { entryId, text ->
+                        viewModel.updateEntry(entryId, text)
+                    },
+                    onDeleteEntry = { entryId ->
+                        viewModel.deleteEntry(entryId)
+                    },
+                    commentsState = commentsState,
+                    onToggleComments = { entryId, hashId -> viewModel.toggleComments(entryId, hashId) },
+                    onLoadComments = { entryId, hashId -> viewModel.loadComments(entryId, hashId) },
+                    onCreateComment = { entryId, hashId, text -> viewModel.createComment(entryId, hashId, text) },
+                    onUpdateComment = { commentId, text, entryId ->
+                        viewModel.updateComment(commentId, text, entryId)
+                    },
+                    onDeleteComment = { commentId, entryId ->
+                        viewModel.deleteComment(commentId, entryId)
+                    },
+                    onClapComment = { commentId, count, entryId ->
+                        viewModel.clapComment(commentId, count, entryId)
+                    },
+                    onReportComment = { commentId, entryId ->
+                        viewModel.reportComment(commentId, entryId)
+                    },
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        // Add enough top padding to clear the post card when authenticated
+                        // Post card is approximately: status bar + 16dp padding + card content (~220dp)
+                        top = if (userName != null) statusBarTop + 250.dp else statusBarTop + 8.dp,
+                        bottom = navigationBarBottom + 8.dp
+                    ),
+                    emptyMessage = "You haven't posted anything yet. Share your first thought!"
+                )
+            }
         }
+
+        // Search Overlay
+        SearchOverlay(
+            isVisible = searchOverlayState.isVisible && searchOverlayState.searchType == SearchType.MY_FEED,
+            searchQuery = searchOverlayState.query,
+            searchResults = searchOverlayState.results,
+            isLoading = searchOverlayState.isLoading,
+            hasMore = searchOverlayState.hasMore,
+            onQueryChange = { viewModel.updateSearchQuery(it) },
+            onSearch = { viewModel.executeSearch(it) },
+            onLoadMore = { viewModel.loadMoreSearchResults() },
+            onDismiss = { viewModel.closeSearch() },
+            currentUserId = currentUserId,
+            isAdmin = isAdmin,
+            commentsState = commentsState,
+            onToggleComments = { entryId, hashId -> viewModel.toggleComments(entryId, hashId) },
+            onLoadComments = { entryId, hashId -> viewModel.loadComments(entryId, hashId) },
+            onCreateComment = { entryId, hashId, text -> viewModel.createComment(entryId, hashId, text) },
+            onUpdateComment = { commentId, text, entryId ->
+                viewModel.updateComment(commentId, text, entryId)
+            },
+            onDeleteComment = { commentId, entryId ->
+                viewModel.deleteComment(commentId, entryId)
+            },
+            onClapComment = { commentId, count, entryId ->
+                viewModel.clapComment(commentId, count, entryId)
+            },
+            onReportComment = { commentId, entryId ->
+                viewModel.reportComment(commentId, entryId)
+            },
+            onUpdateEntry = { entryId, text ->
+                viewModel.updateEntry(entryId, text)
+            },
+            onDeleteEntry = { entryId ->
+                viewModel.deleteEntry(entryId)
+            }
+        )
     }
 }
