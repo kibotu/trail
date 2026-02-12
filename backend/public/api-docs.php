@@ -668,6 +668,36 @@ $endpoints = [
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
         'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/images/prune"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/short-links',
+        'description' => 'List short URLs (t.co, bit.ly, etc.) pending resolution (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/short-links"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/admin/short-links/stats',
+        'description' => 'Get short link statistics - total, pending, failed counts (admin only)',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/short-links/stats"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/short-links/resolve',
+        'description' => 'Resolve short URLs to their final destinations (admin only) - Processes untried URLs first, then retries oldest failures',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/short-links/resolve"
     ]
 ];
 
@@ -765,7 +795,7 @@ $groups = [
                             <i class="fa-solid fa-link capability-icon"></i>
                             <div>
                                 <strong>Link Journaling</strong>
-                                <div style="font-size: 0.875rem; color: #6b7280;">140-char posts with URL previews</div>
+                                <div style="font-size: 0.875rem; color: #6b7280;">140-char posts with URL previews, auto short URL resolution</div>
                             </div>
                         </div>
                         <div class="capability-item">
@@ -1316,6 +1346,22 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                             <li>Caches previews to minimize API calls</li>
                             <li>Graceful fallback if preview fails</li>
                         </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3><i class="fa-solid fa-compress"></i> Short URL Resolution</h3>
+                        <p>Automatic resolution of shortened URLs to their final destinations:</p>
+                        <ul>
+                            <li><strong>Automatic on create:</strong> Short URLs (t.co, bit.ly, tinyurl.com, etc.) are resolved when posting new entries</li>
+                            <li><strong>Better previews:</strong> Preview metadata is fetched from the final URL, not the shortener</li>
+                            <li><strong>Graceful fallback:</strong> If resolution fails, the original short URL is preserved</li>
+                            <li><strong>Admin migration tool:</strong> Bulk resolve existing short URLs via the admin dashboard</li>
+                        </ul>
+                        <p style="margin-top: 0.75rem;"><strong>Supported shorteners:</strong></p>
+                        <div class="code-block">
+                            <code>t.co, bit.ly, tinyurl.com, goo.gl, ow.ly, is.gd, buff.ly,
+j.mp, dlvr.it, fb.me, lnkd.in, rebrand.ly, cutt.ly, and 20+ more</code>
+                        </div>
                     </div>
                 </section>
                 

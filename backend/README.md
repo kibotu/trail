@@ -6,6 +6,7 @@ PHP backend for Trail. Handles auth, entries, media, search, and notifications.
 
 - Google OAuth 2.0 + JWT + persistent API tokens
 - Entry CRUD with 280-character limit, URL preview enrichment (Iframely + embed fallback)
+- Automatic short URL resolution (t.co, bit.ly, etc.) to final destinations
 - Chunked media upload (20MB max per file, up to 3 per entry)
 - Video support: MP4, WebM, MOV with custom player controls
 - Full-text search with relevance ranking
@@ -15,7 +16,7 @@ PHP backend for Trail. Handles auth, entries, media, search, and notifications.
 - RSS feeds (global + per-user)
 - Rate limiting, bot protection, XSS/CSRF/SQLi hardening
 - Custom profile images, header backgrounds, bios
-- Admin dashboard
+- Admin dashboard with link health checking and short URL migration tools
 
 ## Tech Stack
 
