@@ -93,23 +93,29 @@ class EntryController
                         $height = $result['height'];
                         $fileSize = $result['file_size'];
                     } else {
-                        // Validate first
+                        // Validate first (handles both images and videos)
                         $validation = $imageService->validateImage($tempFile);
                         $imageType = $mediaItem['image_type'] ?? 'post';
                         
-                        // Check if this is an animated GIF that should be preserved
-                        $isAnimatedGif = $validation['mime_type'] === 'image/gif' 
+                        // Determine media type and processing strategy
+                        $isVideo = $imageService->isVideoMimeType($validation['mime_type']);
+                        $isAnimatedGif = !$isVideo && $validation['mime_type'] === 'image/gif' 
                             && $imageService->isAnimatedGif($tempFile);
                         
-                        // Generate secure filename (preserve .gif extension for animated GIFs)
+                        // Generate secure filename based on media type
                         $secureFilename = $imageService->generateSecureFilename(
                             $userId, 
                             $mediaItem['filename'],
-                            $isAnimatedGif
+                            $isAnimatedGif,
+                            $isVideo ? $validation['mime_type'] : null
                         );
                         $targetPath = $imageService->getImagePath($userId, $secureFilename);
                         
-                        if ($isAnimatedGif) {
+                        if ($isVideo) {
+                            // Videos: convert MOV to MP4, copy MP4/WebM as-is
+                            $optimized = $imageService->processVideo($tempFile, $targetPath, $validation['mime_type']);
+                            $mimeType = $optimized['mime_type']; // Use output MIME type
+                        } elseif ($isAnimatedGif) {
                             // Preserve animated GIF without conversion
                             $optimized = $imageService->preserveAnimatedGif($tempFile, $targetPath, $imageType);
                             $mimeType = 'image/gif';

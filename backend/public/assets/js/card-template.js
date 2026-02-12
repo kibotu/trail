@@ -167,34 +167,296 @@ const viewTrackingObserver = new IntersectionObserver((entries, observer) => {
 }, { threshold: 0.5 }); // 50% visible = viewed
 
 /**
- * Create entry images HTML
+ * Check if a URL is a video based on extension
+ * @param {string} url - Media URL
+ * @returns {boolean} True if the URL is a video
+ */
+function isVideoUrl(url) {
+    return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
+/**
+ * Create entry media HTML (images and videos)
  * @param {Object} entry - Entry object with images array
- * @returns {string} HTML string for the images
+ * @returns {string} HTML string for the media
  */
 function createEntryImagesHtml(entry) {
     if (!entry.images || !Array.isArray(entry.images) || entry.images.length === 0) {
         return '';
     }
     
-    let imagesHtml = '<div class="entry-images">';
+    let mediaHtml = '<div class="entry-images">';
     
-    entry.images.forEach(image => {
-        imagesHtml += `
-            <div class="entry-image-wrapper">
-                <a href="${escapeHtml(image.url)}" target="_blank" rel="noopener noreferrer">
-                    <img src="${escapeHtml(image.url)}" 
-                         alt="Post image" 
-                         class="entry-image"
-                         loading="lazy"
-                         onerror="this.parentElement.parentElement.style.display='none'">
-                </a>
-            </div>
-        `;
+    entry.images.forEach((media, index) => {
+        const url = escapeHtml(media.url);
+        const isVideo = isVideoUrl(media.url);
+        
+        if (isVideo) {
+            // Video: no autoplay, muted by default, user must click to play
+            mediaHtml += `
+                <div class="entry-media-wrapper entry-video-wrapper" data-media-index="${index}">
+                    <video class="entry-video" 
+                           src="${url}" 
+                           muted 
+                           playsinline 
+                           preload="metadata"
+                           poster=""
+                           onerror="this.parentElement.style.display='none'">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-play-overlay" data-no-navigate>
+                        <button class="video-play-button" aria-label="Play video" data-no-navigate>
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                    </div>
+                    <div class="video-controls" style="display: none;" data-no-navigate>
+                        <div class="video-progress-container" data-no-navigate>
+                            <div class="video-progress-bar" data-no-navigate>
+                                <div class="video-progress-filled" data-no-navigate></div>
+                                <div class="video-progress-handle" data-no-navigate></div>
+                            </div>
+                            <span class="video-time" data-no-navigate>0:00 / 0:00</span>
+                        </div>
+                        <button class="video-mute-button" aria-label="Unmute video" data-no-navigate>
+                            <i class="fa-solid fa-volume-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Image: clickable to open in new tab
+            mediaHtml += `
+                <div class="entry-image-wrapper">
+                    <a href="${url}" target="_blank" rel="noopener noreferrer">
+                        <img src="${url}" 
+                             alt="Post image" 
+                             class="entry-image"
+                             loading="lazy"
+                             onerror="this.parentElement.parentElement.style.display='none'">
+                    </a>
+                </div>
+            `;
+        }
     });
     
-    imagesHtml += '</div>';
+    mediaHtml += '</div>';
     
-    return imagesHtml;
+    return mediaHtml;
+}
+
+/**
+ * Format time in seconds to mm:ss or h:mm:ss
+ * @param {number} seconds - Time in seconds
+ * @returns {string} Formatted time string
+ */
+function formatVideoTime(seconds) {
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+    
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hrs > 0) {
+        return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Initialize video player controls for an entry card
+ * @param {HTMLElement} card - The entry card element
+ */
+function initializeVideoPlayers(card) {
+    const videoWrappers = card.querySelectorAll('.entry-video-wrapper');
+    
+    videoWrappers.forEach(wrapper => {
+        const video = wrapper.querySelector('.entry-video');
+        const playOverlay = wrapper.querySelector('.video-play-overlay');
+        const playButton = wrapper.querySelector('.video-play-button');
+        const controls = wrapper.querySelector('.video-controls');
+        const muteButton = wrapper.querySelector('.video-mute-button');
+        const progressBar = wrapper.querySelector('.video-progress-bar');
+        const progressFilled = wrapper.querySelector('.video-progress-filled');
+        const progressHandle = wrapper.querySelector('.video-progress-handle');
+        const timeDisplay = wrapper.querySelector('.video-time');
+        
+        if (!video || !playButton) return;
+        
+        let isDragging = false;
+        
+        // Update progress bar and time display
+        function updateProgress() {
+            const duration = video.duration;
+            const currentTime = video.currentTime;
+            
+            if (duration && isFinite(duration) && !isDragging) {
+                const percent = (currentTime / duration) * 100;
+                if (progressFilled) {
+                    progressFilled.style.width = percent + '%';
+                }
+                if (progressHandle) {
+                    progressHandle.style.left = percent + '%';
+                }
+            }
+            if (timeDisplay) {
+                const durationText = (duration && isFinite(duration)) ? formatVideoTime(duration) : '0:00';
+                timeDisplay.textContent = `${formatVideoTime(currentTime)} / ${durationText}`;
+            }
+        }
+        
+        // Seek to position based on click/drag
+        function seekToPosition(clientX) {
+            if (!progressBar) return;
+            
+            const duration = video.duration;
+            if (!duration || !isFinite(duration)) return;
+            
+            const rect = progressBar.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const newTime = percent * duration;
+            
+            // Update visual immediately
+            if (progressFilled) {
+                progressFilled.style.width = (percent * 100) + '%';
+            }
+            if (progressHandle) {
+                progressHandle.style.left = (percent * 100) + '%';
+            }
+            
+            // Seek the video
+            video.currentTime = newTime;
+        }
+        
+        // Progress bar click to seek
+        if (progressBar) {
+            progressBar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                seekToPosition(e.clientX);
+            });
+            
+            // Drag to seek
+            progressBar.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isDragging = true;
+                seekToPosition(e.clientX);
+                
+                const onMouseMove = (moveEvent) => {
+                    if (isDragging) {
+                        moveEvent.preventDefault();
+                        seekToPosition(moveEvent.clientX);
+                    }
+                };
+                
+                const onMouseUp = () => {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+            
+            // Touch support for mobile
+            progressBar.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isDragging = true;
+                if (e.touches.length > 0) {
+                    seekToPosition(e.touches[0].clientX);
+                }
+            });
+            
+            progressBar.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length > 0) {
+                    e.preventDefault();
+                    seekToPosition(e.touches[0].clientX);
+                }
+            });
+            
+            progressBar.addEventListener('touchend', (e) => {
+                isDragging = false;
+            });
+        }
+        
+        // Update progress as video plays
+        video.addEventListener('timeupdate', updateProgress);
+        
+        // Update duration display when metadata loads
+        video.addEventListener('loadedmetadata', updateProgress);
+        
+        // Also update on canplay in case metadata wasn't enough
+        video.addEventListener('canplay', updateProgress);
+        
+        // Play button click
+        playButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            if (video.paused) {
+                video.play().then(() => {
+                    playOverlay.style.display = 'none';
+                    controls.style.display = 'flex';
+                }).catch(err => {
+                    console.error('Video play failed:', err);
+                });
+            }
+        });
+        
+        // Click on video to pause/play
+        video.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            if (video.paused) {
+                video.play().then(() => {
+                    playOverlay.style.display = 'none';
+                    controls.style.display = 'flex';
+                }).catch(err => {
+                    console.error('Video play failed:', err);
+                });
+            } else {
+                video.pause();
+                playOverlay.style.display = 'flex';
+                controls.style.display = 'none';
+            }
+        });
+        
+        // Mute/unmute button
+        if (muteButton) {
+            muteButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                video.muted = !video.muted;
+                const icon = muteButton.querySelector('i');
+                if (video.muted) {
+                    icon.className = 'fa-solid fa-volume-xmark';
+                    muteButton.setAttribute('aria-label', 'Unmute video');
+                } else {
+                    icon.className = 'fa-solid fa-volume-high';
+                    muteButton.setAttribute('aria-label', 'Mute video');
+                }
+            });
+        }
+        
+        // Show play overlay when video ends
+        video.addEventListener('ended', () => {
+            playOverlay.style.display = 'flex';
+            controls.style.display = 'none';
+            // Change play icon to replay
+            const playIcon = playButton.querySelector('i');
+            playIcon.className = 'fa-solid fa-rotate-right';
+        });
+        
+        // Reset play icon when video plays again
+        video.addEventListener('play', () => {
+            const playIcon = playButton.querySelector('i');
+            playIcon.className = 'fa-solid fa-play';
+        });
+    });
 }
 
 /**
@@ -687,6 +949,9 @@ function createEntryCard(entry, options = {}) {
     card.dataset.hashId = hashId;
     viewTrackingObserver.observe(card);
     
+    // Initialize video players if present
+    initializeVideoPlayers(card);
+    
     return card;
 }
 
@@ -1023,9 +1288,11 @@ if (typeof module !== 'undefined' && module.exports) {
         formatTimestamp,
         formatClapCount,
         formatViewCount,
+        isVideoUrl,
         createEntryImagesHtml,
         createLinkPreviewCard,
         createEntryCard,
+        initializeVideoPlayers,
         openShareModal,
         closeShareModal,
         copyEntryLink,

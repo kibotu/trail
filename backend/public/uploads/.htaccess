@@ -30,7 +30,7 @@
 </FilesMatch>
 
 # Only allow image and video files
-<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$">
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|avif|mp4|webm)$">
     <IfModule mod_authz_core.c>
         Require all granted
     </IfModule>

@@ -23,8 +23,9 @@ class ImageUploader {
      * Validate file before upload
      */
     validateFile(file) {
-        const maxSize = 20 * 1024 * 1024; // 20MB
-        const allowedTypes = [
+        const maxImageSize = 20 * 1024 * 1024; // 20MB for images
+        const maxVideoSize = 50 * 1024 * 1024; // 50MB for videos
+        const allowedImageTypes = [
             'image/jpeg',
             'image/png',
             'image/gif',
@@ -32,17 +33,27 @@ class ImageUploader {
             'image/svg+xml',
             'image/avif'
         ];
+        const allowedVideoTypes = [
+            'video/mp4',
+            'video/quicktime', // MOV files
+            'video/webm'
+        ];
+        const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
         
         if (!file) {
             throw new Error('No file selected');
         }
         
+        const isVideo = allowedVideoTypes.includes(file.type);
+        const maxSize = isVideo ? maxVideoSize : maxImageSize;
+        
         if (file.size > maxSize) {
-            throw new Error('File size exceeds 20MB limit');
+            const limitMB = maxSize / (1024 * 1024);
+            throw new Error(`File size exceeds ${limitMB}MB limit`);
         }
         
         if (!allowedTypes.includes(file.type)) {
-            throw new Error('Invalid file type. Allowed: JPEG, PNG, GIF, WebP, SVG, AVIF');
+            throw new Error('Invalid file type. Allowed: JPEG, PNG, GIF, WebP, SVG, AVIF, MP4, MOV, WebM');
         }
         
         return true;
@@ -326,7 +337,7 @@ function createImageUploadUI(imageType, containerId, onUploadComplete, options =
             }
         </style>
         <div class="image-upload-container">
-            <input type="file" id="${containerId}-input" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" style="display: none;">
+            <input type="file" id="${containerId}-input" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif,video/mp4,video/quicktime,video/webm,.mov,.webm" style="display: none;">
             <button type="button" id="${containerId}-button" class="upload-button" title="Upload image">
                 <i class="fa-solid fa-image"></i>
             </button>
@@ -367,23 +378,48 @@ function createImageUploadUI(imageType, containerId, onUploadComplete, options =
         }
     }
     
-    // Function to add image preview
-    function addImagePreview(imageUrl, imageId) {
+    // Check if URL is a video
+    function isVideoUrl(url) {
+        return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    }
+    
+    // Function to add media preview (image or video)
+    function addImagePreview(mediaUrl, mediaId) {
         const previewItem = document.createElement('div');
         previewItem.className = 'upload-preview-item';
-        previewItem.dataset.imageId = imageId;
+        previewItem.dataset.imageId = mediaId;
         
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.alt = 'Preview';
+        // Create appropriate element based on media type
+        if (isVideoUrl(mediaUrl)) {
+            const video = document.createElement('video');
+            video.src = mediaUrl;
+            video.muted = true;
+            video.preload = 'metadata';
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'cover';
+            
+            // Add play overlay indicator
+            const playOverlay = document.createElement('div');
+            playOverlay.className = 'video-play-overlay-small';
+            playOverlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+            
+            previewItem.appendChild(video);
+            previewItem.appendChild(playOverlay);
+        } else {
+            const img = document.createElement('img');
+            img.src = mediaUrl;
+            img.alt = 'Preview';
+            previewItem.appendChild(img);
+        }
         
         const removeBtn = document.createElement('button');
         removeBtn.className = 'upload-preview-remove';
         removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        removeBtn.title = 'Remove image';
+        removeBtn.title = 'Remove media';
         removeBtn.onclick = () => {
             previewItem.remove();
-            const index = uploadedImages.findIndex(img => img.id === imageId);
+            const index = uploadedImages.findIndex(img => img.id === mediaId);
             if (index > -1) {
                 uploadedImages.splice(index, 1);
             }
@@ -393,11 +429,10 @@ function createImageUploadUI(imageType, containerId, onUploadComplete, options =
             updateButtonState();
             // Notify about removal
             if (onUploadComplete) {
-                onUploadComplete({ removed: true, image_id: imageId, all_images: uploadedImages });
+                onUploadComplete({ removed: true, image_id: mediaId, all_images: uploadedImages });
             }
         };
         
-        previewItem.appendChild(img);
         previewItem.appendChild(removeBtn);
         preview.appendChild(previewItem);
         preview.style.display = 'flex';

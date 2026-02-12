@@ -14,6 +14,7 @@ use RuntimeException;
 class ImageService
 {
     private const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    private const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
     private const WEBP_QUALITY = 90;
     
     private const ALLOWED_MIME_TYPES = [
@@ -22,7 +23,16 @@ class ImageService
         'image/gif',
         'image/webp',
         'image/svg+xml',
-        'image/avif'
+        'image/avif',
+        'video/mp4',
+        'video/quicktime', // MOV files
+        'video/webm'
+    ];
+    
+    private const VIDEO_MIME_TYPES = [
+        'video/mp4',
+        'video/quicktime',
+        'video/webm'
     ];
     
     private const IMAGE_DIMENSIONS = [
@@ -49,7 +59,15 @@ class ImageService
     }
     
     /**
-     * Validate uploaded image file with magic byte verification
+     * Check if a MIME type is a video type
+     */
+    public function isVideoMimeType(string $mimeType): bool
+    {
+        return in_array($mimeType, self::VIDEO_MIME_TYPES, true);
+    }
+    
+    /**
+     * Validate uploaded media file (image or video) with magic byte verification
      */
     public function validateImage(string $filePath, int $maxSize = self::MAX_FILE_SIZE): array
     {
@@ -57,27 +75,37 @@ class ImageService
             throw new InvalidArgumentException('File does not exist');
         }
         
-        $fileSize = filesize($filePath);
-        if ($fileSize === false || $fileSize > $maxSize) {
-            throw new InvalidArgumentException('File size exceeds maximum allowed size');
-        }
-        
-        // Check magic bytes for real MIME type
+        // Check magic bytes for real MIME type first
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $filePath);
         // Note: finfo_close() is deprecated in PHP 8.5+, objects are freed automatically
         
         if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
-            throw new InvalidArgumentException('Invalid image type: ' . $mimeType);
+            throw new InvalidArgumentException('Invalid media type: ' . $mimeType);
+        }
+        
+        // Use higher size limit for videos
+        $effectiveMaxSize = $this->isVideoMimeType($mimeType) ? self::MAX_VIDEO_SIZE : $maxSize;
+        
+        $fileSize = filesize($filePath);
+        if ($fileSize === false || $fileSize > $effectiveMaxSize) {
+            $limitMB = $effectiveMaxSize / (1024 * 1024);
+            throw new InvalidArgumentException("File size exceeds maximum allowed size ({$limitMB}MB)");
         }
         
         // Verify magic bytes match the detected MIME type (security check)
         $this->verifyImageMagicBytes($filePath, $mimeType);
         
-        // Get image dimensions (except for SVG)
+        // Get dimensions based on media type
         $width = null;
         $height = null;
-        if ($mimeType !== 'image/svg+xml') {
+        
+        if ($this->isVideoMimeType($mimeType)) {
+            // For videos, try to get dimensions using ffprobe if available
+            $dimensions = $this->getVideoDimensions($filePath);
+            $width = $dimensions['width'];
+            $height = $dimensions['height'];
+        } elseif ($mimeType !== 'image/svg+xml') {
             $imageInfo = @getimagesize($filePath);
             if ($imageInfo === false) {
                 throw new InvalidArgumentException('Invalid image file');
@@ -91,6 +119,34 @@ class ImageService
             'width' => $width,
             'height' => $height
         ];
+    }
+    
+    /**
+     * Get video dimensions using ffprobe if available
+     * 
+     * @param string $filePath Path to video file
+     * @return array{width: int|null, height: int|null}
+     */
+    private function getVideoDimensions(string $filePath): array
+    {
+        $width = null;
+        $height = null;
+        
+        // Try ffprobe first (most reliable)
+        $ffprobe = trim(shell_exec('which ffprobe 2>/dev/null') ?? '');
+        if ($ffprobe) {
+            $cmd = sprintf(
+                'ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 %s 2>/dev/null',
+                escapeshellarg($filePath)
+            );
+            $output = trim(shell_exec($cmd) ?? '');
+            if (preg_match('/^(\d+)x(\d+)$/', $output, $matches)) {
+                $width = (int) $matches[1];
+                $height = (int) $matches[2];
+            }
+        }
+        
+        return ['width' => $width, 'height' => $height];
     }
     
     /**
@@ -177,6 +233,19 @@ class ImageService
             'image/avif' => [
                 ['offset' => 4, 'bytes' => "ftyp"], // ISO Base Media File Format
             ],
+            'video/mp4' => [
+                ['offset' => 4, 'bytes' => "ftyp"], // ISO Base Media File Format (MP4)
+            ],
+            'video/quicktime' => [
+                ['offset' => 4, 'bytes' => "ftyp"], // ISO Base Media File Format (MOV)
+                ['offset' => 4, 'bytes' => "moov"], // QuickTime movie atom
+                ['offset' => 4, 'bytes' => "mdat"], // Media data atom
+                ['offset' => 4, 'bytes' => "wide"], // Wide atom
+                ['offset' => 4, 'bytes' => "free"], // Free space atom
+            ],
+            'video/webm' => [
+                ['offset' => 0, 'bytes' => "\x1A\x45\xDF\xA3"], // EBML header (WebM/Matroska)
+            ],
         ];
         
         if (!isset($magicBytes[$mimeType])) {
@@ -253,6 +322,94 @@ class ImageService
             'height' => $height,
             'file_size' => $fileSize,
             'mime_type' => 'image/gif'
+        ];
+    }
+    
+    /**
+     * Check if ffmpeg is available on the system
+     */
+    public function isFfmpegAvailable(): bool
+    {
+        $ffmpeg = trim(shell_exec('which ffmpeg 2>/dev/null') ?? '');
+        return !empty($ffmpeg);
+    }
+    
+    /**
+     * Process video file - convert MOV to MP4 or copy MP4 as-is
+     * 
+     * @param string $sourcePath Source video file path
+     * @param string $targetPath Target file path (should have .mp4 extension)
+     * @param string $mimeType Original MIME type
+     * @return array Video metadata (width, height, file_size, mime_type)
+     */
+    public function processVideo(string $sourcePath, string $targetPath, string $mimeType): array
+    {
+        if (!file_exists($sourcePath)) {
+            throw new InvalidArgumentException('Source file does not exist');
+        }
+        
+        $fileSize = filesize($sourcePath);
+        if ($fileSize === false || $fileSize > self::MAX_VIDEO_SIZE) {
+            throw new InvalidArgumentException('Video file size exceeds maximum allowed size (50MB)');
+        }
+        
+        // Validate MIME type is a video
+        if (!$this->isVideoMimeType($mimeType)) {
+            throw new InvalidArgumentException('Invalid video MIME type: ' . $mimeType);
+        }
+        
+        // Determine output MIME type and whether conversion is needed
+        $outputMimeType = $mimeType;
+        
+        // If MOV, convert to MP4 using ffmpeg
+        if ($mimeType === 'video/quicktime') {
+            if (!$this->isFfmpegAvailable()) {
+                throw new RuntimeException('ffmpeg is required to convert MOV files but is not available');
+            }
+            
+            // Convert MOV to MP4 with reasonable quality settings
+            // -movflags +faststart: Optimize for web streaming
+            // -c:v libx264: Use H.264 video codec (widely supported)
+            // -c:a aac: Use AAC audio codec
+            // -preset medium: Balance between encoding speed and file size
+            // -crf 23: Good quality (lower = better, 18-28 is typical range)
+            $cmd = sprintf(
+                'ffmpeg -i %s -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart -y %s 2>&1',
+                escapeshellarg($sourcePath),
+                escapeshellarg($targetPath)
+            );
+            
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+            
+            if ($returnCode !== 0) {
+                error_log("ffmpeg conversion failed: " . implode("\n", $output));
+                throw new RuntimeException('Failed to convert video to MP4');
+            }
+            
+            // Get the new file size
+            $fileSize = filesize($targetPath);
+            if ($fileSize === false) {
+                throw new RuntimeException('Failed to get converted video file size');
+            }
+            
+            $outputMimeType = 'video/mp4';
+        } else {
+            // MP4 and WebM - copy as-is
+            if (!copy($sourcePath, $targetPath)) {
+                throw new RuntimeException('Failed to copy video file');
+            }
+        }
+        
+        // Get video dimensions
+        $dimensions = $this->getVideoDimensions($targetPath);
+        
+        return [
+            'width' => $dimensions['width'],
+            'height' => $dimensions['height'],
+            'file_size' => $fileSize,
+            'mime_type' => $outputMimeType
         ];
     }
     
@@ -415,19 +572,24 @@ class ImageService
      * @param int $userId User ID
      * @param string $originalFilename Original filename
      * @param bool $preserveGif Whether to preserve .gif extension (for animated GIFs)
+     * @param string|null $videoMimeType Video MIME type if this is a video (determines extension)
      * @return string Secure filename
      */
-    public function generateSecureFilename(int $userId, string $originalFilename, bool $preserveGif = false): string
+    public function generateSecureFilename(int $userId, string $originalFilename, bool $preserveGif = false, ?string $videoMimeType = null): string
     {
         $timestamp = time();
         $random = bin2hex(random_bytes(8));
         $extension = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
         
         // Determine output extension:
+        // - Video files: WebM stays .webm, others become .mp4 (MOV is converted)
         // - SVG files keep .svg
         // - Animated GIFs keep .gif when preserveGif is true
         // - Everything else becomes .webp
-        if ($extension === 'svg') {
+        if ($videoMimeType !== null) {
+            // WebM videos keep their extension, MOV converts to MP4
+            $ext = ($videoMimeType === 'video/webm') ? 'webm' : 'mp4';
+        } elseif ($extension === 'svg') {
             $ext = 'svg';
         } elseif ($preserveGif && $extension === 'gif') {
             $ext = 'gif';

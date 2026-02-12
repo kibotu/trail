@@ -42,8 +42,14 @@ class ImageUploadController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
         
-        if ($fileSize <= 0 || $fileSize > 20 * 1024 * 1024) {
-            $response->getBody()->write(json_encode(['error' => 'File size must be between 1 byte and 20MB']));
+        // Check file extension to determine if it's a video (for size limit)
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $isVideo = in_array($extension, ['mp4', 'mov', 'webm'], true);
+        $maxFileSize = $isVideo ? 50 * 1024 * 1024 : 20 * 1024 * 1024; // 50MB for videos, 20MB for images
+        
+        if ($fileSize <= 0 || $fileSize > $maxFileSize) {
+            $limitMB = $maxFileSize / (1024 * 1024);
+            $response->getBody()->write(json_encode(['error' => "File size must be between 1 byte and {$limitMB}MB"]));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
         
@@ -228,25 +234,36 @@ class ImageUploadController
             
             fclose($assembledFile);
             
-            // Validate image
+            // Validate media (image or video)
             $validation = $imageService->validateImage($assembledPath);
             
-            // Check if this is an animated GIF that should be preserved
-            $isAnimatedGif = $validation['mime_type'] === 'image/gif' 
+            // Determine media type and processing strategy
+            $isVideo = $imageService->isVideoMimeType($validation['mime_type']);
+            $isAnimatedGif = !$isVideo && $validation['mime_type'] === 'image/gif' 
                 && $imageService->isAnimatedGif($assembledPath);
             
-            // Generate secure filename (preserve .gif extension for animated GIFs)
+            // Generate secure filename based on media type
             $secureFilename = $imageService->generateSecureFilename(
                 $userId, 
                 $metadata['filename'],
-                $isAnimatedGif
+                $isAnimatedGif,
+                $isVideo ? $validation['mime_type'] : null
             );
             
             // Get target path
             $targetPath = $imageService->getImagePath($userId, $secureFilename);
             
-            // Process image: preserve animated GIFs, optimize others to WebP
-            if ($isAnimatedGif) {
+            // Process media based on type
+            if ($isVideo) {
+                // Videos: convert MOV to MP4, copy MP4/WebM as-is
+                $optimized = $imageService->processVideo(
+                    $assembledPath,
+                    $targetPath,
+                    $validation['mime_type']
+                );
+                $storedMimeType = $optimized['mime_type']; // Use the output MIME type from processing
+            } elseif ($isAnimatedGif) {
+                // Animated GIFs are preserved as-is
                 $optimized = $imageService->preserveAnimatedGif(
                     $assembledPath,
                     $targetPath,
@@ -254,6 +271,7 @@ class ImageUploadController
                 );
                 $storedMimeType = 'image/gif';
             } else {
+                // Static images are optimized and converted to WebP
                 $optimized = $imageService->optimizeAndConvert(
                     $assembledPath,
                     $targetPath,
