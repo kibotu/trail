@@ -1,0 +1,16 @@
+# Cache files
+.tag_generation_cache.json
+*.cache.json
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/

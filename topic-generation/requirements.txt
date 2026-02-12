@@ -1,0 +1,9 @@
+# Note: This project uses uv for dependency management
+# Dependencies are embedded in script files using PEP 723 inline metadata
+# 
+# To run scripts:
+#   uv run generate_tags.py --api-key YOUR_API_KEY
+#
+# If you prefer traditional pip:
+requests>=2.31.0
+urllib3>=2.0.0
