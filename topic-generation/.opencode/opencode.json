@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "tag-generator": {
+      "description": "Restricted agent for generating tags from web content - web fetch only",
+      "mode": "subagent",
+      "temperature": 0.3,
+      "tools": {
+        "webfetch": true,
+        "read_file": false,
+        "list_dir": false,
+        "grep": false,
+        "codebase_search": false,
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "glob": false,
+        "semantic_search": false
+      }
+    }
+  }
+}

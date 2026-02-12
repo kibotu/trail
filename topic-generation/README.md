@@ -131,6 +131,8 @@ Tags are:
 
 ## Security
 
+### API Key Protection
+
 ```bash
 # Preferred: use environment variable
 export TRAIL_API_KEY="your_api_key"
@@ -139,6 +141,30 @@ uv run generate_tags.py
 # Never commit tokens
 # Already in .gitignore
 ```
+
+### Prompt Injection Protection
+
+The script includes multiple layers of defense against prompt injection attacks:
+
+1. **System Instruction Framing**: Clear boundaries between system instructions and user content
+2. **Content Isolation**: `=== CONTENT START/END ===` markers treat user input as data, not instructions
+3. **Input Sanitization**: Removes common injection patterns ("Ignore previous", "Disregard", etc.)
+4. **Length Limits**: Text (500 chars), title (200), description (500) to prevent token abuse
+5. **Quote Escaping**: Prevents breaking out of JSON context
+6. **Output Validation**: Only accepts valid JSON arrays, rejects everything else
+
+### Restricted OpenCode Agent
+
+The script uses a custom OpenCode agent (`tag-generator`) with **severely restricted permissions**:
+
+- ✅ **webfetch only** - Can fetch URLs to analyze content
+- ❌ **No file access** - Cannot read, write, or modify local files
+- ❌ **No command execution** - Cannot run bash commands
+- ❌ **No codebase access** - Cannot search or analyze your code
+
+See [AGENT_CONFIG.md](AGENT_CONFIG.md) for details.
+
+**Result:** Even if all other security layers failed, the agent physically cannot access your files, execute commands, or do anything except fetch web pages.
 
 ## Cache Structure
 
@@ -157,6 +183,27 @@ uv run generate_tags.py
   }
 }
 ```
+
+## Troubleshooting
+
+### "403 Access denied" errors
+
+If you see 403 errors, this is likely due to the SecurityMiddleware blocking bot-like User-Agents. The script now uses a proper User-Agent header (`Trail-Tag-Generator/1.0`) to bypass this protection.
+
+If you still get 403 errors, verify:
+1. Your API token is valid: `curl -H "Authorization: Bearer YOUR_TOKEN" -H "User-Agent: Trail-Tag-Generator/1.0" https://trail.services.kibotu.net/api/entries?limit=1`
+2. The user associated with the token has `is_admin = 1` in the database
+3. You're using the latest version of the script with the User-Agent header
+
+### "opencode: command not found"
+
+Make sure opencode is installed and in your PATH:
+```bash
+which opencode
+# Should output: /opt/homebrew/bin/opencode (or similar)
+```
+
+If not installed, see the installation instructions at the top of this README.
 
 ## Links
 
