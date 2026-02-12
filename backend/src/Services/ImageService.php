@@ -94,6 +94,50 @@ class ImageService
     }
     
     /**
+     * Check if a GIF file is animated (has multiple frames)
+     * 
+     * @param string $filePath Path to the GIF file
+     * @return bool True if the GIF is animated
+     */
+    public function isAnimatedGif(string $filePath): bool
+    {
+        if (!file_exists($filePath)) {
+            return false;
+        }
+        
+        $handle = fopen($filePath, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+        
+        $frameCount = 0;
+        
+        // Read the entire file to check for multiple graphic control extension blocks
+        // which indicate animation frames
+        while (!feof($handle) && $frameCount < 2) {
+            $chunk = fread($handle, 1024);
+            if ($chunk === false) {
+                break;
+            }
+            
+            // Look for Graphic Control Extension (0x21 0xF9) which precedes each frame
+            // Each animated frame has this extension block
+            $frameCount += substr_count($chunk, "\x00\x21\xF9\x04");
+            
+            // Also check for NETSCAPE extension (loop indicator) - strong sign of animation
+            if (strpos($chunk, "NETSCAPE") !== false) {
+                fclose($handle);
+                return true;
+            }
+        }
+        
+        fclose($handle);
+        
+        // If we found 2 or more graphic control extension blocks, it's animated
+        return $frameCount >= 2;
+    }
+    
+    /**
      * Verify image magic bytes to prevent file type spoofing
      */
     private function verifyImageMagicBytes(string $filePath, string $mimeType): void
@@ -160,6 +204,59 @@ class ImageService
     }
     
     /**
+     * Preserve an animated GIF by copying it without any processing.
+     * This maintains the animation frames and timing.
+     * 
+     * @param string $sourcePath Source GIF file path
+     * @param string $targetPath Target file path (should have .gif extension)
+     * @param string $imageType Image type for dimension validation ('profile', 'header', 'post')
+     * @return array Image metadata (width, height, file_size, mime_type)
+     */
+    public function preserveAnimatedGif(string $sourcePath, string $targetPath, string $imageType): array
+    {
+        if (!file_exists($sourcePath)) {
+            throw new InvalidArgumentException('Source file does not exist');
+        }
+        
+        $fileSize = filesize($sourcePath);
+        if ($fileSize === false || $fileSize > self::MAX_FILE_SIZE) {
+            throw new InvalidArgumentException('File size exceeds maximum allowed size');
+        }
+        
+        // Get dimensions
+        $imageInfo = @getimagesize($sourcePath);
+        if ($imageInfo === false) {
+            throw new InvalidArgumentException('Invalid GIF file');
+        }
+        
+        [$width, $height] = $imageInfo;
+        
+        // Check if dimensions exceed limits for the image type
+        if (isset(self::IMAGE_DIMENSIONS[$imageType])) {
+            $maxWidth = self::IMAGE_DIMENSIONS[$imageType]['width'];
+            $maxHeight = self::IMAGE_DIMENSIONS[$imageType]['height'];
+            
+            // For animated GIFs, we accept larger dimensions but log a warning
+            // Resizing animated GIFs would require frame-by-frame processing
+            if ($width > $maxWidth * 2 || $height > $maxHeight * 2) {
+                error_log("Warning: Animated GIF dimensions ({$width}x{$height}) exceed recommended limits for {$imageType}");
+            }
+        }
+        
+        // Copy file as-is to preserve animation
+        if (!copy($sourcePath, $targetPath)) {
+            throw new RuntimeException('Failed to copy animated GIF file');
+        }
+        
+        return [
+            'width' => $width,
+            'height' => $height,
+            'file_size' => $fileSize,
+            'mime_type' => 'image/gif'
+        ];
+    }
+    
+    /**
      * Save raw image without processing (validation or conversion)
      * WARNING: This bypasses security validation. Use only for trusted sources.
      * 
@@ -207,11 +304,21 @@ class ImageService
     
     /**
      * Optimize and convert image to WebP
+     * 
+     * Note: Animated GIFs should be handled separately using preserveAnimatedGif()
+     * before calling this method. This method will convert static GIFs to WebP.
+     * 
+     * @param string $sourcePath Source image path
+     * @param string $targetPath Target path for output image
+     * @param string $imageType Image type ('profile', 'header', 'post')
+     * @param bool $checkAnimatedGif If true, will throw exception for animated GIFs
+     * @return array Image metadata (width, height, file_size)
      */
     public function optimizeAndConvert(
         string $sourcePath,
         string $targetPath,
-        string $imageType
+        string $imageType,
+        bool $checkAnimatedGif = false
     ): array {
         if (!isset(self::IMAGE_DIMENSIONS[$imageType])) {
             throw new InvalidArgumentException('Invalid image type: ' . $imageType);
@@ -233,6 +340,11 @@ class ImageService
                 'height' => null,
                 'file_size' => filesize($targetPath)
             ];
+        }
+        
+        // Check for animated GIF - these should be handled by preserveAnimatedGif()
+        if ($mimeType === 'image/gif' && $checkAnimatedGif && $this->isAnimatedGif($sourcePath)) {
+            throw new InvalidArgumentException('Animated GIFs should be handled with preserveAnimatedGif()');
         }
         
         // Load source image based on type
@@ -298,16 +410,30 @@ class ImageService
     }
     
     /**
-     * Generate secure filename: {userId}_{timestamp}_{random}.webp
+     * Generate secure filename: {userId}_{timestamp}_{random}.{ext}
+     * 
+     * @param int $userId User ID
+     * @param string $originalFilename Original filename
+     * @param bool $preserveGif Whether to preserve .gif extension (for animated GIFs)
+     * @return string Secure filename
      */
-    public function generateSecureFilename(int $userId, string $originalFilename): string
+    public function generateSecureFilename(int $userId, string $originalFilename, bool $preserveGif = false): string
     {
         $timestamp = time();
         $random = bin2hex(random_bytes(8));
-        $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
+        $extension = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
         
-        // Use .webp for most images, preserve .svg for SVG files
-        $ext = strtolower($extension) === 'svg' ? 'svg' : 'webp';
+        // Determine output extension:
+        // - SVG files keep .svg
+        // - Animated GIFs keep .gif when preserveGif is true
+        // - Everything else becomes .webp
+        if ($extension === 'svg') {
+            $ext = 'svg';
+        } elseif ($preserveGif && $extension === 'gif') {
+            $ext = 'gif';
+        } else {
+            $ext = 'webp';
+        }
         
         return sprintf('%d_%d_%s.%s', $userId, $timestamp, $random, $ext);
     }

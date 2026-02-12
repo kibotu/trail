@@ -231,16 +231,39 @@ class ImageUploadController
             // Validate image
             $validation = $imageService->validateImage($assembledPath);
             
-            // Generate secure filename
-            $secureFilename = $imageService->generateSecureFilename($userId, $metadata['filename']);
+            // Check if this is an animated GIF that should be preserved
+            $isAnimatedGif = $validation['mime_type'] === 'image/gif' 
+                && $imageService->isAnimatedGif($assembledPath);
             
-            // Process and optimize image
-            $targetPath = $imageService->getImagePath($userId, $secureFilename);
-            $optimized = $imageService->optimizeAndConvert(
-                $assembledPath,
-                $targetPath,
-                $metadata['image_type']
+            // Generate secure filename (preserve .gif extension for animated GIFs)
+            $secureFilename = $imageService->generateSecureFilename(
+                $userId, 
+                $metadata['filename'],
+                $isAnimatedGif
             );
+            
+            // Get target path
+            $targetPath = $imageService->getImagePath($userId, $secureFilename);
+            
+            // Process image: preserve animated GIFs, optimize others to WebP
+            if ($isAnimatedGif) {
+                $optimized = $imageService->preserveAnimatedGif(
+                    $assembledPath,
+                    $targetPath,
+                    $metadata['image_type']
+                );
+                $storedMimeType = 'image/gif';
+            } else {
+                $optimized = $imageService->optimizeAndConvert(
+                    $assembledPath,
+                    $targetPath,
+                    $metadata['image_type']
+                );
+                // For non-animated images, the output is WebP (except SVG)
+                $storedMimeType = $validation['mime_type'] === 'image/svg+xml' 
+                    ? 'image/svg+xml' 
+                    : 'image/webp';
+            }
             
             // Secure the uploaded file (remove execute permissions)
             $imageService->secureUploadedFile($targetPath);
@@ -262,7 +285,7 @@ class ImageUploadController
                 $secureFilename,
                 $metadata['filename'],
                 $metadata['image_type'],
-                $validation['mime_type'],
+                $storedMimeType,
                 $optimized['file_size'],
                 $optimized['width'],
                 $optimized['height'],

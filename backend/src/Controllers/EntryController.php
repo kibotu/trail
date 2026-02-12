@@ -81,12 +81,12 @@ class EntryController
                     $tempFile = tempnam($tempBasePath, 'upload_');
                     file_put_contents($tempFile, $imageData);
                     
-                    // Generate secure filename
-                    $secureFilename = $imageService->generateSecureFilename($userId, $mediaItem['filename']);
-                    $targetPath = $imageService->getImagePath($userId, $secureFilename);
-                    
                     // Process or save raw
                     if ($rawUpload) {
+                        // Generate secure filename (for raw upload, preserve original extension)
+                        $secureFilename = $imageService->generateSecureFilename($userId, $mediaItem['filename']);
+                        $targetPath = $imageService->getImagePath($userId, $secureFilename);
+                        
                         $result = $imageService->saveRawImage($tempFile, $targetPath);
                         $mimeType = $result['mime_type'];
                         $width = $result['width'];
@@ -95,11 +95,33 @@ class EntryController
                     } else {
                         // Validate first
                         $validation = $imageService->validateImage($tempFile);
-                        $mimeType = $validation['mime_type'];
-                        
-                        // Optimize and convert
                         $imageType = $mediaItem['image_type'] ?? 'post';
-                        $optimized = $imageService->optimizeAndConvert($tempFile, $targetPath, $imageType);
+                        
+                        // Check if this is an animated GIF that should be preserved
+                        $isAnimatedGif = $validation['mime_type'] === 'image/gif' 
+                            && $imageService->isAnimatedGif($tempFile);
+                        
+                        // Generate secure filename (preserve .gif extension for animated GIFs)
+                        $secureFilename = $imageService->generateSecureFilename(
+                            $userId, 
+                            $mediaItem['filename'],
+                            $isAnimatedGif
+                        );
+                        $targetPath = $imageService->getImagePath($userId, $secureFilename);
+                        
+                        if ($isAnimatedGif) {
+                            // Preserve animated GIF without conversion
+                            $optimized = $imageService->preserveAnimatedGif($tempFile, $targetPath, $imageType);
+                            $mimeType = 'image/gif';
+                        } else {
+                            // Optimize and convert to WebP
+                            $optimized = $imageService->optimizeAndConvert($tempFile, $targetPath, $imageType);
+                            // Output is WebP (except for SVG which is preserved)
+                            $mimeType = $validation['mime_type'] === 'image/svg+xml' 
+                                ? 'image/svg+xml' 
+                                : 'image/webp';
+                        }
+                        
                         $width = $optimized['width'];
                         $height = $optimized['height'];
                         $fileSize = $optimized['file_size'];
