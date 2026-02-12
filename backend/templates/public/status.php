@@ -64,9 +64,8 @@
 </head>
 <body class="page-status"
       data-hash-id="<?= htmlspecialchars($hashId ?? '') ?>"
-      data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>"
-      data-user-id="<?= json_encode($userId ?? null) ?>"
-      data-is-admin="<?= json_encode($isAdmin ?? false) ?>">
+      data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
+      data-user-id="<?= htmlspecialchars((string)($userId ?? '')) ?>">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 

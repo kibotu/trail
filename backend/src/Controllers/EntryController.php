@@ -330,7 +330,9 @@ class EntryController
         $entryModel = new Entry($db);
 
         // Try to detect authenticated user (optional - doesn't require auth for listing)
-        $userId = self::getOptionalUserId($request, $config);
+        $auth = self::getOptionalAuth($request, $config);
+        $userId = $auth['user_id'];
+        $isAdmin = $auth['is_admin'];
         $excludeUserId = null;
         $excludeEntryIds = [];
         
@@ -390,6 +392,9 @@ class EntryController
                 $entry['hash_id'] = (string) $entry['id'];
             }
         }
+
+        // Add can_edit flag and remove sensitive fields
+        self::sanitizeEntries($entries, $userId, $isAdmin);
 
         // Get the cursor for the next page (created_at of the last entry)
         $nextCursor = null;
@@ -454,6 +459,9 @@ class EntryController
                 $entry['hash_id'] = (string) $entry['id'];
             }
         }
+
+        // User's own entries - always can_edit, and sanitize sensitive fields
+        self::sanitizeEntries($entries, $userId, true);
 
         // Get the cursor for the next page (created_at of the last entry)
         $nextCursor = null;
@@ -609,8 +617,10 @@ class EntryController
         $db = Database::getInstance($config);
         $entryModel = new Entry($db);
 
-        // Get optional user ID for clap counts
-        $userId = self::getOptionalUserId($request, $config);
+        // Get optional auth for clap counts and can_edit flag
+        $auth = self::getOptionalAuth($request, $config);
+        $userId = $auth['user_id'];
+        $isAdmin = $auth['is_admin'];
         
         $entry = $entryModel->findByIdWithImages($entryId, $userId);
 
@@ -635,6 +645,11 @@ class EntryController
 
         // Add hash_id to response for frontend use
         $entry['hash_id'] = $hashId;
+
+        // Add can_edit flag and remove sensitive fields
+        $entry['can_edit'] = $userId !== null && ($isAdmin || (int) $entry['user_id'] === $userId);
+        unset($entry['user_email']);
+        unset($entry['google_id']);
 
         $response->getBody()->write(json_encode($entry));
         return $response->withHeader('Content-Type', 'application/json');
@@ -670,8 +685,10 @@ class EntryController
         $before = $queryParams['before'] ?? null;
         $searchQuery = $queryParams['q'] ?? null;
 
-        // Get optional user ID for clap counts
-        $userId = self::getOptionalUserId($request, $config);
+        // Get optional auth for clap counts and can_edit flag
+        $auth = self::getOptionalAuth($request, $config);
+        $userId = $auth['user_id'];
+        $isAdmin = $auth['is_admin'];
         
         $entryModel = new Entry($db);
         
@@ -710,6 +727,9 @@ class EntryController
             }
         }
 
+        // Add can_edit flag and remove sensitive fields
+        self::sanitizeEntries($entries, $userId, $isAdmin);
+
         // Get the cursor for the next page
         $nextCursor = null;
         if ($hasMore && !empty($entries)) {
@@ -723,7 +743,6 @@ class EntryController
             'next_cursor' => $nextCursor,
             'limit' => $limit,
             'user' => [
-                'id' => $user['id'],
                 'nickname' => $user['nickname'],
                 'photo_url' => $user['photo_url'],
                 'gravatar_hash' => $user['gravatar_hash']
@@ -826,5 +845,71 @@ class EntryController
         }
 
         return null;
+    }
+
+    /**
+     * Get optional authentication info for the current request.
+     * Returns user_id and is_admin without requiring authentication.
+     * 
+     * @param ServerRequestInterface $request
+     * @param array $config
+     * @return array{user_id: int|null, is_admin: bool}
+     */
+    private static function getOptionalAuth(ServerRequestInterface $request, array $config): array
+    {
+        $cookies = $request->getCookieParams();
+        $token = $cookies['trail_jwt'] ?? null;
+
+        if (!$token) {
+            try {
+                require_once __DIR__ . '/../../public/helpers/session.php';
+                $session = getAuthenticatedUser(\Trail\Database\Database::getInstance($config));
+                if ($session && !empty($session['jwt_token'])) {
+                    $token = $session['jwt_token'];
+                }
+            } catch (\Throwable $e) {
+                return ['user_id' => null, 'is_admin' => false];
+            }
+        }
+
+        if (!$token) {
+            return ['user_id' => null, 'is_admin' => false];
+        }
+
+        try {
+            $jwtService = new \Trail\Services\JwtService($config);
+            $payload = $jwtService->verify($token);
+            
+            if ($payload && isset($payload['user_id'])) {
+                return [
+                    'user_id' => (int) $payload['user_id'],
+                    'is_admin' => (bool) ($payload['is_admin'] ?? false)
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Token invalid or expired
+        }
+
+        return ['user_id' => null, 'is_admin' => false];
+    }
+
+    /**
+     * Add can_edit flag and remove sensitive fields from entries.
+     * 
+     * @param array &$entries Reference to entries array
+     * @param int|null $userId Current user ID
+     * @param bool $isAdmin Whether current user is admin
+     */
+    private static function sanitizeEntries(array &$entries, ?int $userId, bool $isAdmin): void
+    {
+        foreach ($entries as &$entry) {
+            // Add can_edit flag
+            $entry['can_edit'] = $userId !== null && 
+                ($isAdmin || (int) $entry['user_id'] === $userId);
+            
+            // Remove sensitive fields
+            unset($entry['user_email']);
+            unset($entry['google_id']);
+        }
     }
 }

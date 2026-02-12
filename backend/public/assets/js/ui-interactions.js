@@ -42,15 +42,11 @@ function setupMenuCloseHandler() {
 
 /**
  * Check if current user can modify an entry
- * @param {Object} entry - Entry object
- * @param {Object} sessionState - Session state with user info
+ * @param {Object} entry - Entry object with server-computed can_edit flag
  * @returns {boolean} True if user can modify
  */
-function canModifyEntry(entry, sessionState) {
-    if (!sessionState.isLoggedIn) return false;
-    if (sessionState.isAdmin) return true;
-    // Compare by user_id (more reliable than email)
-    return entry.user_id === sessionState.userId;
+function canModifyEntry(entry) {
+    return entry.can_edit === true;
 }
 
 /**

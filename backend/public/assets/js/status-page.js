@@ -16,9 +16,7 @@
     const parseBool = (value) => value === 'true' || value === '1' || value === 1;
     const sessionState = {
         isLoggedIn: parseBool(body.dataset.isLoggedIn),
-        userId: null,
-        userEmail: null,
-        isAdmin: false
+        userId: body.dataset.userId ? parseInt(body.dataset.userId, 10) : null
     };
 
     let currentEntry = null;
@@ -44,30 +42,10 @@
             // Update meta tags
             updateMetaTagsFromEntry(entry);
             
-            // Check permissions
-            let canModify = false;
-            if (sessionState.isLoggedIn) {
-                try {
-                    const profileResponse = await fetch('/api/profile', {
-                        credentials: 'same-origin'
-                    });
-                    
-                    if (profileResponse.ok) {
-                        const profile = await profileResponse.json();
-                        sessionState.userId = profile.id;
-                        sessionState.userEmail = profile.email;
-                        sessionState.isAdmin = profile.is_admin === true;
-                        canModify = profile.id === entry.user_id || profile.is_admin === true;
-                    }
-                } catch (e) {
-                    console.error('Failed to check permissions:', e);
-                }
-            }
-            
-            // Render entry
+            // Render entry (can_edit flag is provided by API)
             container.innerHTML = '';
             const card = createEntryCard(entry, {
-                canModify: canModify,
+                canModify: entry.can_edit === true,
                 enablePermalink: false,
                 isLoggedIn: sessionState.isLoggedIn,
                 currentUserId: sessionState.userId

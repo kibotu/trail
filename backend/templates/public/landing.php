@@ -16,10 +16,8 @@
     <?php endif; ?>
 </head>
 <body class="page-landing" 
-      data-is-logged-in="<?= json_encode($isLoggedIn ?? false) ?>"
-      data-user-id="<?= json_encode($userId ?? null) ?>"
-      data-user-email="<?= json_encode($userName ?? null) ?>"
-      data-is-admin="<?= json_encode($isAdmin ?? false) ?>">
+      data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
+      data-user-id="<?= htmlspecialchars((string)($userId ?? '')) ?>">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 

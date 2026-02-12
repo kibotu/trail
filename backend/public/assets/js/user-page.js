@@ -19,8 +19,7 @@
     const parseBool = (value) => value === 'true' || value === '1' || value === 1;
     const sessionState = {
         isLoggedIn: parseBool(body.dataset.isLoggedIn),
-        userId: body.dataset.userId ? parseInt(body.dataset.userId, 10) : null,
-        isAdmin: parseBool(body.dataset.isAdmin)
+        userId: body.dataset.userId ? parseInt(body.dataset.userId, 10) : null
     };
 
     let nextCursor = null;
@@ -57,8 +56,7 @@
             searchQuery: currentSearchQuery || null,
             cardOptions: {
                 showSourceBadge: false,
-                canModify: (entry) => canModifyEntry(entry, sessionState),
-                isAdmin: sessionState.isAdmin,
+                canModify: (entry) => canModifyEntry(entry),
                 isLoggedIn: sessionState.isLoggedIn,
                 currentUserId: sessionState.userId
             }
