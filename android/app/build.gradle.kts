@@ -134,7 +134,12 @@ dependencies {
     // coil for image loading
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
+    implementation(libs.coil.gif)
     implementation(libs.androidx.constraintlayout.compose)
+
+    // media3 for video playback
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

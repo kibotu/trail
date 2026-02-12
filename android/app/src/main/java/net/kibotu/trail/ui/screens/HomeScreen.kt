@@ -50,6 +50,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.components.EntryList
 import net.kibotu.trail.ui.components.SearchOverlay
@@ -72,6 +73,7 @@ fun HomeScreen(
     val celebrationEvent by viewModel.celebrationEvent.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchOverlayState by viewModel.searchOverlayState.collectAsState()
+    val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
 
     var entryText by remember { mutableStateOf("") }
     var searchText by remember { mutableStateOf(searchQuery) }
@@ -234,11 +236,23 @@ fun HomeScreen(
                 }
 
                 // Entry list
+                // Calculate top padding based on header content:
+                // - Status bar + Search field (~56dp) + padding (16dp) = ~72dp for unauthenticated
+                // - Status bar + Search field (~56dp) + Post card (~220dp) + padding = ~276dp for authenticated
+                val headerTopPadding = if (isAuthenticated && userName != null) {
+                    statusBarTop + 290.dp // Search + Post card
+                } else {
+                    statusBarTop + 72.dp // Just search
+                }
+                
                 EntryList(
                     entries = homeEntries,
                     isLoading = homeLoading && homeEntries.isEmpty(),
                     currentUserId = currentUserId,
                     isAdmin = isAdmin,
+                    baseUrl = BuildConfig.API_BASE_URL,
+                    currentlyPlayingVideoId = currentlyPlayingVideoId,
+                    onVideoPlay = { viewModel.playVideo(it) },
                     onUpdateEntry = { entryId, text ->
                         viewModel.updateEntry(entryId, text)
                     },
@@ -264,8 +278,8 @@ fun HomeScreen(
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         end = 16.dp,
-                        top = statusBarTop + 8.dp,
-                        bottom = navigationBarBottom + 8.dp
+                        top = headerTopPadding,
+                        bottom = navigationBarBottom + 80.dp // Extra space for floating tab bar
                     ),
                     emptyMessage = if (searchQuery.isNotBlank()) {
                         "No entries found for \"$searchQuery\""

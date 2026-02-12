@@ -51,6 +51,7 @@ import coil3.compose.AsyncImage
 import net.kibotu.trail.data.model.Comment
 import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.ui.viewmodel.CommentState
+import net.kibotu.trail.data.model.toMediaItemDataList
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,6 +62,9 @@ fun EntryList(
     isLoading: Boolean,
     currentUserId: Int?,
     isAdmin: Boolean,
+    baseUrl: String,
+    currentlyPlayingVideoId: String?,
+    onVideoPlay: (String?) -> Unit,
     onUpdateEntry: (Int, String) -> Unit,
     onDeleteEntry: (Int) -> Unit,
     commentsState: Map<Int, CommentState> = emptyMap(),
@@ -86,17 +90,22 @@ fun EntryList(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = emptyMessage,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = emptyMessage,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Increased spacing between cards
         ) {
             items(entries) { entry ->
                 val commentState = commentsState[entry.id] ?: CommentState()
@@ -110,6 +119,9 @@ fun EntryList(
                     onDeleteEntry = onDeleteEntry,
                     currentUserId = currentUserId,
                     isAdmin = isAdmin,
+                    baseUrl = baseUrl,
+                    currentlyPlayingVideoId = currentlyPlayingVideoId,
+                    onVideoPlay = onVideoPlay,
                     comments = commentState.comments,
                     commentsLoading = commentState.isLoading,
                     commentsExpanded = commentState.isExpanded,
@@ -140,6 +152,9 @@ fun EntryCard(
     onDeleteEntry: (Int) -> Unit,
     currentUserId: Int? = null,
     isAdmin: Boolean = false,
+    baseUrl: String = "",
+    currentlyPlayingVideoId: String? = null,
+    onVideoPlay: (String?) -> Unit = {},
     comments: List<Comment> = emptyList(),
     commentsLoading: Boolean = false,
     commentsExpanded: Boolean = false,
@@ -157,20 +172,26 @@ fun EntryCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            // Header section with avatar, name, date
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.Top
             ) {
                 // Avatar
                 AsyncImage(
                     model = entry.avatarUrl,
                     contentDescription = "Avatar",
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
                 )
 
@@ -180,143 +201,159 @@ fun EntryCard(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = entry.displayName,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.End
+                        Column {
+                            Text(
+                                text = entry.displayName,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
                                     text = formatDate(entry.createdAt),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
-
                                 // Show "edited" indicator if entry was modified
                                 if (entry.updatedAt != null && entry.updatedAt != entry.createdAt) {
                                     Text(
-                                        text = "edited ${formatRelativeTime(entry.updatedAt)}",
+                                        text = "• edited",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontStyle = FontStyle.Italic,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                            alpha = 0.7f
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Action menu for entry creator or admin
+                        if (canModify) {
+                            Box {
+                                IconButton(
+                                    onClick = { showMenu = true },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    FaIcon(
+                                        faIcon = FaIcons.EllipsisV,
+                                        size = 16.dp,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        onClick = {
+                                            showMenu = false
+                                            editingEntry = true
+                                        },
+                                        leadingIcon = {
+                                            FaIcon(
+                                                faIcon = FaIcons.Edit,
+                                                size = 16.dp,
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete") },
+                                        onClick = {
+                                            showMenu = false
+                                            showDeleteDialog = true
+                                        },
+                                        leadingIcon = {
+                                            FaIcon(
+                                                faIcon = FaIcons.TrashAlt,
+                                                size = 16.dp,
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        },
+                                        colors = MenuDefaults.itemColors(
+                                            textColor = MaterialTheme.colorScheme.error
                                         )
                                     )
                                 }
                             }
-
-                            // Action menu for entry creator or admin
-                            if (canModify) {
-                                Box {
-                                    IconButton(
-                                        onClick = { showMenu = true },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        FaIcon(
-                                            faIcon = FaIcons.EllipsisV,
-                                            size = 16.dp,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-
-                                    DropdownMenu(
-                                        expanded = showMenu,
-                                        onDismissRequest = { showMenu = false }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Edit") },
-                                            onClick = {
-                                                showMenu = false
-                                                editingEntry = true
-                                            },
-                                            leadingIcon = {
-                                                FaIcon(
-                                                    faIcon = FaIcons.Edit,
-                                                    size = 16.dp,
-                                                    tint = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("Delete") },
-                                            onClick = {
-                                                showMenu = false
-                                                showDeleteDialog = true
-                                            },
-                                            leadingIcon = {
-                                                FaIcon(
-                                                    faIcon = FaIcons.TrashAlt,
-                                                    size = 16.dp,
-                                                    tint = MaterialTheme.colorScheme.error
-                                                )
-                                            },
-                                            colors = MenuDefaults.itemColors(
-                                                textColor = MaterialTheme.colorScheme.error
-                                            )
-                                        )
-                                    }
-                                }
-                            }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = entry.text,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    // URL Preview Card (only if we have valid preview data)
-                    if (entry.previewUrl != null && hasValidPreviewData(entry)) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinkPreviewCard(entry = entry)
                     }
                 }
             }
+
+            // Entry text content
+            Text(
+                text = entry.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            // Entry media (images, GIFs, videos)
+            if (entry.images.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    MediaGallery(
+                        media = entry.images.toMediaItemDataList(),
+                        baseUrl = baseUrl,
+                        currentlyPlayingId = currentlyPlayingVideoId,
+                        onVideoPlay = onVideoPlay
+                    )
+                }
+            }
+
+            // URL Preview Card (only if we have valid preview data)
+            if (entry.previewUrl != null && hasValidPreviewData(entry)) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    LinkPreviewCard(entry = entry)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Action bar with chat icon
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(start = 8.dp, end = 16.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Chat/Comment icon button
                 Row(
                     modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
                         .clickable { onToggleComments() }
-                        .padding(8.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FaIcon(
                         faIcon = if (commentsExpanded) FaIcons.Comment else FaIcons.CommentRegular,
-                        size = 20.dp,
+                        size = 18.dp,
                         tint = if (commentsExpanded)
                             MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
 
                     if (entry.commentCount > 0) {
                         Text(
                             text = entry.commentCount.toString(),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if (commentsExpanded)
                                 MaterialTheme.colorScheme.primary
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -331,6 +368,9 @@ fun EntryCard(
                     isLoading = commentsLoading,
                     currentUserId = currentUserId,
                     isAdmin = isAdmin,
+                    baseUrl = baseUrl,
+                    currentlyPlayingVideoId = currentlyPlayingVideoId,
+                    onVideoPlay = onVideoPlay,
                     onLoadComments = onLoadComments,
                     onCreateComment = onCreateComment,
                     onUpdateComment = onUpdateComment,
@@ -380,9 +420,9 @@ fun LinkPreviewCard(entry: Entry) {
                     context.startActivity(intent)
                 }
             },
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -396,8 +436,8 @@ fun LinkPreviewCard(entry: Entry) {
                     contentDescription = "Link preview image",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                 )
             }
 
@@ -405,18 +445,19 @@ fun LinkPreviewCard(entry: Entry) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Title
                 entry.previewTitle?.let { title ->
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         maxLines = 2,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 // Description
@@ -424,25 +465,27 @@ fun LinkPreviewCard(entry: Entry) {
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
+                        maxLines = 2,
+                        lineHeight = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
                 }
 
                 // Site Name / URL
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "🔗",
-                        style = MaterialTheme.typography.bodySmall
+                    FaIcon(
+                        faIcon = FaIcons.Link,
+                        size = 10.dp,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                     Text(
                         text = entry.previewSiteName ?: extractDomain(entry.previewUrl ?: ""),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                         maxLines = 1
                     )
                 }

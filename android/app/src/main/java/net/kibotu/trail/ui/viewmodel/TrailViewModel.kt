@@ -97,6 +97,10 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     private val _searchOverlayState = MutableStateFlow(SearchOverlayState())
     val searchOverlayState: StateFlow<SearchOverlayState> = _searchOverlayState.asStateFlow()
 
+    // Video playback state - only one video plays at a time
+    private val _currentlyPlayingVideoId = MutableStateFlow<String?>(null)
+    val currentlyPlayingVideoId: StateFlow<String?> = _currentlyPlayingVideoId.asStateFlow()
+
     private var pendingSharedText: String? = null
     private var currentUserNickname: String? = null
 
@@ -776,6 +780,23 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 _searchOverlayState.value = _searchOverlayState.value.copy(isLoading = false)
             }
         }
+    }
+
+    // Video playback functions
+    
+    /**
+     * Start playing a video. Stops any other currently playing video.
+     * Pass null to stop all video playback.
+     */
+    fun playVideo(videoId: String?) {
+        _currentlyPlayingVideoId.value = videoId
+    }
+
+    /**
+     * Stop all video playback
+     */
+    fun stopAllVideos() {
+        _currentlyPlayingVideoId.value = null
     }
 
     companion object {

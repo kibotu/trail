@@ -30,8 +30,13 @@ data class CommentImage(
     val url: String,
     val width: Int? = null,
     val height: Int? = null,
-    @SerialName("file_size") val fileSize: Int? = null
-)
+    @SerialName("file_size") val fileSize: Int? = null,
+    @SerialName("mime_type") val mimeType: String? = null
+) {
+    val isVideo: Boolean get() = mimeType?.startsWith("video/") == true
+    val isGif: Boolean get() = mimeType == "image/gif"
+    val isImage: Boolean get() = !isVideo
+}
 
 @Serializable
 data class CommentsResponse(

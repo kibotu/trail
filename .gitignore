@@ -217,3 +217,4 @@ android-backup/
 **/*/.phpunit.cache/
 .vscode/
 whatsapp/
+backend-server-php-info.html
