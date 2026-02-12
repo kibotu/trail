@@ -40,7 +40,7 @@ class SearchManager {
                         type="text" 
                         class="search-input" 
                         id="searchInput"
-                        placeholder="Search entries..."
+                        placeholder="Search entries or #tags..."
                         value="${this.escapeHtml(searchQuery)}"
                         autocomplete="off"
                         spellcheck="false"

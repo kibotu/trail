@@ -345,16 +345,43 @@ class EntryController
 
         // Handle search if query provided
         $isValidSearch = false;
+        $isTagSearch = false;
+        $tagInfo = null;
+        
         if ($searchQuery !== null && trim($searchQuery) !== '') {
-            // Sanitize and validate search query
-            $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
-            
-            if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
-                $entries = $entryModel->searchAllWithImages($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
-                $isValidSearch = true;
+            // Check for hashtag search (e.g., #machine-learning)
+            if (str_starts_with($searchQuery, '#') && strlen($searchQuery) > 1) {
+                $tagSlug = substr($searchQuery, 1);
+                // Validate tag slug format (alphanumeric and hyphens only)
+                if (preg_match('/^[a-z0-9-]+$/i', $tagSlug)) {
+                    $tagModel = new \Trail\Models\Tag($db);
+                    $tag = $tagModel->findBySlug(strtolower($tagSlug));
+                    
+                    if ($tag) {
+                        $entries = $entryModel->searchByTagSlugWithImages($tag['slug'], $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
+                        $isValidSearch = true;
+                        $isTagSearch = true;
+                        $tagInfo = ['name' => $tag['name'], 'slug' => $tag['slug']];
+                    } else {
+                        // Tag not found - return empty results
+                        $entries = [];
+                        $isTagSearch = true;
+                    }
+                } else {
+                    // Invalid tag slug format
+                    $entries = [];
+                }
             } else {
-                // Invalid or unsafe query - return empty results
-                $entries = [];
+                // Regular text search
+                $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
+                
+                if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
+                    $entries = $entryModel->searchAllWithImages($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
+                    $isValidSearch = true;
+                } else {
+                    // Invalid or unsafe query - return empty results
+                    $entries = [];
+                }
             }
         } else {
             // No search query - use regular listing
@@ -414,15 +441,28 @@ class EntryController
         if ($isValidSearch && isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
             
+            // Include tag info for tag searches
+            if ($isTagSearch && $tagInfo !== null) {
+                $responseData['tag'] = $tagInfo;
+            }
+            
             // Only get total count on first page (no cursor) for performance
             if ($before === null) {
                 try {
-                    $responseData['total_count'] = $entryModel->countSearchAll($searchQuery, $excludeUserId, $excludeEntryIds);
+                    if ($isTagSearch && $tagInfo !== null) {
+                        $responseData['total_count'] = $entryModel->countByTagSlug($tagInfo['slug'], $excludeUserId, $excludeEntryIds);
+                    } else {
+                        $responseData['total_count'] = $entryModel->countSearchAll($searchQuery, $excludeUserId, $excludeEntryIds);
+                    }
                 } catch (\Throwable $e) {
                     error_log("EntryController::listPublic: Failed to count search results: " . $e->getMessage());
                     // Don't include total_count on error - frontend will fall back to entries.length
                 }
             }
+        } elseif ($isTagSearch && $tagInfo === null) {
+            // Tag search with non-existent tag
+            $responseData['search_query'] = $searchQuery;
+            $responseData['total_count'] = 0;
         }
 
         $response->getBody()->write(json_encode($responseData));

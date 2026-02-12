@@ -873,6 +873,138 @@ class Entry
     }
 
     /**
+     * Search entries by tag slug
+     * 
+     * @param string $tagSlug Tag slug to filter by
+     * @param int $limit Maximum number of entries to return
+     * @param string|null $before Cursor for pagination (created_at timestamp)
+     * @param int|null $excludeUserId User ID to exclude muted users for
+     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
+     * @param int|null $currentUserId Current user ID for clap counts
+     * @return array Array of entries with the specified tag
+     */
+    public function searchByTagSlug(string $tagSlug, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    {
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
+        
+        $params = [];
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 JOIN trail_entry_tags et ON e.id = et.entry_id
+                 JOIN trail_tags t ON et.tag_id = t.id
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+            $params[] = $currentUserId;
+        }
+        
+        // Build WHERE clause
+        $whereConditions = ["t.slug = ?"];
+        $params[] = $tagSlug;
+        
+        if ($before !== null) {
+            $whereConditions[] = "e.created_at < ?";
+            $params[] = $before;
+        }
+        
+        // Exclude muted users
+        if ($excludeUserId !== null) {
+            $whereConditions[] = "e.user_id NOT IN (
+                SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?
+            )";
+            $params[] = $excludeUserId;
+        }
+        
+        // Exclude hidden entries
+        if (!empty($excludeEntryIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
+            $whereConditions[] = "e.id NOT IN ($placeholders)";
+            $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        $sql .= " WHERE " . implode(' AND ', $whereConditions);
+        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
+        $params[] = $limit;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Search entries by tag slug with images attached
+     */
+    public function searchByTagSlugWithImages(string $tagSlug, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    {
+        $entries = $this->searchByTagSlug($tagSlug, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
+        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        return $this->attachTagsToEntries($entries);
+    }
+
+    /**
+     * Count entries by tag slug
+     * 
+     * @param string $tagSlug Tag slug to filter by
+     * @param int|null $excludeUserId User ID to exclude muted users for
+     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
+     * @return int Total count of entries with this tag
+     */
+    public function countByTagSlug(string $tagSlug, ?int $excludeUserId = null, array $excludeEntryIds = []): int
+    {
+        $sql = "SELECT COUNT(DISTINCT e.id) as total
+                FROM trail_entries e
+                JOIN trail_entry_tags et ON e.id = et.entry_id
+                JOIN trail_tags t ON et.tag_id = t.id";
+        
+        $params = [];
+        $whereConditions = ["t.slug = ?"];
+        $params[] = $tagSlug;
+        
+        if ($excludeUserId !== null) {
+            $whereConditions[] = "e.user_id NOT IN (SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?)";
+            $params[] = $excludeUserId;
+        }
+        
+        if (!empty($excludeEntryIds)) {
+            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
+            $whereConditions[] = "e.id NOT IN ($placeholders)";
+            $params = array_merge($params, $excludeEntryIds);
+        }
+        
+        $sql .= " WHERE " . implode(' AND ', $whereConditions);
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return (int) ($result['total'] ?? 0);
+    }
+
+    /**
      * Count entries by specific user matching a search query
      * 
      * @param int $userId User ID to search within
