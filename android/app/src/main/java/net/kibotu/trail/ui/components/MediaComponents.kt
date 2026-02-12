@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.view.View
+import android.view.WindowInsetsController
+import android.os.Build
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -46,6 +49,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -213,7 +218,8 @@ fun GifImage(
  * - Starts muted
  * - Shows play button overlay when paused
  * - On tap: starts playback (pauses other videos via onPlayStateChange)
- * - Shows controls when playing
+ * - Shows controls when playing (mute, fullscreen)
+ * - Fullscreen rotates to landscape (Activity handles configChanges)
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -225,7 +231,10 @@ fun VideoPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var showControls by remember { mutableStateOf(false) }
+    val activity = context as? Activity
+    var isMuted by remember { mutableStateOf(true) }
+    var isFullscreen by remember { mutableStateOf(false) }
+    var showControlOverlay by remember { mutableStateOf(false) }
 
     // Create ExoPlayer instance
     val exoPlayer = remember {
@@ -245,10 +254,64 @@ fun VideoPlayer(
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
             exoPlayer.play()
-            showControls = true
+            showControlOverlay = true
         } else {
             exoPlayer.pause()
-            showControls = false
+            showControlOverlay = false
+        }
+    }
+
+    // Auto-hide control overlay after delay
+    LaunchedEffect(showControlOverlay, isPlaying) {
+        if (showControlOverlay && isPlaying) {
+            kotlinx.coroutines.delay(2500)
+            showControlOverlay = false
+        }
+    }
+
+    // Handle fullscreen mode - orientation and system bars
+    DisposableEffect(isFullscreen) {
+        if (isFullscreen) {
+            // Enter fullscreen: landscape + hide system bars
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            activity?.window?.let { window ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { controller ->
+                        controller.hide(android.view.WindowInsets.Type.systemBars())
+                        controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_FULLSCREEN or
+                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+                }
+            }
+        } else {
+            // Exit fullscreen: restore orientation + show system bars
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.window?.let { window ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.show(android.view.WindowInsets.Type.systemBars())
+                } else {
+                    @Suppress("DEPRECATION")
+                    window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+                }
+            }
+        }
+        onDispose {
+            // Always restore on dispose
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.window?.let { window ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.show(android.view.WindowInsets.Type.systemBars())
+                } else {
+                    @Suppress("DEPRECATION")
+                    window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+                }
+            }
         }
     }
 
@@ -259,19 +322,87 @@ fun VideoPlayer(
         }
     }
 
+    // Fullscreen overlay using Dialog (no config change, just UI overlay)
+    if (isFullscreen) {
+        Dialog(
+            onDismissRequest = { isFullscreen = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                VideoPlayerContent(
+                    exoPlayer = exoPlayer,
+                    isPlaying = isPlaying,
+                    isMuted = isMuted,
+                    showControlOverlay = showControlOverlay,
+                    isFullscreen = true,
+                    onPlayStateChange = onPlayStateChange,
+                    onMuteToggle = {
+                        isMuted = !isMuted
+                        exoPlayer.volume = if (isMuted) 0f else 1f
+                    },
+                    onFullscreenToggle = { isFullscreen = false },
+                    onControlOverlayToggle = { showControlOverlay = !showControlOverlay },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+
+    // Inline player (non-fullscreen)
+    VideoPlayerContent(
+        exoPlayer = exoPlayer,
+        isPlaying = isPlaying,
+        isMuted = isMuted,
+        showControlOverlay = showControlOverlay && !isFullscreen,
+        isFullscreen = false,
+        onPlayStateChange = onPlayStateChange,
+        onMuteToggle = {
+            isMuted = !isMuted
+            exoPlayer.volume = if (isMuted) 0f else 1f
+        },
+        onFullscreenToggle = { isFullscreen = true },
+        onControlOverlayToggle = { showControlOverlay = !showControlOverlay },
+        modifier = modifier
+    )
+}
+
+/**
+ * Shared video player content used both inline and in fullscreen dialog
+ */
+@OptIn(UnstableApi::class)
+@Composable
+private fun VideoPlayerContent(
+    exoPlayer: ExoPlayer,
+    isPlaying: Boolean,
+    isMuted: Boolean,
+    showControlOverlay: Boolean,
+    isFullscreen: Boolean,
+    onPlayStateChange: (Boolean) -> Unit,
+    onMuteToggle: () -> Unit,
+    onFullscreenToggle: () -> Unit,
+    onControlOverlayToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .background(Color.Black)
-            .clip(RoundedCornerShape(12.dp))
+            .then(if (!isFullscreen) Modifier.clip(RoundedCornerShape(12.dp)) else Modifier)
     ) {
         // Video surface
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = true
-                    controllerShowTimeoutMs = 750
-                    controllerHideOnTouch = true
+                    useController = false // We use custom controls
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -282,14 +413,14 @@ fun VideoPlayer(
             },
             update = { playerView ->
                 playerView.player = exoPlayer
-                // Show/hide controller based on play state
-                if (isPlaying) {
-                    playerView.showController()
-                } else {
-                    playerView.hideController()
-                }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable {
+                    if (isPlaying) {
+                        onControlOverlayToggle()
+                    }
+                }
         )
 
         // Play button overlay when not playing
@@ -321,6 +452,96 @@ fun VideoPlayer(
                         )
                     }
                 }
+            }
+        }
+
+        // Custom control overlay when playing
+        if (isPlaying && showControlOverlay) {
+            // Semi-transparent tap area to pause
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { onPlayStateChange(false) },
+                contentAlignment = Alignment.Center
+            ) {
+                // Pause icon in center
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.5f)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = "Pause video",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+
+            // Bottom control bar with mute and fullscreen
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Mute/Unmute button
+                IconButton(
+                    onClick = onMuteToggle,
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.6f)
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isMuted) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                        contentDescription = if (isMuted) "Unmute" else "Mute",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Fullscreen button
+                IconButton(
+                    onClick = onFullscreenToggle,
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.6f)
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                        contentDescription = if (isFullscreen) "Exit fullscreen" else "Fullscreen",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        // Always visible mute indicator when muted and playing (small icon in corner)
+        if (isPlaying && !showControlOverlay && isMuted) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(28.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .clickable { onMuteToggle() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.VolumeOff,
+                    contentDescription = "Tap to unmute",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
