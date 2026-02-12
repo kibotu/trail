@@ -45,10 +45,10 @@ import net.kibotu.trail.ui.viewmodel.TrailViewModel
 sealed class TabRoute {
     @Serializable
     data object Home : TabRoute()
-    
+
     @Serializable
     data object MyFeed : TabRoute()
-    
+
     @Serializable
     data object Profile : TabRoute()
 }
@@ -138,7 +138,7 @@ fun TrailScaffold(
             tab(
                 key = "home",
                 title = { Text("Home") },
-                icon = { 
+                icon = {
                     Icon(
                         imageVector = if (selectedTabKey == "home") Icons.Filled.Home else Icons.Outlined.Home,
                         contentDescription = "Home"
@@ -159,7 +159,7 @@ fun TrailScaffold(
             tab(
                 key = "myfeed",
                 title = { Text("My Feed") },
-                icon = { 
+                icon = {
                     Icon(
                         imageVector = if (selectedTabKey == "myfeed") Icons.Filled.RssFeed else Icons.Outlined.RssFeed,
                         contentDescription = "My Feed"
@@ -180,7 +180,7 @@ fun TrailScaffold(
             tab(
                 key = "profile",
                 title = { Text("Profile") },
-                icon = { 
+                icon = {
                     Icon(
                         imageVector = if (selectedTabKey == "profile") Icons.Filled.Person else Icons.Outlined.Person,
                         contentDescription = "Profile"

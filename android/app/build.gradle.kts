@@ -1,5 +1,4 @@
 import java.util.Properties
-import kotlin.apply
 
 plugins {
     alias(libs.plugins.android.application)
@@ -92,10 +91,10 @@ android {
         compose = true
         buildConfig = true
     }
-    
+
     // API Base URL from local.properties (single source of truth: backend/secrets.yml)
     val apiBaseUrl = localProperties.getProperty("API_BASE_URL", "http://localhost/")
-    
+
     defaultConfig {
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }

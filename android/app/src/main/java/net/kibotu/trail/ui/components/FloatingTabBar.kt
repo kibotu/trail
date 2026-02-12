@@ -395,14 +395,17 @@ private fun SharedTransitionScope.InlineBar(
                             start.linkTo(tabGroupRef.end, sizes.componentSpacing)
                             end.linkTo(standaloneTabRef.start, sizes.componentSpacing)
                         }
+
                         hasInlineTab -> {
                             start.linkTo(tabGroupRef.end, sizes.componentSpacing)
                             end.linkTo(parent.end)
                         }
+
                         hasStandaloneTab -> {
                             start.linkTo(parent.start)
                             end.linkTo(standaloneTabRef.start, sizes.componentSpacing)
                         }
+
                         else -> {
                             start.linkTo(parent.start)
                             end.linkTo(parent.end)
@@ -696,6 +699,7 @@ private fun SharedTransitionScope.ExpandedAccessory(
         )
     }
 }
+
 @Composable
 private fun SharedTransitionScope.ExpandedTabs(
     scope: FloatingTabBarScopeImpl,
@@ -1076,7 +1080,10 @@ object FloatingTabBarDefaults {
     fun sizes(
         tabBarContentPadding: PaddingValues = PaddingValues(vertical = 4.dp, horizontal = 4.dp),
         tabInlineContentPadding: PaddingValues = PaddingValues(10.dp),
-        tabExpandedContentPadding: PaddingValues = PaddingValues(vertical = 6.dp, horizontal = 20.dp),
+        tabExpandedContentPadding: PaddingValues = PaddingValues(
+            vertical = 6.dp,
+            horizontal = 20.dp
+        ),
         componentSpacing: Dp = 8.dp,
         tabSpacing: Dp = 0.dp,
     ): FloatingTabBarSizes = FloatingTabBarSizes(

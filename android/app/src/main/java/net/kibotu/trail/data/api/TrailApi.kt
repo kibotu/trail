@@ -42,7 +42,11 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun getEntries(limit: Int = 20, before: String? = null, query: String? = null): Result<EntriesResponse> {
+    suspend fun getEntries(
+        limit: Int = 20,
+        before: String? = null,
+        query: String? = null
+    ): Result<EntriesResponse> {
         return try {
             val response = client.get("api/entries") {
                 parameter("limit", limit)

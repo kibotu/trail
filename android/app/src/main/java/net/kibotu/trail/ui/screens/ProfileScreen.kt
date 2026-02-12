@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
@@ -51,9 +50,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.data.model.ProfileEntry
 import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.viewmodel.TrailViewModel
@@ -77,7 +74,8 @@ fun ProfileScreen(
     var isEditingNickname by remember { mutableStateOf(false) }
     var isEditingBio by remember { mutableStateOf(false) }
 
-    val isDarkTheme = MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
+    val isDarkTheme =
+        MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
     val isAuthenticated = uiState is net.kibotu.trail.ui.viewmodel.UiState.Entries
 
     // Initialize edit fields when profile loads
@@ -184,7 +182,10 @@ fun ProfileScreen(
                                     )
                                     IconButton(
                                         onClick = {
-                                            viewModel.updateProfile(nickname = nicknameText, bio = null)
+                                            viewModel.updateProfile(
+                                                nickname = nicknameText,
+                                                bio = null
+                                            )
                                             isEditingNickname = false
                                         },
                                         enabled = nicknameText.isNotBlank()
@@ -283,7 +284,10 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                                    horizontalArrangement = Arrangement.spacedBy(
+                                        8.dp,
+                                        Alignment.End
+                                    )
                                 ) {
                                     OutlinedButton(onClick = {
                                         bioText = profileState?.bio ?: ""
@@ -375,58 +379,60 @@ fun ProfileScreen(
                 }
 
                 // Top entries by claps
-                profileState?.stats?.topEntriesByClaps?.takeIf { it.isNotEmpty() }?.let { topEntries ->
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                profileState?.stats?.topEntriesByClaps?.takeIf { it.isNotEmpty() }
+                    ?.let { topEntries ->
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                Text(
-                                    text = "Top Entries by Claps",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                topEntries.take(3).forEach { entry ->
-                                    TopEntryItem(entry = entry)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Top Entries by Claps",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
+                                    topEntries.take(3).forEach { entry ->
+                                        TopEntryItem(entry = entry)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
                 // Top entries by views
-                profileState?.stats?.topEntriesByViews?.takeIf { it.isNotEmpty() }?.let { topEntries ->
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                profileState?.stats?.topEntriesByViews?.takeIf { it.isNotEmpty() }
+                    ?.let { topEntries ->
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                Text(
-                                    text = "Top Entries by Views",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                topEntries.take(3).forEach { entry ->
-                                    TopEntryItem(entry = entry)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Top Entries by Views",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
+                                    topEntries.take(3).forEach { entry ->
+                                        TopEntryItem(entry = entry)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
                 item {
                     // Theme toggle card

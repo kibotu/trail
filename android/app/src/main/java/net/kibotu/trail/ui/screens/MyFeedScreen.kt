@@ -57,7 +57,8 @@ fun MyFeedScreen(
     val maxCharacters = 140
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val currentUserId = if (uiState is UiState.Entries) (uiState as UiState.Entries).userId else null
+    val currentUserId =
+        if (uiState is UiState.Entries) (uiState as UiState.Entries).userId else null
     val userName = if (uiState is UiState.Entries) (uiState as UiState.Entries).userName else null
     val isAdmin = if (uiState is UiState.Entries) (uiState as UiState.Entries).isAdmin else false
 
@@ -74,7 +75,7 @@ fun MyFeedScreen(
             }
         }
     }
-    
+
     // Also trigger when profile nickname becomes available (for cases where profile loads after screen)
     LaunchedEffect(profileState?.nickname) {
         val nickname = profileState?.nickname
