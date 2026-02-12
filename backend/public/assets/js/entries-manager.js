@@ -56,7 +56,12 @@ class EntriesManager {
             // Render entries if container provided
             if (container && data.entries && data.entries.length > 0) {
                 data.entries.forEach(entry => {
-                    const card = createEntryCard(entry, cardOptions);
+                    // Resolve canModify if it's a function (per-entry check)
+                    const resolvedOptions = { ...cardOptions };
+                    if (typeof cardOptions.canModify === 'function') {
+                        resolvedOptions.canModify = cardOptions.canModify(entry);
+                    }
+                    const card = createEntryCard(entry, resolvedOptions);
                     
                     // Store entry data in card for edit functionality
                     if (entry.image_ids) {

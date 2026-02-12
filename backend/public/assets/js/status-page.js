@@ -13,8 +13,9 @@
     // Get data from body attributes
     const body = document.body;
     const hashId = body.dataset.hashId;
+    const parseBool = (value) => value === 'true' || value === '1' || value === 1;
     const sessionState = {
-        isLoggedIn: body.dataset.isLoggedIn === 'true',
+        isLoggedIn: parseBool(body.dataset.isLoggedIn),
         userId: null,
         userEmail: null,
         isAdmin: false

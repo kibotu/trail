@@ -16,11 +16,11 @@
     // Get data from body attributes
     const body = document.body;
     const nickname = body.dataset.nickname;
+    const parseBool = (value) => value === 'true' || value === '1' || value === 1;
     const sessionState = {
-        isLoggedIn: body.dataset.isLoggedIn === 'true',
+        isLoggedIn: parseBool(body.dataset.isLoggedIn),
         userId: body.dataset.userId ? parseInt(body.dataset.userId, 10) : null,
-        userEmail: body.dataset.userEmail || null,
-        isAdmin: body.dataset.isAdmin === 'true'
+        isAdmin: parseBool(body.dataset.isAdmin)
     };
 
     let nextCursor = null;

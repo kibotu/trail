@@ -49,7 +49,8 @@ function setupMenuCloseHandler() {
 function canModifyEntry(entry, sessionState) {
     if (!sessionState.isLoggedIn) return false;
     if (sessionState.isAdmin) return true;
-    return entry.user_email === sessionState.userEmail;
+    // Compare by user_id (more reliable than email)
+    return entry.user_id === sessionState.userId;
 }
 
 /**
