@@ -34,6 +34,9 @@
     <meta property="og:image" content="<?= $ogImage ?>">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    <?php foreach ($entry['tags'] ?? [] as $tag): ?>
+    <meta property="article:tag" content="<?= htmlspecialchars($tag['name'], ENT_QUOTES, 'UTF-8') ?>">
+    <?php endforeach; ?>
     
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="<?= htmlspecialchars($twitterCard) ?>">
@@ -47,6 +50,7 @@
       "@context": "https://schema.org",
       "@type": "SocialMediaPosting",
       "headline": <?= json_encode($description) ?>,
+      "keywords": <?= json_encode(array_column($entry['tags'] ?? [], 'name'), JSON_UNESCAPED_UNICODE) ?>,
       "author": {
         "@type": "Person",
         "name": <?= json_encode($displayName) ?>

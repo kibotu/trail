@@ -59,6 +59,15 @@ function updateMetaTagsFromEntry(entry) {
     }
 
     updateMetaTags(tags);
+
+    // Update article:tag meta tags
+    document.querySelectorAll('meta[property="article:tag"]').forEach(el => el.remove());
+    (entry.tags || []).forEach(tag => {
+        const meta = document.createElement('meta');
+        meta.setAttribute('property', 'article:tag');
+        meta.setAttribute('content', tag.name);
+        document.head.appendChild(meta);
+    });
 }
 
 /**
