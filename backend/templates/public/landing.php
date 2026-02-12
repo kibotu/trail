@@ -45,9 +45,6 @@
                 
                 <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
                     <div class="header-actions">
-                        <a href="/api" class="nav-link" aria-label="API Documentation">
-                            <i class="fa-solid fa-book"></i>
-                        </a>
                         <?php if (isset($isAdmin) && $isAdmin): ?>
                             <a href="/admin" class="nav-link" aria-label="Admin Dashboard">
                                 <i class="fa-solid fa-gear"></i>
