@@ -158,10 +158,15 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 if (currentState is UiState.PublicEntries) {
                     _uiState.value = currentState.copy(isLoading = true)
                 }
+                _homeLoading.value = true
 
                 val result = ApiClient.api.getEntries()
 
                 result.onSuccess { entriesResponse ->
+                    // Update homeEntries for the Home tab
+                    _homeEntries.value = entriesResponse.entries
+                    _homeLoading.value = false
+                    
                     if (currentState is UiState.PublicEntries) {
                         _uiState.value = currentState.copy(
                             entries = entriesResponse.entries,
@@ -170,12 +175,14 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     }
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to load public entries", e)
+                    _homeLoading.value = false
                     if (currentState is UiState.PublicEntries) {
                         _uiState.value = currentState.copy(isLoading = false)
                     }
                 }
             } catch (e: Exception) {
                 Log.e("TrailViewModel", "Error loading public entries", e)
+                _homeLoading.value = false
                 val currentState = _uiState.value
                 if (currentState is UiState.PublicEntries) {
                     _uiState.value = currentState.copy(isLoading = false)

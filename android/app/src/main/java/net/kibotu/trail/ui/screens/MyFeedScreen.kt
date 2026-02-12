@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,6 +71,7 @@ fun MyFeedScreen(
     val maxCharacters = 140
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val isAuthenticated = uiState is UiState.Entries
     val currentUserId =
         if (uiState is UiState.Entries) (uiState as UiState.Entries).userId else null
     val userName = if (uiState is UiState.Entries) (uiState as UiState.Entries).userName else null
@@ -111,6 +113,35 @@ fun MyFeedScreen(
     val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    // Show login prompt for unauthenticated users
+    if (!isAuthenticated) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Sign in to view your feed",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "Create posts and see your personalized feed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(onClick = { viewModel.navigateToLogin() }) {
+                    Text("Sign In")
+                }
+            }
+        }
+        return
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(

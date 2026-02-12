@@ -5,12 +5,10 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -19,18 +17,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -42,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -51,7 +40,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import net.kibotu.trail.BuildConfig
-import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.components.EntryList
 import net.kibotu.trail.ui.components.SearchOverlay
 import net.kibotu.trail.ui.viewmodel.SearchType
@@ -63,41 +51,32 @@ import net.kibotu.trail.ui.viewmodel.UiState
 @Composable
 fun HomeScreen(
     viewModel: TrailViewModel,
-    themePreferences: ThemePreferences,
     scrollConnection: NestedScrollConnection
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val homeEntries by viewModel.homeEntries.collectAsState()
     val homeLoading by viewModel.homeLoading.collectAsState()
     val commentsState by viewModel.commentsState.collectAsState()
-    val celebrationEvent by viewModel.celebrationEvent.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchOverlayState by viewModel.searchOverlayState.collectAsState()
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
 
-    var entryText by remember { mutableStateOf("") }
     var searchText by remember { mutableStateOf(searchQuery) }
-    val maxCharacters = 140
-    val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    val isDarkTheme =
-        MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color(0xFF0F172A)
 
     val isAuthenticated = uiState is UiState.Entries
     val currentUserId =
         if (uiState is UiState.Entries) (uiState as UiState.Entries).userId else null
-    val userName = if (uiState is UiState.Entries) (uiState as UiState.Entries).userName else null
     val isAdmin = if (uiState is UiState.Entries) (uiState as UiState.Entries).isAdmin else false
 
-    // Show celebration when post is successful
-    LaunchedEffect(celebrationEvent) {
-        if (celebrationEvent) {
-            snackbarHostState.showSnackbar(
-                message = "🎉 Post created! Nice work! ✨",
-                duration = SnackbarDuration.Short
-            )
-            viewModel.resetCelebration()
+    // Load entries when screen appears (handles both authenticated and unauthenticated users)
+    LaunchedEffect(Unit) {
+        if (homeEntries.isEmpty()) {
+            if (isAuthenticated) {
+                viewModel.loadHomeEntries()
+            } else {
+                viewModel.loadPublicEntries()
+            }
         }
     }
 
@@ -106,12 +85,17 @@ fun HomeScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
             PullToRefreshBox(
                 isRefreshing = homeLoading,
-                onRefresh = { viewModel.loadHomeEntries(searchQuery.ifBlank { null }) },
+                onRefresh = {
+                    if (isAuthenticated) {
+                        viewModel.loadHomeEntries(searchQuery.ifBlank { null })
+                    } else {
+                        viewModel.loadPublicEntries()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
@@ -176,74 +160,13 @@ fun HomeScreen(
                             }
                         )
                     )
-                    // Post creation card (authenticated users only)
-                    if (isAuthenticated && userName != null) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = "What's on your mind, $userName?",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                OutlinedTextField(
-                                    value = entryText,
-                                    onValueChange = {
-                                        if (it.length <= maxCharacters) {
-                                            entryText = it
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Share something...") },
-                                    minLines = 3,
-                                    maxLines = 5,
-                                    supportingText = {
-                                        Text(
-                                            text = "${entryText.length}/$maxCharacters",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    },
-                                    isError = entryText.length > maxCharacters
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Button(
-                                    onClick = {
-                                        if (entryText.isNotBlank() && entryText.length <= maxCharacters) {
-                                            viewModel.submitEntry(entryText)
-                                            entryText = ""
-                                        }
-                                    },
-                                    modifier = Modifier.align(Alignment.End),
-                                    enabled = entryText.isNotBlank() && entryText.length <= maxCharacters
-                                ) {
-                                    Text("Post")
-                                }
-                            }
-                        }
-                    }
+                    // Post creation card removed - posting is only available in My Feed tab after login
                 }
 
                 // Entry list
                 // Calculate top padding based on header content:
-                // - Status bar + Search field (~56dp) + padding (16dp) = ~72dp for unauthenticated
-                // - Status bar + Search field (~56dp) + Post card (~220dp) + padding = ~276dp for authenticated
-                val headerTopPadding = if (isAuthenticated && userName != null) {
-                    statusBarTop + 290.dp // Search + Post card
-                } else {
-                    statusBarTop + 72.dp // Just search
-                }
+                // - Status bar + Search field (~56dp) + padding (16dp) = ~72dp
+                val headerTopPadding = statusBarTop + 72.dp // Just search field
                 
                 EntryList(
                     entries = homeEntries,

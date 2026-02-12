@@ -98,7 +98,6 @@ fun TrailScaffold(
             composable<TabRoute.Home> {
                 HomeScreen(
                     viewModel = viewModel,
-                    themePreferences = themePreferences,
                     scrollConnection = scrollConnection
                 )
             }
