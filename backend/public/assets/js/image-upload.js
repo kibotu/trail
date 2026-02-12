@@ -23,8 +23,7 @@ class ImageUploader {
      * Validate file before upload
      */
     validateFile(file) {
-        const maxImageSize = 20 * 1024 * 1024; // 20MB for images
-        const maxVideoSize = 50 * 1024 * 1024; // 50MB for videos
+        const maxFileSize = 20 * 1024 * 1024; // 20MB for all media
         const allowedImageTypes = [
             'image/jpeg',
             'image/png',
@@ -44,12 +43,8 @@ class ImageUploader {
             throw new Error('No file selected');
         }
         
-        const isVideo = allowedVideoTypes.includes(file.type);
-        const maxSize = isVideo ? maxVideoSize : maxImageSize;
-        
-        if (file.size > maxSize) {
-            const limitMB = maxSize / (1024 * 1024);
-            throw new Error(`File size exceeds ${limitMB}MB limit`);
+        if (file.size > maxFileSize) {
+            throw new Error('File size exceeds 20MB limit');
         }
         
         if (!allowedTypes.includes(file.type)) {

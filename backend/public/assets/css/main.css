@@ -642,40 +642,53 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.25);
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .video-play-overlay:hover {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.video-play-overlay:hover .video-play-button {
+    transform: scale(1.08);
 }
 
 .video-play-button {
-    width: 64px;
-    height: 64px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--primary);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary);
-    font-size: 24px;
-    transition: transform 0.2s, background 0.2s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 26px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .video-play-button:hover {
-    transform: scale(1.1);
-    background: #fff;
+    transform: scale(1.08);
+}
+
+.video-play-button:active {
+    transform: scale(0.96);
 }
 
 .video-play-button i {
-    margin-left: 4px; /* Optical centering for play icon */
+    margin-left: 3px; /* Optical centering for play icon */
 }
 
+/* Replay icon doesn't need offset */
+.video-play-button i.fa-rotate-right {
+    margin-left: 0;
+}
+
+/* Video Controls Bar */
 .video-controls {
     position: absolute;
     bottom: 0;
@@ -683,30 +696,75 @@ main {
     right: 0;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
 }
 
+.entry-video-wrapper.controls-visible .video-controls,
+.entry-video-wrapper.seeking .video-controls {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Control Buttons */
+.video-control-btn,
+.video-playpause-btn,
+.video-mute-button,
+.video-fullscreen-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    transition: background 0.15s, transform 0.15s;
+    flex-shrink: 0;
+}
+
+.video-playpause-btn:hover,
+.video-mute-button:hover,
+.video-fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.video-playpause-btn:active,
+.video-mute-button:active,
+.video-fullscreen-btn:active {
+    transform: scale(0.92);
+}
+
+/* Progress Bar */
 .video-progress-container {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    min-width: 0;
 }
 
 .video-progress-bar {
     flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
     cursor: pointer;
     position: relative;
     transition: height 0.15s;
 }
 
-.video-progress-bar:hover {
-    height: 8px;
+.video-progress-bar:hover,
+.entry-video-wrapper.seeking .video-progress-bar {
+    height: 6px;
 }
 
 .video-progress-filled {
@@ -715,57 +773,93 @@ main {
     left: 0;
     height: 100%;
     background: var(--primary);
-    border-radius: 3px;
+    border-radius: 2px;
     width: 0%;
     pointer-events: none;
+    transition: width 0.05s linear;
 }
 
 .video-progress-handle {
     position: absolute;
     top: 50%;
     left: 0%;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     background: #fff;
     border-radius: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
     transition: transform 0.15s;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     pointer-events: none;
 }
 
-.video-progress-bar:hover .video-progress-handle {
-    transform: translate(-50%, -50%) scale(1.2);
+.video-progress-bar:hover .video-progress-handle,
+.entry-video-wrapper.seeking .video-progress-handle {
+    transform: translate(-50%, -50%) scale(1.3);
 }
 
+/* Time Display */
 .video-time {
-    color: white;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    min-width: 70px;
-    text-align: right;
+    padding: 0 4px;
+    flex-shrink: 0;
 }
 
-.video-mute-button {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
-    transition: background 0.2s, transform 0.2s;
+/* Touch-friendly on mobile */
+@media (hover: none) {
+    .video-controls {
+        padding: 10px 12px;
+    }
+    
+    .video-playpause-btn,
+    .video-mute-button,
+    .video-fullscreen-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .video-progress-bar {
+        height: 6px;
+    }
+    
+    .video-progress-handle {
+        width: 16px;
+        height: 16px;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    
+    .video-time {
+        font-size: 12px;
+    }
 }
 
-.video-mute-button:hover {
-    background: rgba(0, 0, 0, 0.8);
-    transform: scale(1.1);
+/* Fullscreen styles */
+.entry-video-wrapper:fullscreen {
+    background: #000;
+}
+
+.entry-video-wrapper:fullscreen .entry-video {
+    max-height: 100vh;
+    height: 100%;
+    object-fit: contain;
+}
+
+.entry-video-wrapper:fullscreen .video-controls {
+    padding: 12px 20px;
+}
+
+.entry-video-wrapper:fullscreen .video-playpause-btn,
+.entry-video-wrapper:fullscreen .video-mute-button,
+.entry-video-wrapper:fullscreen .video-fullscreen-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
 }
 
 /* Small play overlay for upload preview */

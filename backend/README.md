@@ -6,7 +6,8 @@ PHP backend for Trail. Handles auth, entries, media, search, and notifications.
 
 - Google OAuth 2.0 + JWT + persistent API tokens
 - Entry CRUD with 280-character limit, URL preview enrichment (Iframely + embed fallback)
-- Chunked image upload (up to 3 per entry, 20MB each, WebP conversion)
+- Chunked media upload (20MB max per file, up to 3 per entry)
+- Video support: MP4, WebM, MOV with custom player controls
 - Full-text search with relevance ranking
 - Claps, threaded comments, @mention notifications
 - View tracking with 24-hour deduplication
@@ -28,6 +29,7 @@ PHP backend for Trail. Handles auth, entries, media, search, and notifications.
 ## Prerequisites
 
 - PHP 8.4+ with extensions: `pdo_mysql`, `json`, `mbstring`, `curl`, `gd`
+- ffprobe (optional, for video dimension detection)
 - Composer (https://getcomposer.org/)
 - MariaDB/MySQL database server
 - lftp for FTP deployment (`brew install lftp` on macOS, `apt install lftp` on Linux)

@@ -222,7 +222,7 @@ class Comment
                 if (is_array($imageIds) && !empty($imageIds)) {
                     $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
                     $stmt = $this->db->prepare("
-                        SELECT id, filename, user_id, width, height, file_size
+                        SELECT id, filename, user_id, width, height, file_size, mime_type
                         FROM trail_images 
                         WHERE id IN ($placeholders)
                         ORDER BY FIELD(id, $placeholders)
@@ -236,7 +236,8 @@ class Comment
                             'url' => '/uploads/images/' . $img['user_id'] . '/' . $img['filename'],
                             'width' => $img['width'],
                             'height' => $img['height'],
-                            'file_size' => $img['file_size']
+                            'file_size' => $img['file_size'],
+                            'mime_type' => $img['mime_type'] ?? null
                         ];
                     }, $images);
                 }

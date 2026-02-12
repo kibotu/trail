@@ -42,14 +42,10 @@ class ImageUploadController
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
         
-        // Check file extension to determine if it's a video (for size limit)
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        $isVideo = in_array($extension, ['mp4', 'mov', 'webm'], true);
-        $maxFileSize = $isVideo ? 50 * 1024 * 1024 : 20 * 1024 * 1024; // 50MB for videos, 20MB for images
+        $maxFileSize = 20 * 1024 * 1024; // 20MB for all media
         
         if ($fileSize <= 0 || $fileSize > $maxFileSize) {
-            $limitMB = $maxFileSize / (1024 * 1024);
-            $response->getBody()->write(json_encode(['error' => "File size must be between 1 byte and {$limitMB}MB"]));
+            $response->getBody()->write(json_encode(['error' => 'File size must be between 1 byte and 20MB']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
         

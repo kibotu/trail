@@ -366,17 +366,17 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/images/upload/init',
-        'description' => 'Initialize chunked image upload',
+        'description' => 'Initialize chunked media upload - Images or videos (20MB max)',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'media',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"filename\":\"photo.jpg\",\"total_size\":1024000}' \\\n     {$baseUrl}/api/images/upload/init"
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"filename\":\"video.mp4\",\"total_size\":10240000}' \\\n     {$baseUrl}/api/images/upload/init"
     ],
     [
         'method' => 'POST',
         'path' => '/api/images/upload/chunk',
-        'description' => 'Upload image chunk',
+        'description' => 'Upload media chunk (512KB chunks)',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'media',
@@ -386,7 +386,7 @@ $endpoints = [
     [
         'method' => 'POST',
         'path' => '/api/images/upload/complete',
-        'description' => 'Complete chunked upload',
+        'description' => 'Complete chunked upload - Validates and processes media',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'media',
@@ -396,7 +396,7 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/images/{id}',
-        'description' => 'Serve image by ID',
+        'description' => 'Serve media by ID (images and videos)',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'media',
@@ -406,7 +406,7 @@ $endpoints = [
     [
         'method' => 'DELETE',
         'path' => '/api/images/{id}',
-        'description' => 'Delete own image',
+        'description' => 'Delete own media (image or video)',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'media',
@@ -690,7 +690,7 @@ $groups = [
     'public' => ['title' => 'Public Endpoints', 'description' => 'No authentication required', 'icon' => 'fa-globe'],
     'core' => ['title' => 'Core User Endpoints', 'description' => 'Profile and entry management (requires auth)', 'icon' => 'fa-user'],
     'engagement' => ['title' => 'Engagement', 'description' => 'Claps, comments, and view tracking', 'icon' => 'fa-heart'],
-    'media' => ['title' => 'Media Upload', 'description' => 'Image upload and management (requires auth)', 'icon' => 'fa-image'],
+    'media' => ['title' => 'Media Upload', 'description' => 'Image and video upload (requires auth)', 'icon' => 'fa-photo-film'],
     'moderation' => ['title' => 'Moderation', 'description' => 'Content reporting and user muting (requires auth)', 'icon' => 'fa-shield-halved'],
     'notifications' => ['title' => 'Notifications', 'description' => 'Real-time updates (requires auth)', 'icon' => 'fa-bell'],
     'admin' => ['title' => 'Admin Endpoints', 'description' => 'Administrative functions (requires admin)', 'icon' => 'fa-crown']
@@ -769,10 +769,10 @@ $groups = [
                             </div>
                         </div>
                         <div class="capability-item">
-                            <i class="fa-solid fa-image capability-icon"></i>
+                            <i class="fa-solid fa-photo-film capability-icon"></i>
                             <div>
                                 <strong>Media Upload</strong>
-                                <div style="font-size: 0.875rem; color: #6b7280;">Up to <?= $maxImagesPerEntry ?> images (20MB each, WebP optimized)</div>
+                                <div style="font-size: 0.875rem; color: #6b7280;">Images & videos (20MB max each), up to <?= $maxImagesPerEntry ?> per entry</div>
                             </div>
                         </div>
                         <div class="capability-item">
@@ -1047,7 +1047,8 @@ curl -X POST \
                         <ul>
                             <li><strong>Text:</strong> UTF-8 text with emoji support</li>
                             <li><strong>URLs:</strong> Automatic preview enrichment via Iframely</li>
-                            <li><strong>Media:</strong> Optional image attachments (up to <?= $maxImagesPerEntry ?> images, 20MB each)</li>
+                            <li><strong>Images:</strong> Up to <?= $maxImagesPerEntry ?> images (20MB each, JPEG/PNG/GIF/WebP/SVG/AVIF)</li>
+                            <li><strong>Videos:</strong> MP4, WebM, MOV (20MB each) with custom player controls</li>
                             <li><strong>Timestamps:</strong> Custom creation dates for imports</li>
                             <li><strong>Hash IDs:</strong> Secure, obfuscated entry identifiers</li>
                         </ul>
@@ -1203,17 +1204,19 @@ curl -X POST \
                     </div>
                     
                     <div class="feature-card">
-                        <h3><i class="fa-solid fa-image"></i> Inline Media Upload</h3>
-                        <p>Upload images directly in the request (base64 encoded):</p>
+                        <h3><i class="fa-solid fa-photo-film"></i> Inline Media Upload</h3>
+                        <p>Upload images or videos directly in the request (base64 encoded):</p>
                         <div class="code-block">
                             <code>"media": [{
-  "data": "base64_encoded_image_data...",
+  "data": "base64_encoded_media_data...",
   "filename": "photo.jpg",
   "mime_type": "image/jpeg",
   "image_type": "post"
 }]</code>
                         </div>
-                        <p class="note">Supports JPEG, PNG, GIF, WebP, SVG, AVIF. Max 20MB per image. Maximum <?= $maxImagesPerEntry ?> images per entry.</p>
+                        <p class="note"><strong>Images:</strong> JPEG, PNG, GIF (animated supported), WebP, SVG, AVIF. Max 20MB each.<br>
+                        <strong>Videos:</strong> MP4, WebM, MOV. Max 20MB each. Custom player with progress bar.<br>
+                        Maximum <?= $maxImagesPerEntry ?> media items per entry.</p>
                     </div>
                     
                     <div class="feature-card">
@@ -1367,14 +1370,19 @@ GET /api/entries?limit=20&before=2025-01-15%2010:30:00</code>
                                 <td>Per entry or comment</td>
                             </tr>
                             <tr>
-                                <td>Image size</td>
+                                <td>Media size</td>
                                 <td>20MB max</td>
-                                <td>Per image</td>
+                                <td>Per image or video</td>
                             </tr>
                             <tr>
                                 <td>Image formats</td>
                                 <td>JPEG, PNG, GIF, WebP, SVG, AVIF</td>
-                                <td>Auto-converted to WebP</td>
+                                <td>Static images converted to WebP, animated GIFs preserved</td>
+                            </tr>
+                            <tr>
+                                <td>Video formats</td>
+                                <td>MP4, WebM, MOV</td>
+                                <td>Stored as-is with custom player</td>
                             </tr>
                             <tr>
                                 <td>Search query</td>

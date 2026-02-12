@@ -13,8 +13,7 @@ use RuntimeException;
  */
 class ImageService
 {
-    private const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-    private const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
+    private const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB for all media
     private const WEBP_QUALITY = 90;
     
     private const ALLOWED_MIME_TYPES = [
@@ -85,7 +84,7 @@ class ImageService
         }
         
         // Use higher size limit for videos
-        $effectiveMaxSize = $this->isVideoMimeType($mimeType) ? self::MAX_VIDEO_SIZE : $maxSize;
+        $effectiveMaxSize = $maxSize;
         
         $fileSize = filesize($filePath);
         if ($fileSize === false || $fileSize > $effectiveMaxSize) {
@@ -349,8 +348,8 @@ class ImageService
         }
         
         $fileSize = filesize($sourcePath);
-        if ($fileSize === false || $fileSize > self::MAX_VIDEO_SIZE) {
-            throw new InvalidArgumentException('Video file size exceeds maximum allowed size (50MB)');
+        if ($fileSize === false || $fileSize > self::MAX_FILE_SIZE) {
+            throw new InvalidArgumentException('Video file size exceeds maximum allowed size (20MB)');
         }
         
         // Validate MIME type is a video
@@ -358,48 +357,9 @@ class ImageService
             throw new InvalidArgumentException('Invalid video MIME type: ' . $mimeType);
         }
         
-        // Determine output MIME type and whether conversion is needed
-        $outputMimeType = $mimeType;
-        
-        // If MOV, convert to MP4 using ffmpeg
-        if ($mimeType === 'video/quicktime') {
-            if (!$this->isFfmpegAvailable()) {
-                throw new RuntimeException('ffmpeg is required to convert MOV files but is not available');
-            }
-            
-            // Convert MOV to MP4 with reasonable quality settings
-            // -movflags +faststart: Optimize for web streaming
-            // -c:v libx264: Use H.264 video codec (widely supported)
-            // -c:a aac: Use AAC audio codec
-            // -preset medium: Balance between encoding speed and file size
-            // -crf 23: Good quality (lower = better, 18-28 is typical range)
-            $cmd = sprintf(
-                'ffmpeg -i %s -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart -y %s 2>&1',
-                escapeshellarg($sourcePath),
-                escapeshellarg($targetPath)
-            );
-            
-            $output = [];
-            $returnCode = 0;
-            exec($cmd, $output, $returnCode);
-            
-            if ($returnCode !== 0) {
-                error_log("ffmpeg conversion failed: " . implode("\n", $output));
-                throw new RuntimeException('Failed to convert video to MP4');
-            }
-            
-            // Get the new file size
-            $fileSize = filesize($targetPath);
-            if ($fileSize === false) {
-                throw new RuntimeException('Failed to get converted video file size');
-            }
-            
-            $outputMimeType = 'video/mp4';
-        } else {
-            // MP4 and WebM - copy as-is
-            if (!copy($sourcePath, $targetPath)) {
-                throw new RuntimeException('Failed to copy video file');
-            }
+        // All video types (MP4, WebM, MOV) - copy as-is without conversion
+        if (!copy($sourcePath, $targetPath)) {
+            throw new RuntimeException('Failed to copy video file');
         }
         
         // Get video dimensions
@@ -409,7 +369,7 @@ class ImageService
             'width' => $dimensions['width'],
             'height' => $dimensions['height'],
             'file_size' => $fileSize,
-            'mime_type' => $outputMimeType
+            'mime_type' => $mimeType
         ];
     }
     
@@ -582,13 +542,19 @@ class ImageService
         $extension = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
         
         // Determine output extension:
-        // - Video files: WebM stays .webm, others become .mp4 (MOV is converted)
+        // - Video files keep their original extension (mp4, webm, mov)
         // - SVG files keep .svg
         // - Animated GIFs keep .gif when preserveGif is true
         // - Everything else becomes .webp
         if ($videoMimeType !== null) {
-            // WebM videos keep their extension, MOV converts to MP4
-            $ext = ($videoMimeType === 'video/webm') ? 'webm' : 'mp4';
+            // Preserve original video extension
+            if ($videoMimeType === 'video/webm') {
+                $ext = 'webm';
+            } elseif ($videoMimeType === 'video/quicktime') {
+                $ext = 'mov';
+            } else {
+                $ext = 'mp4';
+            }
         } elseif ($extension === 'svg') {
             $ext = 'svg';
         } elseif ($preserveGif && $extension === 'gif') {
