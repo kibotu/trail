@@ -130,7 +130,7 @@ fun TrailScaffold(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             colors = net.kibotu.trail.ui.components.FloatingTabBarDefaults.colors(
                 backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f)
             )

@@ -37,8 +37,24 @@ data class ProfileStats(
     @SerialName("total_entry_claps") val totalEntryClaps: Int = 0,
     @SerialName("total_comment_claps") val totalCommentClaps: Int = 0,
     @SerialName("last_entry_at") val lastEntryAt: String? = null,
-    @SerialName("top_entries_by_claps") val topEntriesByClaps: List<Entry> = emptyList(),
-    @SerialName("top_entries_by_views") val topEntriesByViews: List<Entry> = emptyList()
+    @SerialName("top_entries_by_claps") val topEntriesByClaps: List<ProfileEntry> = emptyList(),
+    @SerialName("top_entries_by_views") val topEntriesByViews: List<ProfileEntry> = emptyList()
+)
+
+/**
+ * Simplified entry model used in profile stats.
+ * This differs from the full Entry model as it doesn't include user info fields.
+ */
+@Serializable
+data class ProfileEntry(
+    val id: Int,
+    val text: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("preview_url") val previewUrl: String? = null,
+    @SerialName("preview_title") val previewTitle: String? = null,
+    @SerialName("clap_count") val clapCount: String? = null,
+    @SerialName("view_count") val viewCount: String? = null,
+    @SerialName("hash_id") val hashId: String? = null
 )
 
 @Serializable

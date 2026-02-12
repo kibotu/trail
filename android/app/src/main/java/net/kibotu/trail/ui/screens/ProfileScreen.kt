@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import net.kibotu.trail.data.model.Entry
+import net.kibotu.trail.data.model.ProfileEntry
 import net.kibotu.trail.data.storage.ThemePreferences
 import net.kibotu.trail.ui.viewmodel.TrailViewModel
 import java.text.SimpleDateFormat
@@ -502,7 +503,7 @@ fun StatItem(label: String, value: String) {
 }
 
 @Composable
-fun TopEntryItem(entry: Entry) {
+fun TopEntryItem(entry: ProfileEntry) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -525,12 +526,12 @@ fun TopEntryItem(entry: Entry) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "👏 ${entry.clapCount}",
+                    text = "👏 ${entry.clapCount ?: "0"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "👁 ${entry.viewCount}",
+                    text = "👁 ${entry.viewCount ?: "0"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

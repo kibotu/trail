@@ -267,8 +267,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     // CELEBRATE! 🎉
                     _celebrationEvent.value = true
 
-                    // Reload entries after successful submission
-                    loadEntries()
+                    // Reload both home and my feed after successful submission
+                    loadHomeEntries()
+                    refreshMyFeed()
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to submit entry", e)
                 }
@@ -306,8 +307,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 val result = ApiClient.api.updateEntry(entryId, UpdateEntryRequest(text))
 
                 result.onSuccess {
-                    // Reload entries after successful update
-                    loadEntries()
+                    // Reload both feeds after successful update
+                    loadHomeEntries()
+                    refreshMyFeed()
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to update entry", e)
                 }
@@ -323,8 +325,9 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 val result = ApiClient.api.deleteEntry(entryId)
 
                 result.onSuccess {
-                    // Reload entries after successful deletion
-                    loadEntries()
+                    // Reload both feeds after successful deletion
+                    loadHomeEntries()
+                    refreshMyFeed()
                 }.onFailure { e ->
                     Log.e("TrailViewModel", "Failed to delete entry", e)
                 }
@@ -499,18 +502,20 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     fun loadMyFeedEntries(nickname: String, query: String? = null) {
         viewModelScope.launch {
             try {
+                Log.d("TrailViewModel", "loadMyFeedEntries called with nickname: $nickname")
                 _myFeedLoading.value = true
                 val result = ApiClient.api.getUserEntries(nickname, limit = 100, query = query)
 
                 result.onSuccess { entriesResponse ->
+                    Log.d("TrailViewModel", "loadMyFeedEntries success: ${entriesResponse.entries.size} entries")
                     _myFeedEntries.value = entriesResponse.entries
                     _myFeedLoading.value = false
                 }.onFailure { e ->
-                    Log.e("TrailViewModel", "Failed to load my feed entries", e)
+                    Log.e("TrailViewModel", "Failed to load my feed entries for nickname: $nickname", e)
                     _myFeedLoading.value = false
                 }
             } catch (e: Exception) {
-                Log.e("TrailViewModel", "Error loading my feed entries", e)
+                Log.e("TrailViewModel", "Error loading my feed entries for nickname: $nickname", e)
                 _myFeedLoading.value = false
             }
         }
@@ -529,16 +534,19 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     fun loadProfile() {
         viewModelScope.launch {
             try {
+                Log.d("TrailViewModel", "loadProfile called")
                 _profileLoading.value = true
                 val result = ApiClient.api.getProfile()
 
                 result.onSuccess { profile ->
+                    Log.d("TrailViewModel", "loadProfile success - nickname: ${profile.nickname}, name: ${profile.name}")
                     _profileState.value = profile
                     _profileLoading.value = false
                     
                     // Update stored nickname and load feed if nickname is available
                     if (profile.nickname != null) {
                         if (profile.nickname != currentUserNickname) {
+                            Log.d("TrailViewModel", "Updating currentUserNickname from ${currentUserNickname} to ${profile.nickname}")
                             currentUserNickname = profile.nickname
                         }
                         // Always load feed when profile loads with a nickname
@@ -581,6 +589,15 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     }
 
     fun refreshMyFeed() {
-        currentUserNickname?.let { loadMyFeedEntries(it) }
+        // Try currentUserNickname first, fall back to profile nickname
+        val nickname = currentUserNickname ?: _profileState.value?.nickname
+        Log.d("TrailViewModel", "refreshMyFeed called - currentUserNickname: $currentUserNickname, profileNickname: ${_profileState.value?.nickname}, using: $nickname")
+        if (nickname != null) {
+            loadMyFeedEntries(nickname)
+        } else {
+            // If no nickname available, try to load profile first
+            Log.w("TrailViewModel", "refreshMyFeed called but no nickname available, loading profile first")
+            loadProfile()
+        }
     }
 }

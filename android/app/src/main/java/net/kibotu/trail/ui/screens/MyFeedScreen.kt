@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -50,6 +51,7 @@ fun MyFeedScreen(
     val myFeedLoading by viewModel.myFeedLoading.collectAsState()
     val commentsState by viewModel.commentsState.collectAsState()
     val celebrationEvent by viewModel.celebrationEvent.collectAsState()
+    val profileState by viewModel.profileState.collectAsState()
 
     var entryText by remember { mutableStateOf("") }
     val maxCharacters = 140
@@ -58,6 +60,28 @@ fun MyFeedScreen(
     val currentUserId = if (uiState is UiState.Entries) (uiState as UiState.Entries).userId else null
     val userName = if (uiState is UiState.Entries) (uiState as UiState.Entries).userName else null
     val isAdmin = if (uiState is UiState.Entries) (uiState as UiState.Entries).isAdmin else false
+
+    // Always load My Feed when the screen first appears (composition)
+    LaunchedEffect(Unit) {
+        // If user is authenticated, ensure we load the feed
+        if (uiState is UiState.Entries) {
+            // If we don't have the profile yet, load it (which will cascade to feed load)
+            if (profileState == null) {
+                viewModel.loadProfile()
+            } else {
+                // Profile already loaded, refresh the feed directly
+                viewModel.refreshMyFeed()
+            }
+        }
+    }
+    
+    // Also trigger when profile nickname becomes available (for cases where profile loads after screen)
+    LaunchedEffect(profileState?.nickname) {
+        val nickname = profileState?.nickname
+        if (nickname != null && myFeedEntries.isEmpty() && !myFeedLoading) {
+            viewModel.refreshMyFeed()
+        }
+    }
 
     // Show celebration when post is successful
     LaunchedEffect(celebrationEvent) {
@@ -72,6 +96,8 @@ fun MyFeedScreen(
 
     val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -84,12 +110,12 @@ fun MyFeedScreen(
                 .padding(paddingValues)
                 .nestedScroll(scrollConnection)
         ) {
+            // Post creation card at the top (in a Column that doesn't contain the list)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
             ) {
-                // Post creation card
                 if (userName != null) {
                     Card(
                         modifier = Modifier
@@ -146,44 +172,46 @@ fun MyFeedScreen(
                         }
                     }
                 }
-
-                // Entry list
-                EntryList(
-                    entries = myFeedEntries,
-                    isLoading = myFeedLoading && myFeedEntries.isEmpty(),
-                    currentUserId = currentUserId,
-                    isAdmin = isAdmin,
-                    onUpdateEntry = { entryId, text ->
-                        viewModel.updateEntry(entryId, text)
-                    },
-                    onDeleteEntry = { entryId ->
-                        viewModel.deleteEntry(entryId)
-                    },
-                    commentsState = commentsState,
-                    onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
-                    onLoadComments = { entryId -> viewModel.loadComments(entryId) },
-                    onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
-                    onUpdateComment = { commentId, text, entryId ->
-                        viewModel.updateComment(commentId, text, entryId)
-                    },
-                    onDeleteComment = { commentId, entryId ->
-                        viewModel.deleteComment(commentId, entryId)
-                    },
-                    onClapComment = { commentId, count, entryId ->
-                        viewModel.clapComment(commentId, count, entryId)
-                    },
-                    onReportComment = { commentId, entryId ->
-                        viewModel.reportComment(commentId, entryId)
-                    },
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = navigationBarBottom + 8.dp
-                    ),
-                    emptyMessage = "You haven't posted anything yet. Share your first thought!"
-                )
             }
+
+            // Entry list - placed outside Column to allow proper scrolling
+            EntryList(
+                entries = myFeedEntries,
+                isLoading = myFeedLoading && myFeedEntries.isEmpty(),
+                currentUserId = currentUserId,
+                isAdmin = isAdmin,
+                onUpdateEntry = { entryId, text ->
+                    viewModel.updateEntry(entryId, text)
+                },
+                onDeleteEntry = { entryId ->
+                    viewModel.deleteEntry(entryId)
+                },
+                commentsState = commentsState,
+                onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
+                onLoadComments = { entryId -> viewModel.loadComments(entryId) },
+                onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
+                onUpdateComment = { commentId, text, entryId ->
+                    viewModel.updateComment(commentId, text, entryId)
+                },
+                onDeleteComment = { commentId, entryId ->
+                    viewModel.deleteComment(commentId, entryId)
+                },
+                onClapComment = { commentId, count, entryId ->
+                    viewModel.clapComment(commentId, count, entryId)
+                },
+                onReportComment = { commentId, entryId ->
+                    viewModel.reportComment(commentId, entryId)
+                },
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    // Add enough top padding to clear the post card when authenticated
+                    // Post card is approximately: status bar + 16dp padding + card content (~220dp)
+                    top = if (userName != null) statusBarTop + 250.dp else statusBarTop + 8.dp,
+                    bottom = navigationBarBottom + 8.dp
+                ),
+                emptyMessage = "You haven't posted anything yet. Share your first thought!"
+            )
         }
     }
 }
