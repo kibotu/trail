@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import net.kibotu.trail.data.storage.ThemePreferences
-import net.kibotu.trail.ui.screens.EntriesScreen
+import net.kibotu.trail.ui.navigation.TrailScaffold
 import net.kibotu.trail.ui.screens.LoginScreen
 import net.kibotu.trail.ui.theme.GoogleAuthTheme
 import net.kibotu.trail.ui.viewmodel.TrailViewModel
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         viewModel = TrailViewModel(applicationContext)
@@ -85,7 +87,6 @@ fun TrailApp(
     themePreferences: ThemePreferences
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val showCelebration by viewModel.celebrationEvent.collectAsState()
 
     when (val state = uiState) {
         is UiState.Loading -> {
@@ -97,106 +98,27 @@ fun TrailApp(
             }
         }
 
-        is UiState.PublicEntries -> {
-            EntriesScreen(
-                entries = state.entries,
-                isLoading = state.isLoading,
-                userName = null,
-                currentUserId = null,
-                isAdmin = false,
-                onSubmitEntry = null,
-                onUpdateEntry = { _, _ -> },
-                onDeleteEntry = { },
-                onRefresh = {
-                    viewModel.loadPublicEntries()
-                },
-                onLogout = null,
-                onLogin = {
-                    viewModel.navigateToLogin()
-                },
-                onToggleTheme = {
-                    themePreferences.toggleTheme()
-                }
-            )
-        }
-
         is UiState.Login -> {
             LoginScreen(
                 onLoginSuccess = { idToken ->
-                    // Pass any pending shared text to the sign-in handler
                     viewModel.handleGoogleSignIn(idToken)
                 }
             )
         }
 
-        is UiState.Entries -> {
-            val commentsState by viewModel.commentsState.collectAsState()
-
-            EntriesScreen(
-                entries = state.entries,
-                isLoading = state.isLoading,
-                userName = state.userName,
-                currentUserId = state.userId,
-                isAdmin = state.isAdmin,
-                onSubmitEntry = { text ->
-                    viewModel.submitEntry(text)
-                },
-                onUpdateEntry = { entryId, text ->
-                    viewModel.updateEntry(entryId, text)
-                },
-                onDeleteEntry = { entryId ->
-                    viewModel.deleteEntry(entryId)
-                },
-                onRefresh = {
-                    viewModel.loadEntries()
-                },
+        is UiState.PublicEntries, is UiState.Entries -> {
+            // Authenticated users get the full tab navigation
+            TrailScaffold(
+                viewModel = viewModel,
+                themePreferences = themePreferences,
                 onLogout = {
                     viewModel.logout()
-                },
-                onLogin = null,
-                onToggleTheme = {
-                    themePreferences.toggleTheme()
-                },
-                showCelebration = showCelebration,
-                onCelebrationShown = {
-                    viewModel.resetCelebration()
-                },
-                // Comment callbacks
-                commentsState = commentsState,
-                onToggleComments = { entryId -> viewModel.toggleComments(entryId) },
-                onLoadComments = { entryId -> viewModel.loadComments(entryId) },
-                onCreateComment = { entryId, text -> viewModel.createComment(entryId, text) },
-                onUpdateComment = { commentId, text, entryId ->
-                    viewModel.updateComment(
-                        commentId,
-                        text,
-                        entryId
-                    )
-                },
-                onDeleteComment = { commentId, entryId ->
-                    viewModel.deleteComment(
-                        commentId,
-                        entryId
-                    )
-                },
-                onClapComment = { commentId, count, entryId ->
-                    viewModel.clapComment(
-                        commentId,
-                        count,
-                        entryId
-                    )
-                },
-                onReportComment = { commentId, entryId ->
-                    viewModel.reportComment(
-                        commentId,
-                        entryId
-                    )
                 }
             )
         }
 
         is UiState.Error -> {
-            // Show error state - for now just go back to login
+            // Show error state - go back to login
             LoginScreen(
                 onLoginSuccess = { idToken ->
                     viewModel.handleGoogleSignIn(idToken)

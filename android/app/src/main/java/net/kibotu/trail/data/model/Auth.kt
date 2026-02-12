@@ -19,6 +19,7 @@ data class User(
     val id: Int,
     val email: String,
     val name: String,
+    val nickname: String? = null,
     @SerialName("is_admin") val isAdmin: Boolean,
     @SerialName("gravatar_hash") val gravatarHash: String,
     @SerialName("gravatar_url") val gravatarUrl: String

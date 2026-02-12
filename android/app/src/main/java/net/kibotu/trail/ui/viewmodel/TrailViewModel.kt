@@ -15,8 +15,10 @@ import net.kibotu.trail.data.model.CreateCommentRequest
 import net.kibotu.trail.data.model.CreateEntryRequest
 import net.kibotu.trail.data.model.Entry
 import net.kibotu.trail.data.model.GoogleAuthRequest
+import net.kibotu.trail.data.model.ProfileResponse
 import net.kibotu.trail.data.model.UpdateCommentRequest
 import net.kibotu.trail.data.model.UpdateEntryRequest
+import net.kibotu.trail.data.model.UpdateProfileRequest
 import net.kibotu.trail.data.storage.TokenManager
 
 sealed class UiState {
@@ -56,7 +58,30 @@ class TrailViewModel(private val context: Context) : ViewModel() {
     private val _commentsState = MutableStateFlow<Map<Int, CommentState>>(emptyMap())
     val commentsState: StateFlow<Map<Int, CommentState>> = _commentsState.asStateFlow()
 
+    // New StateFlows for tab-specific data
+    private val _homeEntries = MutableStateFlow<List<Entry>>(emptyList())
+    val homeEntries: StateFlow<List<Entry>> = _homeEntries.asStateFlow()
+
+    private val _homeLoading = MutableStateFlow(false)
+    val homeLoading: StateFlow<Boolean> = _homeLoading.asStateFlow()
+
+    private val _myFeedEntries = MutableStateFlow<List<Entry>>(emptyList())
+    val myFeedEntries: StateFlow<List<Entry>> = _myFeedEntries.asStateFlow()
+
+    private val _myFeedLoading = MutableStateFlow(false)
+    val myFeedLoading: StateFlow<Boolean> = _myFeedLoading.asStateFlow()
+
+    private val _profileState = MutableStateFlow<ProfileResponse?>(null)
+    val profileState: StateFlow<ProfileResponse?> = _profileState.asStateFlow()
+
+    private val _profileLoading = MutableStateFlow(false)
+    val profileLoading: StateFlow<Boolean> = _profileLoading.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private var pendingSharedText: String? = null
+    private var currentUserNickname: String? = null
 
     init {
         checkAuthStatus()
@@ -70,14 +95,22 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                     // Get user info from token manager
                     val userName = tokenManager.userName.first() ?: ""
                     val userId = tokenManager.userId.first()?.toIntOrNull() ?: 0
+                    val nickname = tokenManager.userNickname.first()
 
+                    currentUserNickname = nickname
                     ApiClient.setAuthToken(token)
                     _uiState.value = UiState.Entries(
                         userName = userName,
                         userId = userId,
                         isAdmin = false // Will be updated from auth response if needed
                     )
-                    loadEntries()
+                    loadHomeEntries()
+                    // Load profile first to get nickname, then load feed
+                    loadProfile()
+                    // If we have nickname from storage, load feed immediately
+                    if (nickname != null) {
+                        loadMyFeedEntries(nickname)
+                    }
 
                     // If there's pending shared text, submit it
                     pendingSharedText?.let { text ->
@@ -147,8 +180,12 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         token = authResponse.token,
                         email = authResponse.user.email,
                         name = authResponse.user.name,
-                        userId = authResponse.user.id
+                        userId = authResponse.user.id,
+                        nickname = authResponse.user.nickname,
+                        photoUrl = authResponse.user.gravatarUrl
                     )
+
+                    currentUserNickname = authResponse.user.nickname
 
                     // Set token for API client
                     ApiClient.setAuthToken(authResponse.token)
@@ -159,7 +196,13 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                         userId = authResponse.user.id,
                         isAdmin = authResponse.user.isAdmin
                     )
-                    loadEntries()
+                    loadHomeEntries()
+                    // Load profile first to get the nickname
+                    loadProfile()
+                    // If auth response has nickname, load feed immediately
+                    if (authResponse.user.nickname != null) {
+                        loadMyFeedEntries(authResponse.user.nickname)
+                    }
 
                     // Submit pending shared text if available
                     pendingSharedText?.let { text ->
@@ -243,6 +286,11 @@ class TrailViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             tokenManager.clearAuthToken()
             ApiClient.setAuthToken(null)
+            currentUserNickname = null
+            _homeEntries.value = emptyList()
+            _myFeedEntries.value = emptyList()
+            _profileState.value = null
+            _searchQuery.value = ""
             _uiState.value = UiState.PublicEntries()
             loadPublicEntries()
         }
@@ -425,5 +473,114 @@ class TrailViewModel(private val context: Context) : ViewModel() {
                 Log.e("TrailViewModel", "Error reporting comment", e)
             }
         }
+    }
+
+    // New methods for tab-specific data
+    fun loadHomeEntries(query: String? = null) {
+        viewModelScope.launch {
+            try {
+                _homeLoading.value = true
+                val result = ApiClient.api.getEntries(limit = 100, query = query)
+
+                result.onSuccess { entriesResponse ->
+                    _homeEntries.value = entriesResponse.entries
+                    _homeLoading.value = false
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to load home entries", e)
+                    _homeLoading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading home entries", e)
+                _homeLoading.value = false
+            }
+        }
+    }
+
+    fun loadMyFeedEntries(nickname: String, query: String? = null) {
+        viewModelScope.launch {
+            try {
+                _myFeedLoading.value = true
+                val result = ApiClient.api.getUserEntries(nickname, limit = 100, query = query)
+
+                result.onSuccess { entriesResponse ->
+                    _myFeedEntries.value = entriesResponse.entries
+                    _myFeedLoading.value = false
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to load my feed entries", e)
+                    _myFeedLoading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading my feed entries", e)
+                _myFeedLoading.value = false
+            }
+        }
+    }
+
+    fun searchEntries(query: String) {
+        _searchQuery.value = query
+        loadHomeEntries(query.ifBlank { null })
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
+        loadHomeEntries()
+    }
+
+    fun loadProfile() {
+        viewModelScope.launch {
+            try {
+                _profileLoading.value = true
+                val result = ApiClient.api.getProfile()
+
+                result.onSuccess { profile ->
+                    _profileState.value = profile
+                    _profileLoading.value = false
+                    
+                    // Update stored nickname and load feed if nickname is available
+                    if (profile.nickname != null) {
+                        if (profile.nickname != currentUserNickname) {
+                            currentUserNickname = profile.nickname
+                        }
+                        // Always load feed when profile loads with a nickname
+                        loadMyFeedEntries(profile.nickname)
+                    } else {
+                        Log.w("TrailViewModel", "Profile loaded but nickname is null")
+                    }
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to load profile", e)
+                    _profileLoading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error loading profile", e)
+                _profileLoading.value = false
+            }
+        }
+    }
+
+    fun updateProfile(nickname: String?, bio: String?) {
+        viewModelScope.launch {
+            try {
+                // Nickname is required by the API
+                if (nickname.isNullOrBlank()) {
+                    Log.e("TrailViewModel", "Nickname is required for profile update")
+                    return@launch
+                }
+                val request = UpdateProfileRequest(nickname = nickname, bio = bio)
+                val result = ApiClient.api.updateProfile(request)
+
+                result.onSuccess {
+                    // Reload profile to get updated data
+                    loadProfile()
+                }.onFailure { e ->
+                    Log.e("TrailViewModel", "Failed to update profile", e)
+                }
+            } catch (e: Exception) {
+                Log.e("TrailViewModel", "Error updating profile", e)
+            }
+        }
+    }
+
+    fun refreshMyFeed() {
+        currentUserNickname?.let { loadMyFeedEntries(it) }
     }
 }

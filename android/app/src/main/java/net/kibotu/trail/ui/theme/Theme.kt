@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import net.kibotu.trail.extensions.isLightNavigationBar
 import net.kibotu.trail.extensions.isLightStatusBar
+import net.kibotu.trail.extensions.navigationBarColor
 import net.kibotu.trail.extensions.statusBarColor
 
 private val DarkColorScheme = darkColorScheme(
@@ -68,6 +69,7 @@ fun GoogleAuthTheme(
         SideEffect {
             val activity = (view.context as Activity)
             activity.statusBarColor = Color.Transparent.toArgb()
+            activity.navigationBarColor = Color.Transparent.toArgb()
             activity.isLightStatusBar = !darkTheme
             activity.isLightNavigationBar = !darkTheme
         }

@@ -18,6 +18,8 @@ class TokenManager(private val context: Context) {
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
         private val USER_ID_KEY = stringPreferencesKey("user_id")
+        private val USER_NICKNAME_KEY = stringPreferencesKey("user_nickname")
+        private val USER_PHOTO_URL_KEY = stringPreferencesKey("user_photo_url")
     }
 
     val authToken: Flow<String?> = context.dataStore.data.map { preferences ->
@@ -36,12 +38,29 @@ class TokenManager(private val context: Context) {
         preferences[USER_ID_KEY]
     }
 
-    suspend fun saveAuthToken(token: String, email: String, name: String, userId: Int) {
+    val userNickname: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_NICKNAME_KEY]
+    }
+
+    val userPhotoUrl: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_PHOTO_URL_KEY]
+    }
+
+    suspend fun saveAuthToken(
+        token: String,
+        email: String,
+        name: String,
+        userId: Int,
+        nickname: String? = null,
+        photoUrl: String? = null
+    ) {
         context.dataStore.edit { preferences ->
             preferences[AUTH_TOKEN_KEY] = token
             preferences[USER_EMAIL_KEY] = email
             preferences[USER_NAME_KEY] = name
             preferences[USER_ID_KEY] = userId.toString()
+            nickname?.let { preferences[USER_NICKNAME_KEY] = it }
+            photoUrl?.let { preferences[USER_PHOTO_URL_KEY] = it }
         }
     }
 
@@ -55,6 +74,8 @@ class TokenManager(private val context: Context) {
             preferences.remove(USER_EMAIL_KEY)
             preferences.remove(USER_NAME_KEY)
             preferences.remove(USER_ID_KEY)
+            preferences.remove(USER_NICKNAME_KEY)
+            preferences.remove(USER_PHOTO_URL_KEY)
         }
     }
 

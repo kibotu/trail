@@ -14,18 +14,40 @@ data class Entry(
     @SerialName("avatar_url") val avatarUrl: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("hash_id") val hashId: String? = null,
     @SerialName("comment_count") val commentCount: Int = 0,
+    @SerialName("clap_count") val clapCount: Int = 0,
+    @SerialName("user_clap_count") val userClapCount: Int = 0,
+    @SerialName("view_count") val viewCount: Int = 0,
     // URL Preview fields
     @SerialName("preview_url") val previewUrl: String? = null,
     @SerialName("preview_title") val previewTitle: String? = null,
     @SerialName("preview_description") val previewDescription: String? = null,
     @SerialName("preview_image") val previewImage: String? = null,
-    @SerialName("preview_site_name") val previewSiteName: String? = null
+    @SerialName("preview_site_name") val previewSiteName: String? = null,
+    // Tags and images
+    val tags: List<Tag> = emptyList(),
+    val images: List<EntryImage> = emptyList()
 ) {
     // Helper property to get display name (nickname or fallback to userName)
     val displayName: String
         get() = userNickname ?: userName
 }
+
+@Serializable
+data class Tag(
+    val id: Int,
+    val name: String,
+    val slug: String
+)
+
+@Serializable
+data class EntryImage(
+    val id: Int,
+    val url: String,
+    val width: Int? = null,
+    val height: Int? = null
+)
 
 @Serializable
 data class EntriesResponse(

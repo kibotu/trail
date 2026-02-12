@@ -20,10 +20,13 @@ import net.kibotu.trail.data.model.CreateEntryRequest
 import net.kibotu.trail.data.model.CreateEntryResponse
 import net.kibotu.trail.data.model.EntriesResponse
 import net.kibotu.trail.data.model.GoogleAuthRequest
+import net.kibotu.trail.data.model.ProfileResponse
 import net.kibotu.trail.data.model.UpdateCommentRequest
 import net.kibotu.trail.data.model.UpdateCommentResponse
 import net.kibotu.trail.data.model.UpdateEntryRequest
 import net.kibotu.trail.data.model.UpdateEntryResponse
+import net.kibotu.trail.data.model.UpdateProfileRequest
+import net.kibotu.trail.data.model.UpdateProfileResponse
 
 class TrailApi(private val client: HttpClient) {
 
@@ -39,11 +42,12 @@ class TrailApi(private val client: HttpClient) {
         }
     }
 
-    suspend fun getEntries(limit: Int = 20, before: String? = null): Result<EntriesResponse> {
+    suspend fun getEntries(limit: Int = 20, before: String? = null, query: String? = null): Result<EntriesResponse> {
         return try {
             val response = client.get("api/entries") {
                 parameter("limit", limit)
                 before?.let { parameter("before", it) }
+                query?.let { parameter("q", it) }
             }
             Result.success(response.body<EntriesResponse>())
         } catch (e: Exception) {
@@ -170,6 +174,47 @@ class TrailApi(private val client: HttpClient) {
         return try {
             client.post("api/comments/$commentId/report")
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // User entries endpoint
+    suspend fun getUserEntries(
+        nickname: String,
+        limit: Int = 20,
+        before: String? = null,
+        query: String? = null
+    ): Result<EntriesResponse> {
+        return try {
+            val response = client.get("api/users/$nickname/entries") {
+                parameter("limit", limit)
+                before?.let { parameter("before", it) }
+                query?.let { parameter("q", it) }
+            }
+            Result.success(response.body<EntriesResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Profile endpoints
+    suspend fun getProfile(): Result<ProfileResponse> {
+        return try {
+            val response = client.get("api/profile")
+            Result.success(response.body<ProfileResponse>())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateProfile(request: UpdateProfileRequest): Result<UpdateProfileResponse> {
+        return try {
+            val response = client.put("api/profile") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            Result.success(response.body<UpdateProfileResponse>())
         } catch (e: Exception) {
             Result.failure(e)
         }
