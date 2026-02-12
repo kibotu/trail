@@ -312,14 +312,22 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                         <span class="dupe-badge"><?= $brokenLinkStats['broken'] ?></span>
                         <?php endif; ?>
                     </button>
+                    <button id="view-tags" class="view-mode-btn" onclick="switchView('tags')">
+                        <i class="fa-solid fa-tags"></i> Tags
+                    </button>
                 </div>
                 <div id="entries-filters">
-                    <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Filter by source:</label>
+                    <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Source:</label>
                     <select id="source-filter" class="source-filter-select">
                         <option value="">All Sources</option>
                         <option value="iframely">Iframely</option>
                         <option value="embed">Fallback</option>
                         <option value="medium">Medium</option>
+                    </select>
+                    <label for="tag-filter" style="margin-left: 1rem; margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Tag:</label>
+                    <select id="tag-filter" class="source-filter-select">
+                        <option value="">All Tags</option>
+                        <!-- Tags will be populated via JavaScript -->
                     </select>
                 </div>
                 <div id="duplicates-filters" style="display: none;">
@@ -345,6 +353,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <label style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
                         <input type="checkbox" id="hide-dismissed" checked> Hide dismissed
                     </label>
+                </div>
+                <div id="tags-filters" style="display: none;">
+                    <label for="tags-search" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Search tags:</label>
+                    <input type="text" id="tags-search" class="source-filter-select" placeholder="Search..." style="width: 200px;">
                 </div>
             </div>
         </div>
@@ -377,6 +389,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <!-- Broken links will be loaded here -->
         </div>
 
+        <div id="tags-container" class="entries-container" style="display: none;">
+            <!-- Tags will be loaded here -->
+        </div>
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p style="margin-top: 1rem;">Loading...</p>
@@ -396,6 +412,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
             <p>No broken links found. All links are healthy!</p>
         </div>
+
+        <div id="empty-tags-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon"><i class="fa-solid fa-tags"></i></div>
+            <p>No tags found.</p>
+        </div>
     </div>
 
     <script>
@@ -407,5 +428,6 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/assets/js/card-template.js"></script>
     <script src="/assets/js/admin-dashboard.js"></script>
     <script src="/assets/js/admin-broken-links.js"></script>
+    <script src="/assets/js/admin-tags.js"></script>
 </body>
 </html>

@@ -94,12 +94,12 @@ class AuthController
         $jwtService = new JwtService($config);
         $jwt = $jwtService->generate($userId, $userData['email'], $isAdmin);
 
-        // SECURITY: JWT token is only set in httpOnly cookie, never in response body
-        // This prevents XSS attacks from stealing the token
-        
-        // Return response (without token - it's in the cookie)
+        // Return response with token
+        // Note: Mobile apps don't have the same XSS vulnerabilities as web browsers
+        // since they don't execute arbitrary JavaScript, so including the token
+        // in the response body is safe and necessary for native app authentication.
         $responseData = [
-            // 'token' => $jwt,  // REMOVED: Token should never be in response body
+            'token' => $jwt,
             'user' => [
                 'id' => $userId,
                 'email' => $userData['email'],

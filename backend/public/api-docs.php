@@ -207,6 +207,68 @@ $endpoints = [
         'rate_limit' => 'None',
         'curl' => "curl {$baseUrl}/api/entries/123/claps"
     ],
+    
+    // TAG ENDPOINTS
+    [
+        'method' => 'GET',
+        'path' => '/api/tags',
+        'description' => 'List all tags with entry counts - Optional ?search= query parameter for autocomplete',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/tags?search=python"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/tags/{slug}/entries',
+        'description' => 'List entries with a specific tag - Supports cursor pagination (?limit=20&before=cursor)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/tags/python/entries?limit=20"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/entries/{id}/tags',
+        'description' => 'Get tags for a specific entry',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/entries/123/tags"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/entries/{id}/tags',
+        'description' => 'Replace all tags for an entry (owner or admin only) - Idempotent operation',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"tags\":[\"python\",\"tutorial\",\"machine-learning\"]}' \\\n     {$baseUrl}/api/entries/123/tags"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/entries/{id}/tags',
+        'description' => 'Add a single tag to an entry (owner or admin only)',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"tag\":\"python\"}' \\\n     {$baseUrl}/api/entries/123/tags"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/entries/{id}/tags/{slug}',
+        'description' => 'Remove a tag from an entry (owner or admin only)',
+        'auth' => true,
+        'auth_level' => 'user',
+        'group' => 'engagement',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/entries/123/tags/python"
+    ],
     [
         'method' => 'POST',
         'path' => '/api/entries/{id}/comments',
@@ -506,6 +568,16 @@ $endpoints = [
         'group' => 'admin',
         'rate_limit' => "{$rateLimitPerMinute}/min",
         'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/admin/entries/123"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/admin/entries/tags',
+        'description' => 'Batch set tags for multiple entries (admin only) - Max 100 entries per request',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"entries\":[{\"id\":\"abc123\",\"tags\":[\"python\",\"ai\"]},{\"id\":\"def456\",\"tags\":[\"rust\"]}]}' \\\n     {$baseUrl}/api/admin/entries/tags"
     ],
     [
         'method' => 'GET',

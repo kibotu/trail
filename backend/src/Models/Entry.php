@@ -82,7 +82,15 @@ class Entry
         
         $entry = $stmt->fetch();
         
-        return $entry ?: null;
+        if (!$entry) {
+            return null;
+        }
+        
+        // Add tags
+        $tagModel = new Tag($this->db);
+        $entry['tags'] = $tagModel->getTagsForEntry((int) $entry['id']);
+        
+        return $entry;
     }
 
     public function getByUser(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
@@ -141,7 +149,7 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null): array
     {
         // Build SELECT with clap counts, comment counts, and view counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
@@ -175,12 +183,22 @@ class Entry
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
         }
         
+        // Join with tag junction table if filtering by tag
+        if ($tagFilter !== null) {
+            $sql .= " JOIN trail_entry_tags et ON e.id = et.entry_id AND et.tag_id = ?";
+        }
+        
         // Build WHERE clause for filters
         $whereConditions = [];
         $params = [];
         
         if ($currentUserId !== null) {
             $params[] = $currentUserId;
+        }
+        
+        // Add tag filter parameter (must come after user claps join param)
+        if ($tagFilter !== null) {
+            $params[] = $tagFilter;
         }
         
         if ($before !== null) {
@@ -494,12 +512,50 @@ class Entry
     }
     
     /**
+     * Attach tags to multiple entries (batch fetch for performance)
+     */
+    private function attachTagsToEntries(array $entries): array
+    {
+        if (empty($entries)) {
+            return $entries;
+        }
+        
+        try {
+            // Extract entry IDs
+            $entryIds = array_map(function($entry) {
+                return (int) $entry['id'];
+            }, $entries);
+            
+            // Batch fetch tags
+            $tagModel = new Tag($this->db);
+            $tagsByEntry = $tagModel->getTagsForEntries($entryIds);
+            
+            // Attach tags to each entry
+            foreach ($entries as &$entry) {
+                $entryId = (int) $entry['id'];
+                $entry['tags'] = $tagsByEntry[$entryId] ?? [];
+            }
+            
+            return $entries;
+        } catch (\PDOException $e) {
+            // Fallback if trail_tags table doesn't exist yet
+            error_log("attachTagsToEntries error (table may not exist): " . $e->getMessage());
+            // Add empty tags array to all entries
+            foreach ($entries as &$entry) {
+                $entry['tags'] = [];
+            }
+            return $entries;
+        }
+    }
+    
+    /**
      * Get all entries with image URLs attached
      */
-    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null): array
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null): array
     {
-        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter);
-        return array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter, $tagFilter);
+        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        return $this->attachTagsToEntries($entries);
     }
     
     /**
@@ -508,7 +564,8 @@ class Entry
     public function getByUserWithImages(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $entries = $this->getByUser($userId, $limit, $before, $currentUserId);
-        return array_map([$this, 'attachImageUrls'], $entries);
+        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        return $this->attachTagsToEntries($entries);
     }
 
     /**
@@ -737,7 +794,8 @@ class Entry
     public function searchAllWithImages(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
         $entries = $this->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
-        return array_map([$this, 'attachImageUrls'], $entries);
+        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        return $this->attachTagsToEntries($entries);
     }
 
     /**
@@ -746,7 +804,8 @@ class Entry
     public function searchByUserWithImages(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId);
-        return array_map([$this, 'attachImageUrls'], $entries);
+        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        return $this->attachTagsToEntries($entries);
     }
 
     /**

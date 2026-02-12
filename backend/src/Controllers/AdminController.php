@@ -61,8 +61,17 @@ class AdminController
             }
         }
 
+        // Get and validate tag filter parameter
+        $tagFilter = null;
+        if (isset($queryParams['tag']) && !empty($queryParams['tag'])) {
+            $tagFilter = (int) $queryParams['tag'];
+            if ($tagFilter <= 0) {
+                $tagFilter = null;
+            }
+        }
+
         // Admin view includes clap counts (no user-specific counts needed)
-        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter);
+        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter, $tagFilter);
 
         // Initialize HashIdService
         $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';

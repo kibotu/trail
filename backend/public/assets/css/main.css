@@ -6201,3 +6201,214 @@ main {
     color: var(--text-secondary);
     font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
 }
+
+/* ============================================
+   TAGS MANAGEMENT STYLES
+   ============================================ */
+
+.page-admin-dashboard .tags-table {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.page-admin-dashboard .tags-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.page-admin-dashboard .tags-table-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.page-admin-dashboard .tags-table-row:last-child {
+    border-bottom: none;
+}
+
+.page-admin-dashboard .tags-table-row:hover {
+    background: rgba(30, 41, 59, 0.5);
+}
+
+.page-admin-dashboard .tags-col-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.page-admin-dashboard .tags-col-name .tag-name-input {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    width: 100%;
+    max-width: 200px;
+}
+
+.page-admin-dashboard .tags-col-slug code {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
+
+.page-admin-dashboard .tags-col-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-admin-dashboard .tags-col-count .entry-count {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.page-admin-dashboard .tags-col-actions {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+/* Modal styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.25rem;
+}
+
+.modal-body label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: block;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+/* Tags filters */
+.page-admin-dashboard #tags-filters {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.page-admin-dashboard #tags-filters input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.page-admin-dashboard #tags-filters input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Mobile responsive styles for tags */
+@media (max-width: 768px) {
+    .page-admin-dashboard .tags-table-header {
+        display: none;
+    }
+
+    .page-admin-dashboard .tags-table-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+
+    .page-admin-dashboard .tags-col-name,
+    .page-admin-dashboard .tags-col-slug,
+    .page-admin-dashboard .tags-col-count,
+    .page-admin-dashboard .tags-col-actions {
+        width: 100%;
+    }
+
+    .page-admin-dashboard .tags-col-actions {
+        justify-content: flex-start;
+    }
+
+    .page-admin-dashboard #tags-filters {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-admin-dashboard #tags-filters input {
+        width: 100%;
+    }
+}

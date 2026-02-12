@@ -16,6 +16,7 @@ let currentPage = 0;
 let loading = false;
 let hasMore = true;
 let currentSourceFilter = '';
+let currentTagFilter = '';
 const pageSize = 20;
 
 /**
@@ -101,6 +102,9 @@ async function loadEntries() {
         let url = `/api/admin/entries?page=${currentPage}&limit=${pageSize}`;
         if (currentSourceFilter) {
             url += `&source=${encodeURIComponent(currentSourceFilter)}`;
+        }
+        if (currentTagFilter) {
+            url += `&tag=${encodeURIComponent(currentTagFilter)}`;
         }
         const response = await fetch(url, {
             credentials: 'same-origin' // Include httpOnly cookie with JWT
@@ -431,11 +435,12 @@ async function pruneViews() {
 // Duplicates View
 // ============================================================
 
-let currentView = 'all'; // 'all' or 'duplicates'
+let currentView = 'all'; // 'all', 'duplicates', 'broken-links', 'tags'
 let currentMatchType = 'all'; // 'all', 'text', 'url'
 let duplicatePage = 0;
 let duplicateLoading = false;
 let duplicateHasMore = true;
+let tagsLoaded = false;
 
 /**
  * Switch between All Entries and Duplicates view
@@ -446,40 +451,46 @@ function switchView(view) {
     const entriesContainer = document.getElementById('entries-container');
     const duplicatesContainer = document.getElementById('duplicates-container');
     const brokenLinksContainer = document.getElementById('broken-links-container');
+    const tagsContainer = document.getElementById('tags-container');
     const entriesFilters = document.getElementById('entries-filters');
     const duplicatesFilters = document.getElementById('duplicates-filters');
     const brokenLinksFilters = document.getElementById('broken-links-filters');
+    const tagsFilters = document.getElementById('tags-filters');
     const bulkActions = document.getElementById('bulk-actions');
     const emptyState = document.getElementById('empty-state');
     const emptyDuplicatesState = document.getElementById('empty-duplicates-state');
     const emptyBrokenLinksState = document.getElementById('empty-broken-links-state');
+    const emptyTagsState = document.getElementById('empty-tags-state');
     const sectionTitle = document.getElementById('section-title');
 
     // Toggle active button
     document.getElementById('view-all').classList.toggle('active', view === 'all');
     document.getElementById('view-duplicates').classList.toggle('active', view === 'duplicates');
     document.getElementById('view-broken-links').classList.toggle('active', view === 'broken-links');
+    document.getElementById('view-tags').classList.toggle('active', view === 'tags');
+
+    // Hide all containers and filters first
+    entriesContainer.style.display = 'none';
+    duplicatesContainer.style.display = 'none';
+    brokenLinksContainer.style.display = 'none';
+    tagsContainer.style.display = 'none';
+    entriesFilters.style.display = 'none';
+    duplicatesFilters.style.display = 'none';
+    brokenLinksFilters.style.display = 'none';
+    tagsFilters.style.display = 'none';
+    bulkActions.style.display = 'none';
+    emptyState.style.display = 'none';
+    emptyDuplicatesState.style.display = 'none';
+    emptyBrokenLinksState.style.display = 'none';
+    emptyTagsState.style.display = 'none';
 
     if (view === 'all') {
         entriesContainer.style.display = '';
-        duplicatesContainer.style.display = 'none';
-        brokenLinksContainer.style.display = 'none';
         entriesFilters.style.display = '';
-        duplicatesFilters.style.display = 'none';
-        brokenLinksFilters.style.display = 'none';
-        bulkActions.style.display = 'none';
-        emptyDuplicatesState.style.display = 'none';
-        emptyBrokenLinksState.style.display = 'none';
         sectionTitle.textContent = 'All Entries';
     } else if (view === 'duplicates') {
-        entriesContainer.style.display = 'none';
         duplicatesContainer.style.display = '';
-        brokenLinksContainer.style.display = 'none';
-        entriesFilters.style.display = 'none';
         duplicatesFilters.style.display = '';
-        brokenLinksFilters.style.display = 'none';
-        emptyState.style.display = 'none';
-        emptyBrokenLinksState.style.display = 'none';
         sectionTitle.textContent = 'Duplicate Entries';
 
         // Load duplicates if not already loaded
@@ -489,15 +500,8 @@ function switchView(view) {
             loadDuplicates();
         }
     } else if (view === 'broken-links') {
-        entriesContainer.style.display = 'none';
-        duplicatesContainer.style.display = 'none';
         brokenLinksContainer.style.display = '';
-        entriesFilters.style.display = 'none';
-        duplicatesFilters.style.display = 'none';
         brokenLinksFilters.style.display = '';
-        bulkActions.style.display = 'none';
-        emptyState.style.display = 'none';
-        emptyDuplicatesState.style.display = 'none';
         sectionTitle.textContent = 'Broken Links';
 
         // Load broken links if not already loaded
@@ -505,6 +509,15 @@ function switchView(view) {
             brokenLinksPage = 0;
             brokenLinksHasMore = true;
             loadBrokenLinks();
+        }
+    } else if (view === 'tags') {
+        tagsContainer.style.display = '';
+        tagsFilters.style.display = '';
+        sectionTitle.textContent = 'Tag Management';
+
+        // Load tags if not already loaded
+        if (typeof loadTags === 'function' && !tagsLoaded) {
+            loadTags();
         }
     }
 }

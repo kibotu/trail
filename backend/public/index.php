@@ -24,6 +24,7 @@ use Trail\Controllers\CommentClapController;
 use Trail\Controllers\CommentReportController;
 use Trail\Controllers\NotificationController;
 use Trail\Controllers\ViewController;
+use Trail\Controllers\TagController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -482,6 +483,14 @@ $app->get('/api/preview-image/{id}.png', function ($request, $response, array $a
 $app->post('/api/entries/{id}/claps', [ClapController::class, 'addClap'])->add(new AuthMiddleware($config));
 $app->get('/api/entries/{id}/claps', [ClapController::class, 'getClaps']);
 
+// Tag routes (public read, authenticated write)
+$app->get('/api/tags', [TagController::class, 'listTags']);
+$app->get('/api/tags/{slug}/entries', [TagController::class, 'getEntriesByTag']);
+$app->get('/api/entries/{id}/tags', [TagController::class, 'getEntryTags']);
+$app->put('/api/entries/{id}/tags', [TagController::class, 'setEntryTags'])->add(new AuthMiddleware($config));
+$app->post('/api/entries/{id}/tags', [TagController::class, 'addEntryTag'])->add(new AuthMiddleware($config));
+$app->delete('/api/entries/{id}/tags/{slug}', [TagController::class, 'removeEntryTag'])->add(new AuthMiddleware($config));
+
 // Comment routes (authenticated write, public read)
 $app->post('/api/entries/{id}/comments', [CommentController::class, 'create'])->add(new AuthMiddleware($config));
 $app->get('/api/entries/{id}/comments', [CommentController::class, 'list']);
@@ -537,6 +546,13 @@ $app->group('/api/admin', function ($group) {
     $group->post('/broken-links/{id}/undismiss', [AdminController::class, 'undismissBrokenLink']);
     $group->post('/broken-links/check', [AdminController::class, 'checkBrokenLinks']);
     $group->post('/broken-links/recheck', [AdminController::class, 'recheckBrokenLinks']);
+    $group->put('/entries/tags', [TagController::class, 'batchSetTags']);
+    
+    // Tag management routes
+    $group->get('/tags', [TagController::class, 'adminListTags']);
+    $group->put('/tags/{id}', [TagController::class, 'adminUpdateTag']);
+    $group->delete('/tags/{id}', [TagController::class, 'adminDeleteTag']);
+    $group->post('/tags/{id}/merge', [TagController::class, 'adminMergeTag']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes
