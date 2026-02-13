@@ -201,6 +201,24 @@ Full REST API with public and authenticated endpoints.
 
 Generate an API token from your profile page after signing in.
 
+### Key Endpoints
+
+**Update Entry** - `PUT /api/entries/{id}`
+
+```json
+{
+  "text": "Updated entry text",
+  "image_ids": [1, 2, 3],
+  "skip_updated_at": true
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `text` | string | Yes | Entry text (max length from config) |
+| `image_ids` | array | No | Ordered list of image IDs |
+| `skip_updated_at` | boolean | No | If `true`, preserves original `updated_at` timestamp (useful for automated rewrites that shouldn't show "edited") |
+
 ## License
 
 Apache 2.0

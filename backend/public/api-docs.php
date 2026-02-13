@@ -168,12 +168,12 @@ $endpoints = [
     [
         'method' => 'PUT',
         'path' => '/api/entries/{id}',
-        'description' => 'Update own entry',
+        'description' => 'Update own entry. Body: {text, image_ids?, skip_updated_at?}. Set skip_updated_at:true to preserve original timestamp.',
         'auth' => true,
         'auth_level' => 'user',
         'group' => 'core',
         'rate_limit' => "{$rateLimitPerMinute}/min",
-        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\"}' \\\n     {$baseUrl}/api/entries/123"
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"text\":\"Updated text\",\"skip_updated_at\":true}' \\\n     {$baseUrl}/api/entries/123"
     ],
     [
         'method' => 'DELETE',

@@ -557,6 +557,7 @@ class EntryController
 
         $text = $data['text'] ?? '';
         $imageIds = $data['image_ids'] ?? null;
+        $skipUpdatedAt = $data['skip_updated_at'] ?? false;
 
         // Validation: Check if text is provided
         if (empty($text)) {
@@ -624,7 +625,7 @@ class EntryController
             $urlPreviewId = null;
         }
 
-        $success = $entryModel->update($entryId, $sanitizedText, $urlPreviewId, $imageIds);
+        $success = $entryModel->update($entryId, $sanitizedText, $urlPreviewId, $imageIds, $skipUpdatedAt);
 
         if ($success) {
             $entry = $entryModel->findById($entryId);

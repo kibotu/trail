@@ -247,15 +247,24 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function update(int $id, string $text, ?int $urlPreviewId = null, ?array $imageIds = null): bool
+    public function update(int $id, string $text, ?int $urlPreviewId = null, ?array $imageIds = null, bool $skipUpdatedAt = false): bool
     {
         $imageIdsJson = $imageIds ? json_encode($imageIds) : null;
         
-        $stmt = $this->db->prepare(
-            "UPDATE {$this->table} 
-             SET text = ?, url_preview_id = ?, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
-             WHERE id = ?"
-        );
+        if ($skipUpdatedAt) {
+            // Explicitly set updated_at = updated_at to override ON UPDATE CURRENT_TIMESTAMP behavior
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table} 
+                 SET text = ?, url_preview_id = ?, image_ids = ?, updated_at = updated_at
+                 WHERE id = ?"
+            );
+        } else {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table} 
+                 SET text = ?, url_preview_id = ?, image_ids = ?, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = ?"
+            );
+        }
         
         return $stmt->execute([$text, $urlPreviewId, $imageIdsJson, $id]);
     }
