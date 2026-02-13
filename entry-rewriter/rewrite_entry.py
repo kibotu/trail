@@ -110,8 +110,8 @@ class EntryRewriter:
             "end_time": None,
         }
 
-        # Cache: hash_id -> rewritten text
-        self.processed: Dict[str, str] = {}
+        # Cache: hash_id -> {original, rewritten}
+        self.processed: Dict[str, Dict[str, str]] = {}
 
         # Load existing cache
         self._load_cache()
@@ -480,6 +480,13 @@ class EntryRewriter:
             success = self._update_entry(numeric_id, new_text)
             if success:
                 print("✅ Entry updated successfully!")
+                # Save to cache
+                hash_id = entry.get("hash_id", entry_id)
+                self.processed[hash_id] = {
+                    "original": original_text,
+                    "rewritten": new_text,
+                }
+                self._save_cache()
             else:
                 print("❌ Failed to update entry")
 
@@ -578,7 +585,11 @@ class EntryRewriter:
 
                 # Cache (skip in dry-run)
                 if not self.dry_run:
-                    self.processed[hid] = new_text
+                    original_text = entry.get("text", "")
+                    self.processed[hid] = {
+                        "original": original_text,
+                        "rewritten": new_text,
+                    }
                     self._save_cache()
 
                 self.stats["processed"] += 1
