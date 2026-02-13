@@ -23,12 +23,16 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import re
+import signal
 import subprocess
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -37,6 +41,8 @@ from urllib3.util.retry import Retry
 # Constants
 OPENCODE_BIN = "/opt/homebrew/bin/opencode"
 DEFAULT_API_URL = "https://trail.services.kibotu.net/api"
+CACHE_VERSION = 1
+DEFAULT_DELAY_MS = 500  # 2 seconds between opencode calls
 
 
 def get_base_url_from_secrets() -> Optional[str]:
@@ -71,7 +77,9 @@ class EntryRewriter:
         self,
         api_key: str,
         api_url: Optional[str] = None,
+        cache_file: str = ".entry_rewrite_cache.json",
         dry_run: bool = False,
+        delay_ms: int = DEFAULT_DELAY_MS,
         model: Optional[str] = None,
         verbose: bool = False,
     ):
@@ -82,12 +90,74 @@ class EntryRewriter:
             or get_base_url_from_secrets()
             or DEFAULT_API_URL
         )
+        self.cache_file = cache_file
         self.dry_run = dry_run
+        self.delay_ms = delay_ms
         self.model = model
         self.verbose = verbose
 
+        # Statistics
+        self.stats = {
+            "total_entries": 0,
+            "skipped_cached": 0,
+            "skipped_no_url": 0,
+            "skipped_not_owner": 0,
+            "skipped_too_long": 0,
+            "skipped_url_missing": 0,
+            "processed": 0,
+            "failed": 0,
+            "start_time": None,
+            "end_time": None,
+        }
+
+        # Cache: hash_id -> rewritten text
+        self.processed: Dict[str, str] = {}
+
+        # Load existing cache
+        self._load_cache()
+
         # Setup HTTP session with retry logic
         self.session = self._create_session()
+
+    def _load_cache(self) -> None:
+        """Load cache from disk."""
+        path = Path(self.cache_file)
+        if not path.exists():
+            self.processed = {}
+            return
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("version") != CACHE_VERSION:
+                print(f"⚠️  Cache version mismatch, starting fresh")
+                self.processed = {}
+                return
+            self.processed = data.get("processed", {})
+            print(f"📦 Loaded cache: {len(self.processed)} entries already processed")
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"⚠️  Warning: corrupt cache file, starting fresh ({e})")
+            self.processed = {}
+
+    def _save_cache(self) -> None:
+        """Atomically write cache to disk."""
+        path = Path(self.cache_file)
+        tmp_path = path.with_suffix(".tmp")
+
+        data = {
+            "version": CACHE_VERSION,
+            "processed": self.processed,
+            "stats": {
+                "total_processed": len(self.processed),
+                "last_updated": datetime.now().isoformat(),
+            },
+        }
+
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Atomic rename -- safe against Ctrl+C mid-write
+        tmp_path.rename(path)
 
     def _create_session(self) -> requests.Session:
         """Create HTTP session with retry logic."""
@@ -107,6 +177,44 @@ class EntryRewriter:
             "User-Agent": "Trail-Entry-Rewriter/1.0 (Admin Tool)",
         })
         return session
+
+    def fetch_all_entries(self) -> List[Dict]:
+        """Fetch all entries using cursor-based pagination."""
+        entries = []
+        cursor = None
+        page = 0
+
+        print("📥 Fetching entries from API...")
+
+        while True:
+            page += 1
+            params = {"limit": 100}
+            if cursor:
+                params["before"] = cursor
+
+            try:
+                resp = self.session.get(
+                    f"{self.api_url}/entries",
+                    params=params,
+                    timeout=30
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Failed to fetch entries: {e}")
+                raise
+
+            batch = data.get("entries", [])
+            entries.extend(batch)
+            print(f"  Page {page}: fetched {len(batch)} entries ({len(entries)} total)")
+
+            if not data.get("has_more", False):
+                break
+            cursor = data.get("next_cursor")
+
+        # Process newest first (most recent entries are more relevant)
+        entries.sort(key=lambda e: e.get("created_at", ""), reverse=True)
+        return entries
 
     def fetch_entry(self, hash_id: str) -> dict:
         """Fetch a single entry by hash_id."""
@@ -375,62 +483,230 @@ class EntryRewriter:
             else:
                 print("❌ Failed to update entry")
 
+    def run_all(self, limit: Optional[int] = None) -> None:
+        """Main loop: fetch all, iterate, rewrite, update, cache."""
+        print("✏️  Trail Entry Rewriter (Batch Mode)")
+        print(f"   API:        {self.api_url}")
+        print(f"   Cache:      {self.cache_file}")
+        print(f"   Dry run:    {self.dry_run}")
+        print(f"   Model:      {self.model or '(default)'}")
+        print()
+
+        # Step 1: Fetch all entries
+        entries = self.fetch_all_entries()
+        self.stats["total_entries"] = len(entries)
+        print(f"✅ Total entries: {len(entries)}")
+        print()
+
+        # Step 2: Filter
+        to_process = []
+        for entry in entries:
+            hid = entry.get("hash_id")
+            if not hid:
+                continue
+            if hid in self.processed:
+                self.stats["skipped_cached"] += 1
+                continue
+            # Skip entries without a URL
+            if not entry.get("preview_url"):
+                self.stats["skipped_no_url"] += 1
+                continue
+            to_process.append(entry)
+
+        # Dry run: cap at 5
+        if self.dry_run:
+            to_process = to_process[:5]
+            print(f"🧪 Dry run: processing first {len(to_process)} entries only")
+
+        # Limit
+        if limit and not self.dry_run:
+            to_process = to_process[:limit]
+
+        print(f"📋 To process: {len(to_process)}")
+        print(f"⏭️  Skipped (cached): {self.stats['skipped_cached']}")
+        print(f"⏭️  Skipped (no URL): {self.stats['skipped_no_url']}")
+        print()
+
+        # Step 3: Process
+        self.stats["start_time"] = datetime.now()
+
+        for idx, entry in enumerate(to_process, 1):
+            hid = entry["hash_id"]
+            numeric_id = entry.get("id")
+            text = entry.get("text", "")[:60]
+            url = entry.get("preview_url") or ""
+
+            print(f"[{idx}/{len(to_process)}] {hid} {text}...")
+
+            if not numeric_id:
+                print(f"    ⚠️  Missing numeric ID, skipping")
+                self.stats["failed"] += 1
+                continue
+
+            try:
+                # Generate rewrite
+                prompt = self._build_prompt(entry)
+                if self.verbose:
+                    print(f"    Prompt length: {len(prompt)} chars")
+
+                output = self._run_opencode(prompt)
+                new_text = self._parse_rewritten_text(output)
+                print(f"    ✨ Rewritten ({len(new_text)}/280 chars): {new_text[:80]}...")
+
+                # Validate URL preservation
+                if url and url not in new_text:
+                    print(f"    ⚠️  URL missing from rewrite, skipping")
+                    self.stats["skipped_url_missing"] += 1
+                    continue
+
+                # Validate length
+                if len(new_text) > 280:
+                    print(f"    ⚠️  Too long ({len(new_text)} chars), skipping")
+                    self.stats["skipped_too_long"] += 1
+                    continue
+
+                # Apply update
+                if not self.dry_run:
+                    success = self._update_entry(numeric_id, new_text)
+                    if success:
+                        print(f"    ✅ Applied to API")
+                    else:
+                        self.stats["skipped_not_owner"] += 1
+                        continue
+                else:
+                    print(f"    [DRY RUN] Would apply to API")
+
+                # Cache (skip in dry-run)
+                if not self.dry_run:
+                    self.processed[hid] = new_text
+                    self._save_cache()
+
+                self.stats["processed"] += 1
+
+            except Exception as e:
+                print(f"    ❌ Error: {e}")
+                self.stats["failed"] += 1
+
+            # Delay between opencode invocations
+            if idx < len(to_process):
+                time.sleep(self.delay_ms / 1000.0)
+
+        self.stats["end_time"] = datetime.now()
+        self.print_summary()
+
+    def print_summary(self) -> None:
+        """Print import summary statistics."""
+        if not self.stats["start_time"] or not self.stats["end_time"]:
+            return
+
+        duration = (self.stats["end_time"] - self.stats["start_time"]).total_seconds()
+
+        print("\n" + "=" * 60)
+        print("📊 SUMMARY")
+        print("=" * 60)
+        print(f"Total entries:              {self.stats['total_entries']}")
+        print(f"Processed:                  {self.stats['processed']} ✅")
+        print(f"Failed:                     {self.stats['failed']} ❌")
+        print(f"Skipped (cached):           {self.stats['skipped_cached']} ⏭️")
+        print(f"Skipped (no URL):           {self.stats['skipped_no_url']} ⏭️")
+        if self.stats['skipped_not_owner'] > 0:
+            print(f"Skipped (not owner):        {self.stats['skipped_not_owner']} 🔒")
+        if self.stats['skipped_too_long'] > 0:
+            print(f"Skipped (too long):         {self.stats['skipped_too_long']} 📏")
+        if self.stats['skipped_url_missing'] > 0:
+            print(f"Skipped (URL missing):      {self.stats['skipped_url_missing']} 🔗")
+        print("-" * 60)
+        print(f"Duration:                   {duration:.1f} seconds")
+
+        if self.stats['processed'] > 0:
+            avg_time = duration / self.stats['processed']
+            print(f"Average time per entry:     {avg_time:.1f} seconds")
+
+        print("=" * 60)
+
 
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Rewrite a Trail entry in Jake Wharton style",
+        description="Rewrite Trail entries in Jake Wharton style",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Preview rewrite (dry run)
+  # Single entry: preview rewrite (dry run)
   uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123 --dry-run
 
-  # Actually update the entry
+  # Single entry: actually update
   uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123
 
-  # Use specific model
-  uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123 --model anthropic/claude-sonnet-4.5
+  # Batch mode: process all entries (dry run)
+  uv run rewrite_entry.py --api-key YOUR_API_KEY --dry-run
 
-  # Verbose mode for debugging
-  uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123 --dry-run -v
+  # Batch mode: process all entries
+  uv run rewrite_entry.py --api-key YOUR_API_KEY
+
+  # Batch mode: limit to 10 entries
+  uv run rewrite_entry.py --api-key YOUR_API_KEY --limit 10
+
+  # Use specific model
+  uv run rewrite_entry.py --api-key YOUR_API_KEY --model anthropic/claude-sonnet-4.5
+
+  # Resume after interruption (automatic via cache)
+  uv run rewrite_entry.py --api-key YOUR_API_KEY
         """,
     )
-    
+
     parser.add_argument(
         "--entry-id",
-        required=True,
-        help="Hash ID of the entry to rewrite",
+        help="Hash ID of a single entry to rewrite. If not provided, processes all entries.",
     )
-    
+
     parser.add_argument(
         "--api-key",
         help="API key for Trail API authentication (or set TRAIL_API_KEY env var)",
     )
-    
+
     default_api_url = (
         os.environ.get("TRAIL_API_URL")
         or get_base_url_from_secrets()
         or DEFAULT_API_URL
     )
-    
+
     parser.add_argument(
         "--api-url",
         default=default_api_url,
         help=f"Trail API base URL (default: {default_api_url})",
     )
-    
+
+    parser.add_argument(
+        "--cache-file",
+        default=".entry_rewrite_cache.json",
+        help="Path to cache file for resume support (default: .entry_rewrite_cache.json)",
+    )
+
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Preview rewritten text without updating the entry",
+        help="Preview rewritten text without updating entries (batch: first 5 only)",
     )
-    
+
+    parser.add_argument(
+        "--delay-ms",
+        type=int,
+        default=DEFAULT_DELAY_MS,
+        help=f"Delay between opencode invocations in milliseconds (default: {DEFAULT_DELAY_MS})",
+    )
+
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit number of entries to process in batch mode",
+    )
+
     parser.add_argument(
         "--model",
         help="Override opencode model (e.g. anthropic/claude-sonnet-4.5)",
     )
-    
+
     parser.add_argument(
         "-v",
         "--verbose",
@@ -452,19 +728,41 @@ Examples:
         print("   Install opencode: https://opencode.ai/docs/")
         sys.exit(1)
 
-    # Create rewriter and run
+    # Create rewriter
     rewriter = EntryRewriter(
         api_key=api_key,
         api_url=args.api_url,
+        cache_file=args.cache_file,
         dry_run=args.dry_run,
+        delay_ms=args.delay_ms,
         model=args.model,
         verbose=args.verbose,
     )
 
+    # Setup signal handlers for graceful shutdown (batch mode)
+    def handle_signal(signum, frame):
+        print("\n\n⚠️  Interrupted -- saving cache and exiting...")
+        if not rewriter.dry_run:
+            rewriter._save_cache()
+        rewriter.print_summary()
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    # Run
     try:
-        rewriter.run(args.entry_id)
+        if args.entry_id:
+            # Single entry mode
+            rewriter.run(args.entry_id)
+        else:
+            # Batch mode
+            rewriter.run_all(limit=args.limit)
     except KeyboardInterrupt:
         print("\n\n⚠️  Interrupted by user")
+        if not rewriter.dry_run:
+            rewriter._save_cache()
+        rewriter.print_summary()
         sys.exit(1)
     except Exception as e:
         print(f"\n❌ Fatal error: {e}")

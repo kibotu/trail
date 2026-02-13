@@ -4,7 +4,10 @@ Rewrite Trail entry text in a witty, Jake Wharton-inspired style using opencode.
 
 ## Overview
 
-This tool takes a single entry by hash ID, fetches its content, and uses AI to rewrite the text to be more engaging while preserving the original URL and meaning.
+This tool rewrites entry text to be more engaging while preserving the original URL and meaning. It supports:
+
+- **Single entry mode**: Rewrite a specific entry by hash ID
+- **Batch mode**: Process all entries (newest first) with resume support via cache
 
 ## Prerequisites
 
@@ -15,47 +18,71 @@ This tool takes a single entry by hash ID, fetches its content, and uses AI to r
 
 ## Usage
 
-### Preview (Dry Run)
+### Single Entry Mode
 
 ```bash
+# Preview (dry run)
 uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123 --dry-run
+
+# Actually update
+uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123
 ```
 
-### Actually Update
+### Batch Mode (All Entries)
 
 ```bash
-uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id ABC123
+# Dry run: preview first 5 entries
+uv run rewrite_entry.py --api-key YOUR_API_KEY --dry-run
+
+# Process all entries
+uv run rewrite_entry.py --api-key YOUR_API_KEY
+
+# Limit to 10 entries
+uv run rewrite_entry.py --api-key YOUR_API_KEY --limit 10
+
+# Resume after interruption (automatic via cache)
+uv run rewrite_entry.py --api-key YOUR_API_KEY
 ```
 
 ### Using Environment Variable
 
 ```bash
 export TRAIL_API_KEY=your_api_key
-uv run rewrite_entry.py --entry-id ABC123
+uv run rewrite_entry.py                    # batch mode
+uv run rewrite_entry.py --entry-id ABC123  # single entry
 ```
 
 ## Options
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `--entry-id` | Yes | Hash ID of the entry to rewrite |
+| `--entry-id` | No | Hash ID of single entry. If omitted, runs batch mode. |
 | `--api-key` | No* | Trail API token (*or set `TRAIL_API_KEY` env var) |
 | `--api-url` | No | API base URL (default: https://trail.services.kibotu.net/api) |
-| `--dry-run` | No | Preview rewritten text without updating |
+| `--cache-file` | No | Path to cache file (default: `.entry_rewrite_cache.json`) |
+| `--dry-run` | No | Preview without updating (batch: first 5 only) |
+| `--delay-ms` | No | Delay between API calls in ms (default: 2000) |
+| `--limit` | No | Max entries to process in batch mode |
 | `--model` | No | Override opencode model (e.g., `anthropic/claude-sonnet-4.5`) |
 | `-v, --verbose` | No | Show verbose output for debugging |
 
 ## Examples
 
 ```bash
-# Quick preview
+# Single entry: quick preview
 uv run rewrite_entry.py --api-key $KEY --entry-id 000N88NS --dry-run
 
-# Use Claude Sonnet
+# Single entry: use Claude Sonnet
 uv run rewrite_entry.py --api-key $KEY --entry-id 000N88NS --model anthropic/claude-sonnet-4.5
 
-# Verbose mode for debugging
-uv run rewrite_entry.py --api-key $KEY --entry-id 000N88NS --dry-run -v
+# Batch: process all, verbose
+uv run rewrite_entry.py --api-key $KEY -v
+
+# Batch: limit to 20 entries
+uv run rewrite_entry.py --api-key $KEY --limit 20
+
+# Clear cache and start fresh
+rm .entry_rewrite_cache.json && uv run rewrite_entry.py --api-key $KEY
 ```
 
 ## Style Guide
@@ -87,9 +114,12 @@ The rewriter embodies these values (in order):
 
 ## Safety Features
 
-- URL preservation check: aborts if URL appears to be missing from rewritten text
+- URL preservation check: skips entry if URL appears missing from rewritten text
+- 280 character limit: skips entries that exceed tweet length
+- Entries without URLs are automatically skipped
 - Dry-run mode for previewing changes
-- No tools enabled for the AI agent (pure text transformation)
+- Cache saves after each entry (resume-safe on Ctrl+C)
+- Graceful shutdown with cache save on interrupt
 
 ## Troubleshooting
 
@@ -104,3 +134,9 @@ You need to either own the entry or have admin privileges to update it.
 ### "Entry not found"
 
 Check that the hash ID is correct. You can find it in the entry URL or via the API.
+
+### Start fresh (clear cache)
+
+```bash
+rm .entry_rewrite_cache.json
+```
