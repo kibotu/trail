@@ -788,6 +788,176 @@ class AdminController
     }
 
     /**
+     * Delete a single broken link health record
+     */
+    public static function deleteBrokenLink(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        $success = $linkHealthModel->delete($id);
+
+        $response->getBody()->write(json_encode([
+            'success' => $success,
+            'message' => $success ? 'Broken link record deleted' : 'Failed to delete broken link record'
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Delete multiple broken link health records in bulk
+     */
+    public static function deleteBrokenLinksBulk(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        $body = $request->getParsedBody();
+        $ids = $body['ids'] ?? [];
+
+        if (empty($ids) || !is_array($ids)) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'No IDs provided',
+                'deleted' => 0
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $deletedCount = $linkHealthModel->deleteBulk($ids);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => "Deleted {$deletedCount} broken link record(s)",
+            'deleted' => $deletedCount
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Get all broken link IDs for bulk operations
+     */
+    public static function getAllBrokenLinkIds(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+
+        // Get query parameters for filters
+        $queryParams = $request->getQueryParams();
+        $errorType = $queryParams['error_type'] ?? null;
+        $includeDismissed = isset($queryParams['include_dismissed']) && $queryParams['include_dismissed'] === 'true';
+
+        $ids = $linkHealthModel->getAllBrokenLinkIds($errorType, $includeDismissed);
+
+        $response->getBody()->write(json_encode([
+            'ids' => $ids,
+            'count' => count($ids)
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Delete entries associated with a broken link
+     * This deletes all entries that use the broken URL, then removes the link health record
+     */
+    public static function deleteBrokenLinkEntries(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+        $entryModel = new \Trail\Models\Entry($db);
+
+        // Get the URL preview ID for this broken link
+        $urlPreviewId = $linkHealthModel->getUrlPreviewId($id);
+        
+        if ($urlPreviewId === null) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'Broken link not found',
+                'deleted_entries' => 0
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Delete all entries with this URL preview
+        $deletedCount = $entryModel->deleteByUrlPreviewId($urlPreviewId);
+        
+        // Also delete the link health record since there are no more entries using it
+        $linkHealthModel->delete($id);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => "Deleted {$deletedCount} entry/entries with broken link",
+            'deleted_entries' => $deletedCount
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Delete entries for multiple broken links in bulk
+     * This deletes all entries that use the broken URLs, then removes the link health records
+     */
+    public static function deleteBrokenLinkEntriesBulk(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $linkHealthModel = new \Trail\Models\LinkHealth($db);
+        $entryModel = new \Trail\Models\Entry($db);
+
+        $body = $request->getParsedBody();
+        $ids = $body['ids'] ?? [];
+
+        if (empty($ids) || !is_array($ids)) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'No IDs provided',
+                'deleted_entries' => 0,
+                'deleted_links' => 0
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Get all URL preview IDs for these broken links
+        $urlPreviewIds = $linkHealthModel->getUrlPreviewIds($ids);
+        
+        if (empty($urlPreviewIds)) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'message' => 'No broken links found',
+                'deleted_entries' => 0,
+                'deleted_links' => 0
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Delete all entries with these URL previews
+        $deletedEntries = $entryModel->deleteByUrlPreviewIds($urlPreviewIds);
+        
+        // Delete the link health records
+        $deletedLinks = $linkHealthModel->deleteBulk($ids);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => "Deleted {$deletedEntries} entries from {$deletedLinks} broken links",
+            'deleted_entries' => $deletedEntries,
+            'deleted_links' => $deletedLinks
+        ]));
+        
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * Check broken links (run link health checker)
      */
     public static function checkBrokenLinks(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

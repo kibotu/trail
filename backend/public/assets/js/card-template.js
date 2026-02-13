@@ -39,6 +39,28 @@ function extractDomain(url) {
     }
 }
 
+// Convert external image URL to use our image proxy (to avoid CORS issues)
+function getProxiedImageUrl(url) {
+    if (!url) return url;
+    
+    try {
+        const parsed = new URL(url);
+        
+        // Don't proxy our own domain or data URLs
+        const ownDomains = ['trail.kibotu.net', 'localhost', '127.0.0.1'];
+        if (ownDomains.includes(parsed.hostname) || url.startsWith('data:')) {
+            return url;
+        }
+        
+        // Base64 encode URL for proxy (URL-safe base64)
+        const encoded = btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return `/api/image-proxy/${encoded}`;
+    } catch (e) {
+        // Invalid URL, return as-is
+        return url;
+    }
+}
+
 // Format timestamp
 function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
@@ -568,10 +590,11 @@ function createLinkPreviewCard(entry, options = {}) {
     
     previewHtml += `<a href="${escapeHtml(entry.preview_url)}" class="link-preview-card" target="_blank" rel="noopener noreferrer">`;
     
-    // Preview image
+    // Preview image (use proxy to avoid CORS issues)
     if (entry.preview_image) {
+        const proxiedImageUrl = getProxiedImageUrl(entry.preview_image);
         previewHtml += `
-            <img src="${escapeHtml(entry.preview_image)}" 
+            <img src="${escapeHtml(proxiedImageUrl)}" 
                  alt="Preview" 
                  class="link-preview-image" 
                  loading="lazy"

@@ -357,6 +357,60 @@ $app->get('/api/entries/{id}', [EntryController::class, 'getById']);
 // User entries by nickname (public read)
 $app->get('/api/users/{nickname}/entries', [EntryController::class, 'listByNickname']);
 
+// Image proxy endpoint - serves external images through our domain to avoid CORS issues
+$app->get('/api/image-proxy/{encoded}', function ($request, $response, array $args) use ($config) {
+    $encoded = $args['encoded'] ?? '';
+    
+    try {
+        // Decode the URL
+        $url = \Trail\Services\ImageProxyService::decodeUrl($encoded);
+        
+        if ($url === null) {
+            $response->getBody()->write('Invalid image URL');
+            return $response->withStatus(400)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        // Block proxying our own domain to prevent loops
+        $parsedUrl = parse_url($url);
+        $host = $parsedUrl['host'] ?? '';
+        $ownDomains = ['trail.kibotu.net', 'localhost', '127.0.0.1'];
+        if (in_array($host, $ownDomains, true)) {
+            $response->getBody()->write('Cannot proxy own domain');
+            return $response->withStatus(400)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        // Get or fetch the image
+        $cacheDir = __DIR__ . '/../storage/image-proxy-cache';
+        $proxyService = new \Trail\Services\ImageProxyService($cacheDir);
+        $result = $proxyService->getImage($url);
+        
+        if ($result === null) {
+            $response->getBody()->write('Failed to fetch image');
+            return $response->withStatus(404)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        // Serve the image
+        $imageData = file_get_contents($result['path']);
+        
+        if ($imageData === false) {
+            $response->getBody()->write('Failed to read cached image');
+            return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+        }
+        
+        $response->getBody()->write($imageData);
+        
+        return $response
+            ->withHeader('Content-Type', $result['mime'])
+            ->withHeader('Cache-Control', 'public, max-age=604800') // 7 days
+            ->withHeader('X-Image-Proxy', $result['cached'] ? 'HIT' : 'MISS');
+            
+    } catch (\Throwable $e) {
+        error_log("Image proxy error: " . $e->getMessage());
+        $response->getBody()->write('Image proxy error');
+        return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
+    }
+});
+
 // Preview image generation endpoint (public, no auth required for crawlers)
 $app->get('/api/preview-image/{id}.png', function ($request, $response, array $args) use ($config) {
     $hashId = $args['id'] ?? '';
@@ -542,8 +596,13 @@ $app->group('/api/admin', function ($group) {
     $group->post('/duplicates/resolve-all', [AdminController::class, 'resolveAllDuplicates']);
     $group->get('/broken-links', [AdminController::class, 'brokenLinks']);
     $group->get('/broken-links/stats', [AdminController::class, 'brokenLinkStats']);
+    $group->get('/broken-links/ids', [AdminController::class, 'getAllBrokenLinkIds']);
     $group->post('/broken-links/{id}/dismiss', [AdminController::class, 'dismissBrokenLink']);
     $group->post('/broken-links/{id}/undismiss', [AdminController::class, 'undismissBrokenLink']);
+    $group->delete('/broken-links/{id}', [AdminController::class, 'deleteBrokenLink']);
+    $group->post('/broken-links/delete', [AdminController::class, 'deleteBrokenLinksBulk']);
+    $group->delete('/broken-links/{id}/entries', [AdminController::class, 'deleteBrokenLinkEntries']);
+    $group->post('/broken-links/delete-entries', [AdminController::class, 'deleteBrokenLinkEntriesBulk']);
     $group->post('/broken-links/check', [AdminController::class, 'checkBrokenLinks']);
     $group->post('/broken-links/recheck', [AdminController::class, 'recheckBrokenLinks']);
     

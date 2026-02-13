@@ -406,6 +406,163 @@ class Entry
     }
 
     /**
+     * Delete all entries with a specific URL preview ID
+     * Also cleans up associated views, view counts, claps, and comments
+     * Returns the number of entries deleted
+     * 
+     * @param int $urlPreviewId The URL preview ID
+     * @return int Number of entries deleted
+     */
+    public function deleteByUrlPreviewId(int $urlPreviewId): int
+    {
+        // First, get all entry IDs with this URL preview
+        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE url_preview_id = ?");
+        $stmt->execute([$urlPreviewId]);
+        $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (empty($entryIds)) {
+            return 0;
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        
+        // Delete view counts for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete raw views for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete claps for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete comments for these entries (and their views)
+        $commentStmt = $this->db->prepare(
+            "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
+        );
+        $commentStmt->execute($entryIds);
+        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (!empty($commentIds)) {
+            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
+            
+            // Delete view counts for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete raw views for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete the comments themselves
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
+            );
+            $stmt->execute($entryIds);
+        }
+        
+        // Finally, delete the entries
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id = ?");
+        $stmt->execute([$urlPreviewId]);
+        
+        return count($entryIds);
+    }
+
+    /**
+     * Delete entries for multiple URL preview IDs
+     * Also cleans up associated views, view counts, claps, and comments
+     * Returns the number of entries deleted
+     * 
+     * @param array $urlPreviewIds Array of URL preview IDs
+     * @return int Number of entries deleted
+     */
+    public function deleteByUrlPreviewIds(array $urlPreviewIds): int
+    {
+        if (empty($urlPreviewIds)) {
+            return 0;
+        }
+        
+        $urlPreviewIds = array_map('intval', $urlPreviewIds);
+        $previewPlaceholders = implode(',', array_fill(0, count($urlPreviewIds), '?'));
+        
+        // First, get all entry IDs with these URL previews
+        $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE url_preview_id IN ($previewPlaceholders)");
+        $stmt->execute($urlPreviewIds);
+        $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (empty($entryIds)) {
+            return 0;
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        
+        // Delete view counts for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete raw views for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete claps for these entries
+        $stmt = $this->db->prepare(
+            "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
+        );
+        $stmt->execute($entryIds);
+        
+        // Delete comments for these entries (and their views)
+        $commentStmt = $this->db->prepare(
+            "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
+        );
+        $commentStmt->execute($entryIds);
+        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+        
+        if (!empty($commentIds)) {
+            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
+            
+            // Delete view counts for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete raw views for comments
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+            );
+            $stmt->execute($commentIds);
+            
+            // Delete the comments themselves
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
+            );
+            $stmt->execute($entryIds);
+        }
+        
+        // Finally, delete the entries
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id IN ($previewPlaceholders)");
+        $stmt->execute($urlPreviewIds);
+        
+        return count($entryIds);
+    }
+
+    /**
      * Get the most recent entry by a specific user
      * Returns null if user has no entries
      */

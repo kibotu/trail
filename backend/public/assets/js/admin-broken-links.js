@@ -1,6 +1,6 @@
 /**
  * Admin Broken Links JavaScript
- * Handles broken link checking, viewing, dismissing, and filtering
+ * Handles broken link checking, viewing, dismissing, deleting, and filtering
  * 
  * Authentication: All requests use session cookies (credentials: 'same-origin')
  */
@@ -11,6 +11,10 @@ let brokenLinksHasMore = true;
 let currentErrorTypeFilter = '';
 let hideDismissed = true;
 const brokenLinksPageSize = 20;
+
+// Bulk selection tracking
+let selectedBrokenLinkIds = new Set();
+let allBrokenLinkIds = [];
 
 /**
  * Initialize broken links functionality
@@ -60,7 +64,10 @@ if (document.readyState === 'loading') {
 function resetAndLoadBrokenLinks() {
     brokenLinksPage = 0;
     brokenLinksHasMore = true;
+    selectedBrokenLinkIds.clear();
+    allBrokenLinkIds = [];
     document.getElementById('broken-links-container').innerHTML = '';
+    updateBrokenLinksBulkActionsUI();
     loadBrokenLinks();
 }
 
@@ -143,14 +150,24 @@ function createBrokenLinkCard(link) {
     const lastChecked = link.last_checked_at
         ? formatRelativeTime(new Date(link.last_checked_at))
         : 'Not checked';
+
+    // Check if this link is selected
+    const isSelected = selectedBrokenLinkIds.has(link.id);
     
     card.innerHTML = `
         <div class="entry-header">
-            <div class="entry-meta">
+            <div class="entry-meta" style="display: flex; align-items: center; gap: 0.75rem;">
+                <label class="bulk-checkbox" title="Select for bulk action">
+                    <input type="checkbox" 
+                           class="broken-link-checkbox" 
+                           data-link-id="${link.id}"
+                           ${isSelected ? 'checked' : ''}
+                           onchange="toggleBrokenLinkSelection(${link.id}, this.checked)">
+                </label>
                 <span class="${badgeClass}">
                     ${link.http_status_code > 0 ? link.http_status_code : link.error_type.toUpperCase()}
                 </span>
-                <span class="entry-date" style="margin-left: 0.5rem;">
+                <span class="entry-date">
                     Last checked: ${lastChecked}
                 </span>
             </div>
@@ -163,6 +180,9 @@ function createBrokenLinkCard(link) {
                         <i class="fa-solid fa-eye-slash"></i> Dismiss
                        </button>`
                 }
+                <button onclick="deleteBrokenLinkEntries(${link.id}, ${link.affected_entries_count})" class="button small danger" title="Delete all ${link.affected_entries_count} entries using this broken URL">
+                    <i class="fa-solid fa-trash"></i> Delete ${link.affected_entries_count} ${link.affected_entries_count === 1 ? 'Entry' : 'Entries'}
+                </button>
             </div>
         </div>
         
@@ -429,4 +449,201 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Delete entries associated with a broken link
+ */
+async function deleteBrokenLinkEntries(id, entryCount) {
+    const countText = entryCount === 1 ? '1 entry' : `${entryCount} entries`;
+    if (!confirm(`Delete ${countText} that use this broken URL?\n\nThis will permanently delete the entries and all associated comments, claps, and views. This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/broken-links/${id}/entries`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete entries');
+        }
+        
+        const data = await response.json();
+        showSnackbar(`Deleted ${data.deleted_entries} ${data.deleted_entries === 1 ? 'entry' : 'entries'}`, 'success');
+        
+        // Remove the card from DOM
+        const card = document.querySelector(`[data-link-id="${id}"]`);
+        if (card) {
+            card.remove();
+        }
+        
+        // Remove from selection if selected
+        selectedBrokenLinkIds.delete(id);
+        updateBrokenLinksBulkActionsUI();
+        
+    } catch (error) {
+        console.error('Error deleting entries:', error);
+        showSnackbar('Failed to delete entries', 'error');
+    }
+}
+
+/**
+ * Toggle selection of a broken link for bulk operations
+ */
+function toggleBrokenLinkSelection(id, isSelected) {
+    if (isSelected) {
+        selectedBrokenLinkIds.add(id);
+    } else {
+        selectedBrokenLinkIds.delete(id);
+    }
+    updateBrokenLinksBulkActionsUI();
+}
+
+/**
+ * Select all visible broken links
+ */
+function selectAllBrokenLinks() {
+    const checkboxes = document.querySelectorAll('.broken-link-checkbox');
+    checkboxes.forEach(cb => {
+        const id = parseInt(cb.dataset.linkId);
+        cb.checked = true;
+        selectedBrokenLinkIds.add(id);
+    });
+    updateBrokenLinksBulkActionsUI();
+}
+
+/**
+ * Deselect all broken links
+ */
+function deselectAllBrokenLinks() {
+    const checkboxes = document.querySelectorAll('.broken-link-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    selectedBrokenLinkIds.clear();
+    updateBrokenLinksBulkActionsUI();
+}
+
+/**
+ * Select all broken links matching current filters (loads all IDs from server)
+ */
+async function selectAllFilteredBrokenLinks() {
+    try {
+        const params = new URLSearchParams({
+            include_dismissed: (!hideDismissed).toString()
+        });
+        
+        if (currentErrorTypeFilter) {
+            params.append('error_type', currentErrorTypeFilter);
+        }
+        
+        const response = await fetch(`/api/admin/broken-links/ids?${params}`, {
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch broken link IDs');
+        }
+        
+        const data = await response.json();
+        allBrokenLinkIds = data.ids;
+        
+        // Add all IDs to selection
+        data.ids.forEach(id => selectedBrokenLinkIds.add(id));
+        
+        // Check visible checkboxes
+        const checkboxes = document.querySelectorAll('.broken-link-checkbox');
+        checkboxes.forEach(cb => {
+            const id = parseInt(cb.dataset.linkId);
+            if (selectedBrokenLinkIds.has(id)) {
+                cb.checked = true;
+            }
+        });
+        
+        updateBrokenLinksBulkActionsUI();
+        showSnackbar(`Selected ${data.count} broken links`, 'success');
+        
+    } catch (error) {
+        console.error('Error fetching broken link IDs:', error);
+        showSnackbar('Failed to select all broken links', 'error');
+    }
+}
+
+/**
+ * Delete entries for all selected broken links
+ */
+async function deleteSelectedBrokenLinkEntries() {
+    const count = selectedBrokenLinkIds.size;
+    
+    if (count === 0) {
+        showSnackbar('No broken links selected', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Delete all entries associated with ${count} broken link(s)?\n\nThis will permanently delete the entries and all associated comments, claps, and views. This action cannot be undone.`)) {
+        return;
+    }
+    
+    const button = document.querySelector('.btn-delete-selected-entries');
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+    }
+    
+    try {
+        const response = await fetch('/api/admin/broken-links/delete-entries', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ids: Array.from(selectedBrokenLinkIds)
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete entries');
+        }
+        
+        const data = await response.json();
+        
+        showSnackbar(`Deleted ${data.deleted_entries} entries from ${data.deleted_links} broken links`, 'success');
+        
+        // Clear selection and reload
+        selectedBrokenLinkIds.clear();
+        resetAndLoadBrokenLinks();
+        
+    } catch (error) {
+        console.error('Error deleting entries:', error);
+        showSnackbar('Failed to delete entries', 'error');
+        
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fa-solid fa-trash"></i> Delete Selected Entries';
+        }
+    }
+}
+
+/**
+ * Update the bulk actions UI for broken links
+ */
+function updateBrokenLinksBulkActionsUI() {
+    const bulkActions = document.getElementById('broken-links-bulk-actions');
+    const countSpan = document.getElementById('broken-links-selected-count');
+    
+    if (!bulkActions) return;
+    
+    const count = selectedBrokenLinkIds.size;
+    
+    if (count > 0) {
+        bulkActions.style.display = 'flex';
+        if (countSpan) {
+            countSpan.textContent = `${count} broken link${count !== 1 ? 's' : ''} selected`;
+        }
+    } else {
+        bulkActions.style.display = 'none';
+    }
 }

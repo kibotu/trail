@@ -267,6 +267,121 @@ class LinkHealth
     }
 
     /**
+     * Delete a broken link health record
+     * 
+     * This removes the link health tracking record, allowing the link
+     * to be rechecked in the future. Does NOT delete the URL preview
+     * or affect any entries using this URL.
+     * 
+     * @param int $id Link health record ID
+     * @return bool True on success
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            "DELETE FROM {$this->table} WHERE id = ?"
+        );
+        return $stmt->execute([$id]);
+    }
+
+    /**
+     * Delete multiple broken link health records in bulk
+     * 
+     * @param array $ids Array of link health record IDs
+     * @return int Number of records deleted
+     */
+    public function deleteBulk(array $ids): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+        
+        // Filter to ensure all IDs are integers
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        $stmt = $this->db->prepare(
+            "DELETE FROM {$this->table} WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+        
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Get all broken link IDs matching current filters
+     * 
+     * Used for "select all" bulk operations
+     * 
+     * @param string|null $errorType Filter by error type
+     * @param bool $includeDismissed Include dismissed links
+     * @return array Array of link health record IDs
+     */
+    public function getAllBrokenLinkIds(?string $errorType = null, bool $includeDismissed = false): array
+    {
+        $whereClauses = ['consecutive_failures >= 1'];
+        $params = [];
+        
+        if (!$includeDismissed) {
+            $whereClauses[] = 'is_dismissed = 0';
+        }
+        
+        if ($errorType !== null && $errorType !== '') {
+            $whereClauses[] = 'error_type = ?';
+            $params[] = $errorType;
+        }
+        
+        $whereClause = implode(' AND ', $whereClauses);
+        
+        $stmt = $this->db->prepare(
+            "SELECT id FROM {$this->table} WHERE {$whereClause}"
+        );
+        $stmt->execute($params);
+        
+        return array_column($stmt->fetchAll(), 'id');
+    }
+
+    /**
+     * Get URL preview ID for a link health record
+     * 
+     * @param int $id Link health record ID
+     * @return int|null URL preview ID or null if not found
+     */
+    public function getUrlPreviewId(int $id): ?int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT url_preview_id FROM {$this->table} WHERE id = ?"
+        );
+        $stmt->execute([$id]);
+        $result = $stmt->fetch();
+        
+        return $result ? (int) $result['url_preview_id'] : null;
+    }
+
+    /**
+     * Get URL preview IDs for multiple link health records
+     * 
+     * @param array $ids Array of link health record IDs
+     * @return array Array of URL preview IDs
+     */
+    public function getUrlPreviewIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        $stmt = $this->db->prepare(
+            "SELECT url_preview_id FROM {$this->table} WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+        
+        return array_column($stmt->fetchAll(), 'url_preview_id');
+    }
+
+    /**
      * Get URLs that need checking
      * 
      * Priority: unchecked first, then stale (oldest last_checked_at)

@@ -6469,6 +6469,54 @@ main {
     font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
 }
 
+/* Bulk selection checkbox for broken links */
+.bulk-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.bulk-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.broken-link-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+/* Broken links bulk actions bar */
+#broken-links-bulk-actions {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+#broken-links-bulk-actions .bulk-actions-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+#broken-links-bulk-actions .bulk-actions-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 /* ============================================
    SHORT LINKS STYLES
    ============================================ */

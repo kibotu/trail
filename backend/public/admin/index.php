@@ -426,6 +426,28 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             </div>
         </div>
 
+        <!-- Bulk actions for broken links view -->
+        <div id="broken-links-bulk-actions" class="bulk-actions" style="display: none;">
+            <div class="bulk-actions-info">
+                <i class="fa-solid fa-check-square"></i>
+                <span id="broken-links-selected-count">0 broken links selected</span>
+            </div>
+            <div class="bulk-actions-buttons">
+                <button onclick="selectAllBrokenLinks()" class="button secondary small">
+                    <i class="fa-solid fa-check-double"></i> Select Visible
+                </button>
+                <button onclick="selectAllFilteredBrokenLinks()" class="button secondary small">
+                    <i class="fa-solid fa-list-check"></i> Select All (Filtered)
+                </button>
+                <button onclick="deselectAllBrokenLinks()" class="button secondary small">
+                    <i class="fa-solid fa-times"></i> Deselect All
+                </button>
+                <button onclick="deleteSelectedBrokenLinkEntries()" class="button danger small btn-delete-selected-entries">
+                    <i class="fa-solid fa-trash"></i> Delete Selected Entries
+                </button>
+            </div>
+        </div>
+
         <div id="entries-container" class="entries-container">
             <!-- Entries will be loaded here -->
         </div>

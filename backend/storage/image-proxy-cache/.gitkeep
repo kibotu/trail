@@ -1,0 +1,2 @@
+# This directory stores cached external images for the image proxy service
+# Images are cached to avoid CORS issues when displaying external content

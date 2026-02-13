@@ -461,6 +461,7 @@ function switchView(view) {
     const tagsFilters = document.getElementById('tags-filters');
     const shortLinksFilters = document.getElementById('short-links-filters');
     const bulkActions = document.getElementById('bulk-actions');
+    const brokenLinksBulkActions = document.getElementById('broken-links-bulk-actions');
     const emptyState = document.getElementById('empty-state');
     const emptyDuplicatesState = document.getElementById('empty-duplicates-state');
     const emptyBrokenLinksState = document.getElementById('empty-broken-links-state');
@@ -490,11 +491,17 @@ function switchView(view) {
     tagsFilters.style.display = 'none';
     if (shortLinksFilters) shortLinksFilters.style.display = 'none';
     bulkActions.style.display = 'none';
+    if (brokenLinksBulkActions) brokenLinksBulkActions.style.display = 'none';
     emptyState.style.display = 'none';
     emptyDuplicatesState.style.display = 'none';
     emptyBrokenLinksState.style.display = 'none';
     emptyTagsState.style.display = 'none';
     if (emptyShortLinksState) emptyShortLinksState.style.display = 'none';
+    
+    // Clear broken links selection when switching away
+    if (view !== 'broken-links' && typeof selectedBrokenLinkIds !== 'undefined') {
+        selectedBrokenLinkIds.clear();
+    }
 
     if (view === 'all') {
         entriesContainer.style.display = '';
