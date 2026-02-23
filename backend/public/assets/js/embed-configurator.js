@@ -112,7 +112,7 @@
             if (e.data && e.data.type === 'trail-embed-resize' && previewIframe) {
                 if (e.source === previewIframe.contentWindow) {
                     const h = parseInt(e.data.height, 10);
-                    if (h > 0 && h < 50000) previewIframe.style.height = h + 'px';
+                    if (h > 0) previewIframe.style.height = h + 'px';
                 }
             }
         });

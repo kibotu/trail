@@ -30,7 +30,7 @@
 
     function postHeight() {
         const height = document.documentElement.scrollHeight;
-        if (height <= 0 || height > 50000) return;
+        if (height <= 0) return;
         try {
             window.parent.postMessage(
                 { type: 'trail-embed-resize', height: height },
