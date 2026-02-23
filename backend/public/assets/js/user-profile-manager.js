@@ -739,20 +739,29 @@ class UserProfileManager {
         // -- Numeric counters --
         const statsContainer = document.getElementById('profileStats');
         if (statsContainer) {
-            const setValue = (id, value) => {
+            const setStat = (id, value) => {
                 const el = document.getElementById(id);
-                if (el) {
-                    el.querySelector('.profile-stat-value').textContent = this.formatNumber(value);
+                if (!el) return;
+                const num = Number(value) || 0;
+                if (num === 0) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                    el.querySelector('.profile-stat-value').textContent = this.formatNumber(num);
                 }
             };
-            setValue('statEntries',  stats.entry_count  ?? 0);
-            setValue('statComments', stats.comment_count ?? 0);
-            
-            // Calculate total views: profile views + entry views + comment views
+            setStat('statEntries',  stats.entry_count  ?? 0);
+            setStat('statComments', stats.comment_count ?? 0);
+
             const totalViews = (stats.total_profile_views ?? 0) + 
                                (stats.total_entry_views ?? 0) + 
                                (stats.total_comment_views ?? 0);
-            setValue('statTotalViews', totalViews);
+            setStat('statTotalViews', totalViews);
+
+            const totalClaps = (stats.total_entry_claps ?? 0) +
+                               (stats.total_comment_claps ?? 0);
+            setStat('statTotalClaps', totalClaps);
+
             statsContainer.style.display = '';
         }
 

@@ -159,6 +159,10 @@
                             <span class="profile-stat-value">0</span>
                             <span class="profile-stat-label">Views</span>
                         </span>
+                        <span class="profile-stat" id="statTotalClaps" title="Total Claps (Entries + Comments)">
+                            <span class="profile-stat-value">0</span>
+                            <span class="profile-stat-label">Claps</span>
+                        </span>
                     </div>
                 </div>
             </div>
