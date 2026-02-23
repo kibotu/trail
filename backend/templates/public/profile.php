@@ -230,6 +230,74 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Embed Section -->
+                <section class="profile-section embed-section">
+                    <button class="embed-section-toggle" id="embedSectionToggle" type="button" aria-expanded="false" aria-controls="embedSectionContent">
+                        <div class="profile-section-header">
+                            <i class="fa-solid fa-code"></i>
+                            <h2>Embed Your Profile</h2>
+                        </div>
+                        <i class="fa-solid fa-chevron-down embed-toggle-icon"></i>
+                    </button>
+
+                    <div class="embed-section-content" id="embedSectionContent" hidden>
+                        <p class="embed-description">
+                            Add your Trail feed to any website. Customize the appearance and copy the embed code.
+                        </p>
+
+                        <div class="embed-options">
+                            <div class="embed-option-group">
+                                <label class="embed-option-label">Theme</label>
+                                <div class="embed-theme-toggle">
+                                    <label class="embed-radio">
+                                        <input type="radio" name="embed-theme" value="dark" checked>
+                                        <span><i class="fa-solid fa-moon"></i> Dark</span>
+                                    </label>
+                                    <label class="embed-radio">
+                                        <input type="radio" name="embed-theme" value="light">
+                                        <span><i class="fa-solid fa-sun"></i> Light</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="embed-option-group">
+                                <label class="embed-option-label">Options</label>
+                                <div class="embed-checkboxes">
+                                    <label class="embed-checkbox">
+                                        <input type="checkbox" id="embedShowHeader">
+                                        <span>Show profile header</span>
+                                    </label>
+                                    <label class="embed-checkbox">
+                                        <input type="checkbox" id="embedShowSearch">
+                                        <span>Show search</span>
+                                    </label>
+                                    <label class="embed-checkbox">
+                                        <input type="checkbox" id="embedAutoResize" checked>
+                                        <span>Include auto-resize script</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="embed-code-container">
+                            <label class="embed-option-label">Embed Code</label>
+                            <div class="embed-code-block">
+                                <code id="embedCodeOutput" class="embed-code"></code>
+                                <button type="button" class="btn btn-icon embed-copy-btn" id="embedCopyBtn" title="Copy embed code">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="embed-preview-container">
+                            <label class="embed-option-label">Preview</label>
+                            <div class="embed-preview-frame">
+                                <iframe id="embedPreviewIframe" class="embed-preview-iframe" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups" allow="web-share; clipboard-write"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -238,6 +306,7 @@
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/profile-manager.js"></script>
     <script src="/assets/js/api-token-manager.js"></script>
+    <script src="/assets/js/embed-configurator.js"></script>
     
     <!-- Page Initialization -->
     <script src="/assets/js/profile-page.js"></script>

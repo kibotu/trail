@@ -38,6 +38,13 @@
     
     # Permissions Policy (formerly Feature Policy)
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+    # Allow embedding for /@username/embed: unset restrictive headers so PHP can set permissive ones.
+    # After mod_rewrite internally redirects to index.php, env vars get prefixed with REDIRECT_,
+    # so we must match on REDIRECT_EMBED_REQUEST in the header directives.
+    Header always unset X-Frame-Options env=REDIRECT_EMBED_REQUEST
+    Header always unset Content-Security-Policy env=REDIRECT_EMBED_REQUEST
+    Header always unset Permissions-Policy env=REDIRECT_EMBED_REQUEST
 </IfModule>
 
 # ============================================
@@ -201,6 +208,9 @@ ServerSignature Off
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     
+    # Tag embed requests so mod_headers can unset restrictive framing headers
+    RewriteRule ^@[^/]+/embed$ - [E=EMBED_REQUEST:1]
+
     # Redirect to front controller
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

@@ -19,6 +19,7 @@ Personal link journaling without algorithmic feeds. Share what matters, own your
 - Customizable profiles (avatar, header image, bio)
 - Notification system (claps, mentions)
 - User muting and content reporting
+- Embeddable profile widget (light/dark theme, transparent background, auto-resize)
 - RSS feeds (global + per-user)
 - Google OAuth 2.0 + persistent API tokens
 - Twitter/X archive migration (one command)
@@ -60,6 +61,26 @@ cd twitter
 ```
 
 See [twitter/README.md](twitter/README.md) for details.
+
+## Embedding
+
+Add your Trail feed to any website with a single iframe:
+
+```html
+<iframe src="https://trail.services.kibotu.net/@kibotu/embed?theme=dark"
+        style="border:none; width:100%; min-width:320px;"
+        loading="lazy"
+        allow="web-share; clipboard-write"></iframe>
+```
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `theme` | `light`, `dark` | `dark` | Color scheme (transparent background) |
+| `header` | `0`, `1` | `0` | Show profile avatar, bio, and stats |
+| `search` | `0`, `1` | `0` | Show search bar |
+| `limit` | `1`-`50` | `20` | Entries per page |
+
+The embed posts `trail-embed-resize` messages for auto-height. A ready-to-copy snippet with the resize script is available on your `/profile` page under "Embed Your Profile".
 
 ## API
 

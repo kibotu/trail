@@ -156,6 +156,8 @@ mirror --reverse --delete --verbose \\
     --exclude-glob cache/ \\
     --exclude-glob cache \\
     --exclude-glob 'storage/preview-cache/*.png' \\
+    --exclude-glob 'storage/image-proxy-cache/' \\
+    --exclude-glob 'storage/image-proxy-cache' \\
     --exclude-glob 'storage/temp/' \\
     --exclude-glob 'storage/temp' \\
     --exclude-glob public/uploads/images/ \\

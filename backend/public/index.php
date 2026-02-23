@@ -196,6 +196,46 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
     return sendErrorPage($response, 404, $config);
 });
 
+// Embeddable user profile widget
+$app->get('/@{nickname}/embed', function ($request, $response, array $args) use ($config) {
+    $embedPage = __DIR__ . '/../templates/public/embed.php';
+    if (file_exists($embedPage)) {
+        $db = \Trail\Database\Database::getInstance($config);
+
+        $nickname = $args['nickname'] ?? null;
+        $userModel = new \Trail\Models\User($db);
+        $user = $userModel->findByNickname($nickname);
+
+        if ($user === null) {
+            require_once __DIR__ . '/helpers/error.php';
+            return sendErrorPage($response, 404, $config);
+        }
+
+        $params = $request->getQueryParams();
+        $theme = in_array($params['theme'] ?? '', ['light', 'dark'], true) ? $params['theme'] : 'dark';
+        $showHeader = ($params['header'] ?? '0') === '1' ? '1' : '0';
+        $showSearch = ($params['search'] ?? '0') === '1' ? '1' : '0';
+        $limit = max(1, min(50, (int) ($params['limit'] ?? 20)));
+
+        $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+
+        ob_start();
+        include $embedPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'public, max-age=300')
+            ->withoutHeader('X-Frame-Options')
+            ->withHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors *;")
+            ->withHeader('Permissions-Policy', 'web-share=(self), clipboard-write=(self)');
+    }
+
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
+});
+
 // Status page - Show single entry
 $app->get('/status/{id}', function ($request, $response, array $args) use ($config) {
     $statusPage = __DIR__ . '/../templates/public/status.php';
