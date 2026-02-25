@@ -1,0 +1,183 @@
+package net.kibotu.trail.feature.notifications
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import coil3.compose.AsyncImage
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationsScreen(
+    onNavigateBack: () -> Unit,
+    onNavigateToEntry: (String) -> Unit,
+    onNavigateToUser: (String) -> Unit,
+    viewModel: NotificationsViewModel = viewModel(factory = NotificationsViewModel.Factory(LocalContext.current))
+) {
+    val notifications = viewModel.notifications.collectAsLazyPagingItems()
+    val unreadCount by viewModel.unreadCount.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Notifications") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (unreadCount > 0) {
+                        Button(
+                            onClick = { viewModel.markAllRead() },
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text("Mark all read")
+                        }
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        when {
+            notifications.loadState.refresh is LoadState.Loading -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            notifications.itemCount == 0 -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("No notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        count = notifications.itemCount,
+                        key = { index -> notifications[index]?.id ?: index }
+                    ) { index ->
+                        val notification = notifications[index] ?: return@items
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.markRead(notification.id)
+                                    notification.entryHashId?.let { onNavigateToEntry(it) }
+                                        ?: notification.actorNickname?.let { onNavigateToUser(it) }
+                                },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (notification.isRead)
+                                    MaterialTheme.colorScheme.surface
+                                else
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                notification.actorAvatarUrl?.let {
+                                    AsyncImage(
+                                        model = it,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = buildNotificationText(notification),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (!notification.isRead) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                    notification.entryText?.let {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = it,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = notification.createdAt.take(10),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (notifications.loadState.append is LoadState.Loading) {
+                        item {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun buildNotificationText(notification: net.kibotu.trail.shared.notification.Notification): String {
+    val actorName = notification.actorName ?: "Someone"
+    return when (notification.type) {
+        "clap" -> {
+            val count = notification.clapCount?.let { " ($it)" } ?: ""
+            "$actorName clapped on your entry$count"
+        }
+        "comment" -> "$actorName commented on your entry"
+        "mention" -> "$actorName mentioned you"
+        "follow" -> "$actorName followed you"
+        else -> notification.message ?: "$actorName interacted with your content"
+    }
+}

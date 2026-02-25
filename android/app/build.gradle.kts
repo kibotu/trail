@@ -141,6 +141,13 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
 
+    // paging
+    implementation(libs.paging.runtime)
+    implementation(libs.paging.compose)
+
+    // chrome custom tabs
+    implementation(libs.androidx.browser)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
