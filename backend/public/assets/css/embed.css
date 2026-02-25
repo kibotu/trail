@@ -11,11 +11,18 @@
 
 body.page-embed {
     background: transparent !important;
-    min-width: 320px;
-    max-width: 720px;
+    min-width: 280px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 0;
     overflow-x: hidden;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+body.page-embed::-webkit-scrollbar {
+    display: none;
 }
 
 body.page-embed[data-theme="dark"] {
@@ -301,21 +308,35 @@ body.page-embed .snackbar-container {
    RESPONSIVE
    ============================================ */
 
+/* Ensure entry text and link previews don't cause horizontal overflow */
+.page-embed .entry-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.page-embed .link-preview-card {
+    max-width: 100%;
+}
+
+.page-embed .entry-images {
+    grid-template-columns: 1fr;
+}
+
 @media (max-width: 480px) {
     .page-embed .profile-info-section {
         flex-direction: column;
         align-items: flex-start;
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .page-embed .profile-avatar-container {
-        width: 52px;
-        height: 52px;
+        width: 48px;
+        height: 48px;
     }
 
     .page-embed .profile-avatar {
-        width: 52px;
-        height: 52px;
+        width: 48px;
+        height: 48px;
         border-width: 2px;
     }
 
@@ -324,7 +345,8 @@ body.page-embed .snackbar-container {
     }
 
     .page-embed .entry-card {
-        padding: 0.75rem;
+        padding: 0.625rem;
+        border-radius: 8px;
     }
 
     .page-embed .entry-body {
@@ -337,6 +359,16 @@ body.page-embed .snackbar-container {
     }
 
     .page-embed .profile-stats {
-        gap: 0.75rem;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .page-embed .profile-banner-container {
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+    }
+
+    .page-embed .entries-container {
+        gap: 0.5rem;
     }
 }

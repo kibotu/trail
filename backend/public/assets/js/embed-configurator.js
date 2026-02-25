@@ -70,11 +70,11 @@
         function generateIframeTag() {
             const url = buildEmbedUrl();
             if (!url) return '';
-            return `<iframe src="${url}" style="border:none; width:100%; min-width:320px;" loading="lazy" allow="web-share; clipboard-write"></iframe>`;
+            return `<iframe src="${url}" style="border:none; width:100%; height:600px; max-width:100%;" loading="lazy" allow="web-share; clipboard-write"></iframe>`;
         }
 
         function generateResizeScript() {
-            return `<script>\nwindow.addEventListener("message", function(e) {\n  if (e.data && e.data.type === "trail-embed-resize") {\n    var frames = document.querySelectorAll('iframe[src*="/embed"]');\n    frames.forEach(function(f) { if (e.source === f.contentWindow) f.style.height = e.data.height + "px"; });\n  }\n});\n<\/script>`;
+            return `<script>\nwindow.addEventListener("message", function(e) {\n  if (e.data && e.data.type === "trail-embed-resize") {\n    var frames = document.querySelectorAll('iframe[src*="/embed"]');\n    frames.forEach(function(f) {\n      if (e.source === f.contentWindow) {\n        f.style.height = e.data.height + "px";\n        f.style.overflow = "hidden";\n      }\n    });\n  }\n});\n<\/script>`;
         }
 
         function generateEmbedCode() {

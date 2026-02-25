@@ -28,12 +28,18 @@
 
     // ── Auto-resize: notify parent of height changes ──
 
+    let lastPostedHeight = 0;
+
     function postHeight() {
         const height = document.documentElement.scrollHeight;
         if (height <= 0) return;
+        // Add 1px buffer to prevent sub-pixel rounding scrollbars
+        const buffered = height + 1;
+        if (buffered === lastPostedHeight) return;
+        lastPostedHeight = buffered;
         try {
             window.parent.postMessage(
-                { type: 'trail-embed-resize', height: height },
+                { type: 'trail-embed-resize', height: buffered },
                 '*'
             );
         } catch (_) { /* cross-origin safety */ }
@@ -42,6 +48,12 @@
     const resizeObserver = new ResizeObserver(postHeight);
     resizeObserver.observe(document.body);
     window.addEventListener('load', postHeight);
+
+    // Re-post after images/fonts settle
+    window.addEventListener('load', () => {
+        setTimeout(postHeight, 300);
+        setTimeout(postHeight, 1000);
+    });
 
     // ── Profile header (optional) ──
 
