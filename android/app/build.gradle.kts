@@ -148,6 +148,10 @@ dependencies {
     // chrome custom tabs
     implementation(libs.androidx.browser)
 
+    // splash screen
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.splashscreen.compose)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

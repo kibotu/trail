@@ -2,10 +2,8 @@ package net.kibotu.trail.feature.auth
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +34,6 @@ import net.kibotu.trail.R
 import java.security.SecureRandom
 import java.util.Base64
 
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun LoginScreen(
     onLoginSuccess: (String) -> Unit,
@@ -82,7 +79,6 @@ private fun generateSecureRandomNonce(byteLength: Int = 32): String {
     return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
 }
 
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 private suspend fun performGoogleSignIn(context: Context, webClientId: String): String? {
     val credentialManager = CredentialManager.create(context)
     val failureMessage = "Sign in failed!"

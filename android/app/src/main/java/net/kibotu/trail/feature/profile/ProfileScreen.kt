@@ -4,7 +4,6 @@ import android.os.Build
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,7 +63,6 @@ import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.storage.ThemePreferences
 
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun ProfileScreen(
     themePreferences: ThemePreferences,

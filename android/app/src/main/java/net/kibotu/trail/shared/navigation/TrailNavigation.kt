@@ -1,7 +1,5 @@
-package net.kibotu.trail.navigation
+package net.kibotu.trail.shared.navigation
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -34,6 +32,7 @@ import net.kibotu.trail.feature.userprofile.UserProfileScreen
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.ui.FloatingTabBar
 import net.kibotu.trail.shared.theme.ui.rememberFloatingTabBarScrollConnection
+import java.net.URLEncoder
 
 object Routes {
     const val HOME = "home"
@@ -46,10 +45,9 @@ object Routes {
 
     fun entryDetail(hashId: String) = "entry/$hashId"
     fun userProfile(nickname: String) = "user/$nickname"
-    fun search(query: String = "") = if (query.isNotBlank()) "search?query=${java.net.URLEncoder.encode(query, "UTF-8")}" else "search"
+    fun search(query: String = "") = if (query.isNotBlank()) "search?query=${URLEncoder.encode(query, "UTF-8")}" else "search"
 }
 
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun TrailNavigation(
     themePreferences: ThemePreferences,

@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.guru.fontawesomecomposelib.FaIcon
-import com.guru.fontawesomecomposelib.FaIcons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -39,6 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
+import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.toMediaItemDataList
 import net.kibotu.trail.shared.util.openInCustomTab
@@ -67,7 +68,7 @@ fun EntryCard(
     onEditEntry: (String) -> Unit = {},
     onDeleteEntry: () -> Unit = {},
     onToggleComments: () -> Unit = {},
-    comments: List<net.kibotu.trail.shared.comment.Comment> = emptyList(),
+    comments: List<Comment> = emptyList(),
     commentsLoading: Boolean = false,
     commentsExpanded: Boolean = false,
     onLoadComments: () -> Unit = {},

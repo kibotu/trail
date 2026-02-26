@@ -14,7 +14,6 @@ import kotlinx.serialization.json.Json
 import net.kibotu.trail.BuildConfig
 
 object ApiClient {
-    private val BASE_URL = BuildConfig.API_BASE_URL
 
     private var authToken: String? = null
 
@@ -38,13 +37,13 @@ object ApiClient {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 30_000
-            connectTimeoutMillis = 30_000
-            socketTimeoutMillis = 30_000
+            requestTimeoutMillis = 8_000
+            connectTimeoutMillis = 8_000
+            socketTimeoutMillis = 8_000
         }
 
         defaultRequest {
-            url(BASE_URL)
+            url(BuildConfig.API_BASE_URL)
             authToken?.let {
                 headers.append("Authorization", "Bearer $it")
             }

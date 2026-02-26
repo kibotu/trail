@@ -25,6 +25,8 @@ fontAwesomeCompose = "1.0.0"
 media3 = "1.9.2"
 paging = "3.4.1"
 browser = "1.9.0"
+splashScreen = "1.2.0"
+splashScreenCompose = "1.0.0"
 
 [libraries]
 androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
@@ -66,6 +68,8 @@ media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
 paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashScreen" }
+androidx-splashscreen-compose = { module = "net.kibotu:androidx-splashscreen-compose", version.ref = "splashScreenCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
