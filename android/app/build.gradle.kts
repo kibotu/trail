@@ -54,23 +54,12 @@ android {
             storeFile = file(
                 localProperties.getProperty(
                     "RELEASE_KEYSTORE_PATH",
-                    "certificates/release.jks"
+                    "certificates/store.jks"
                 )
             )
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
             keyAlias = localProperties.getProperty("RELEASE_KEYSTORE_ALIAS", "release")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
-        }
-        create("store") {
-            storeFile = file(
-                localProperties.getProperty(
-                    "STORE_KEYSTORE_PATH",
-                    "certificates/store.jks"
-                )
-            )
-            storePassword = localProperties.getProperty("STORE_STORE_PASSWORD", "")
-            keyAlias = localProperties.getProperty("STORE_KEYSTORE_ALIAS", "release")
-            keyPassword = localProperties.getProperty("STORE_KEY_PASSWORD", "")
         }
     }
 
@@ -87,11 +76,6 @@ android {
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
-        }
-        create("store") {
-            initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("store")
-            matchingFallbacks += listOf("release")
         }
         debug {
             signingConfig = signingConfigs.getByName("debug")
