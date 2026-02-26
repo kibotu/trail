@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode and setup store keystore
+        working-directory: android/app
+        run: |
+          mkdir -p certificates
+          echo "${{ secrets.STORE_KEYSTORE_FILE }}" | base64 -d > certificates/store.jks
+
+      - name: Create google-services.json
+        working-directory: android/app
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
+
+      - name: Create local.properties
+        working-directory: android
+        run: |
+          printf '%s\n' \
+            'API_BASE_URL=https://trail.services.kibotu.net/' \
+            'STORE_KEYSTORE_PATH=certificates/store.jks' \
+            'STORE_KEYSTORE_ALIAS=release' \
+            'STORE_STORE_PASSWORD=${{ secrets.STORE_STORE_PASSWORD }}' \
+            'STORE_KEY_PASSWORD=${{ secrets.STORE_KEY_PASSWORD }}' \
+            > local.properties
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleStore -Porg.gradle.offline=false --no-daemon --stacktrace
+
+      - name: Build release AAB
+        working-directory: android
+        run: ./gradlew bundleStore -Porg.gradle.offline=false --no-daemon --stacktrace
+
+      - name: Rename artifacts
+        working-directory: android/app/build/outputs
+        run: |
+          # Rename APK
+          mv apk/store/app-store.apk apk/store/trail-${{ steps.version.outputs.VERSION }}.apk
+          
+          # Rename AAB
+          mv bundle/store/app-store.aab bundle/store/trail-${{ steps.version.outputs.VERSION }}.aab
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            android/app/build/outputs/apk/store/trail-${{ steps.version.outputs.VERSION }}.apk
+            android/app/build/outputs/bundle/store/trail-${{ steps.version.outputs.VERSION }}.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
