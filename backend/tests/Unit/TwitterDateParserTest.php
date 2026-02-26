@@ -31,8 +31,8 @@ class TwitterDateParserTest extends TestCase
     
     public function testParseWithPositiveTimezone(): void
     {
-        // Tokyo timezone (+0900)
-        $twitterDate = 'Tue Dec 25 15:00:00 +0900 2024';
+        // Tokyo timezone (+0900) — Dec 25, 2024 is a Wednesday
+        $twitterDate = 'Wed Dec 25 15:00:00 +0900 2024';
         $result = TwitterDateParser::parse($twitterDate);
         
         $this->assertNotNull($result);
@@ -82,7 +82,8 @@ class TwitterDateParserTest extends TestCase
     
     public function testParsePastDate(): void
     {
-        $twitterDate = 'Mon Jan 01 00:00:00 +0000 2020';
+        // Jan 1, 2020 is a Wednesday
+        $twitterDate = 'Wed Jan 01 00:00:00 +0000 2020';
         $result = TwitterDateParser::parse($twitterDate);
         
         $this->assertNotNull($result);
@@ -91,7 +92,8 @@ class TwitterDateParserTest extends TestCase
     
     public function testParseFutureDate(): void
     {
-        $twitterDate = 'Fri Dec 31 23:59:59 +0000 2030';
+        // Dec 31, 2030 is a Tuesday
+        $twitterDate = 'Tue Dec 31 23:59:59 +0000 2030';
         $result = TwitterDateParser::parse($twitterDate);
         
         $this->assertNotNull($result);
@@ -109,23 +111,24 @@ class TwitterDateParserTest extends TestCase
     
     public function testParseWithVariousMonths(): void
     {
+        // Use the correct day-of-week for the 15th of each month in 2025
         $months = [
-            'Jan' => '01',
-            'Feb' => '02',
-            'Mar' => '03',
-            'Apr' => '04',
-            'May' => '05',
-            'Jun' => '06',
-            'Jul' => '07',
-            'Aug' => '08',
-            'Sep' => '09',
-            'Oct' => '10',
-            'Nov' => '11',
-            'Dec' => '12'
+            'Jan' => ['01', 'Wed'],
+            'Feb' => ['02', 'Sat'],
+            'Mar' => ['03', 'Sat'],
+            'Apr' => ['04', 'Tue'],
+            'May' => ['05', 'Thu'],
+            'Jun' => ['06', 'Sun'],
+            'Jul' => ['07', 'Tue'],
+            'Aug' => ['08', 'Fri'],
+            'Sep' => ['09', 'Mon'],
+            'Oct' => ['10', 'Wed'],
+            'Nov' => ['11', 'Sat'],
+            'Dec' => ['12', 'Mon']
         ];
         
-        foreach ($months as $month => $expectedMonth) {
-            $twitterDate = "Mon {$month} 15 12:00:00 +0000 2025";
+        foreach ($months as $month => [$expectedMonth, $dayOfWeek]) {
+            $twitterDate = "{$dayOfWeek} {$month} 15 12:00:00 +0000 2025";
             $result = TwitterDateParser::parse($twitterDate);
             
             $this->assertNotNull($result, "Failed to parse month: {$month}");

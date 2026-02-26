@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+namespace Trail\Tests\Unit;
+
+use PDO;
 use PHPUnit\Framework\TestCase;
 use Trail\Services\ErrorLogService;
 
@@ -19,7 +22,15 @@ class ErrorLogServiceTest extends TestCase
         $this->db = new PDO('sqlite::memory:');
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
-        // Create test table
+        // Create test tables
+        $this->db->exec("
+            CREATE TABLE trail_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT,
+                nickname TEXT
+            )
+        ");
+        
         $this->db->exec("
             CREATE TABLE trail_error_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

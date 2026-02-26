@@ -52,7 +52,7 @@ class RssGeneratorTest extends TestCase
         $this->assertStringContainsString('<item>', $xml);
         $this->assertStringContainsString('Test article', $xml);
         $this->assertStringContainsString('https://example.com/article', $xml);
-        $this->assertStringContainsString('test@example.com', $xml);
+        $this->assertStringContainsString('Test User', $xml);
     }
 
     public function testGenerateUserFeed(): void
