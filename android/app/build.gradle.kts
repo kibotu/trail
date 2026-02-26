@@ -60,6 +60,17 @@ android {
             keyAlias = localProperties.getProperty("RELEASE_KEYSTORE_ALIAS", "release")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
         }
+        create("store") {
+            storeFile = file(
+                localProperties.getProperty(
+                    "STORE_KEYSTORE_PATH",
+                    "certificates/store.jks"
+                )
+            )
+            storePassword = localProperties.getProperty("STORE_STORE_PASSWORD", "")
+            keyAlias = localProperties.getProperty("STORE_KEYSTORE_ALIAS", "release")
+            keyPassword = localProperties.getProperty("STORE_KEY_PASSWORD", "")
+        }
     }
 
     buildTypes {
@@ -76,6 +87,11 @@ android {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
         }
+        create("store") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("store")
+            matchingFallbacks += listOf("release")
+        }
         debug {
             signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
@@ -83,7 +99,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Include all ABIs for emulator and device testing
             ndk {
                 abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
@@ -139,11 +154,8 @@ android {
         buildConfig = true
     }
 
-    // API Base URL from local.properties (single source of truth: backend/secrets.yml)
-    val apiBaseUrl = localProperties.getProperty("API_BASE_URL", "http://localhost/")
-
     defaultConfig {
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://trail.services.kibotu.net/\"")
     }
 }
 
