@@ -72,16 +72,16 @@ fun HeartBeatAnimation(
     val fadeEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
     val snappyEasing = CubicBezierEasing(0.2f, 0.0f, 0.2f, 1.0f)
 
-    // Icon alpha: starts at 1.0 immediately (no animation), fades out during exit
-    val iconAlpha by animateFloatAsState(
+    // Icon scale: starts at 1.0 immediately (no animation), shrinks to 0 during exit
+    val iconScale by animateFloatAsState(
         targetValue = if (isExitAnimationStarted) 0f else 1f,
         animationSpec = if (isInitialComposition.value) {
             // No animation on first render - snap to 1.0 immediately
             tween(durationMillis = 0)
         } else {
-            tween(durationMillis = exitDurationMs, easing = fadeEasing)
+            tween(durationMillis = exitDurationMs, easing = snappyEasing)
         },
-        label = "iconAlpha"
+        label = "iconScale"
     )
 
     // Circle alpha: invisible until exit starts, then quickly fade in
@@ -123,14 +123,16 @@ fun HeartBeatAnimation(
                 )
         )
 
-        // Icon - always rendered when visible, fades in then out
         iconBitmap?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier
                     .size(iconSize)
-                    .graphicsLayer { alpha = iconAlpha }
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    }
             )
         }
     }
