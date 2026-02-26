@@ -26,20 +26,32 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Generate debug keystore
+        working-directory: android/app
+        run: |
+          mkdir -p certificates
+          keytool -genkeypair -v \
+            -keystore certificates/debug.jks \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Debug,OU=Debug,O=Debug,L=Debug,ST=Debug,C=US"
+
       - name: Create local.properties
         working-directory: android
         run: |
-          cat <<'EOF' > local.properties
-          API_BASE_URL=http://localhost/
-          DEBUG_STORE_PASSWORD=android
-          DEBUG_KEY_PASSWORD=android
-          DEBUG_KEYSTORE_ALIAS=androiddebugkey
-          EOF
+          printf '%s\n' \
+            'API_BASE_URL=http://localhost/' \
+            'DEBUG_KEYSTORE_PATH=certificates/debug.jks' \
+            'DEBUG_STORE_PASSWORD=android' \
+            'DEBUG_KEY_PASSWORD=android' \
+            'DEBUG_KEYSTORE_ALIAS=androiddebugkey' \
+            > local.properties
 
       - name: Create dummy google-services.json
         working-directory: android/app
         run: |
-          cat <<'EOJSON' > google-services.json
+          cat > google-services.json <<'EOJSON'
           {
             "project_info": {
               "project_number": "000000000000",
