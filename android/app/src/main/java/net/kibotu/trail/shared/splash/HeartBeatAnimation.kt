@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +24,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import net.kibotu.trail.R
+import net.kibotu.trail.shared.theme.LightTertiary
 import kotlin.math.sqrt
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
@@ -39,7 +39,7 @@ fun HeartBeatAnimation(
     val iconSize = 160.dp
     val circleSize = 144.dp
 
-    val backgroundColor = MaterialTheme.colorScheme.primary
+    val backgroundColor = LightTertiary
     val context = LocalContext.current
 
     val iconBitmap = remember {

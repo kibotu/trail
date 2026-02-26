@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreenDecorator = splash {
-            exitAnimationDuration = 750
+            exitAnimationDuration = 1250
             content {
                 TrailTheme {
                     HeartBeatAnimation(
