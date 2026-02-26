@@ -13,6 +13,8 @@ credentials = "1.5.0"
 datastore = "1.1.1" #other versions don't have 16kb page size support apparently
 desugar_jdk_libs = "2.1.5"
 espressoCore = "3.7.0"
+firebaseBom = "34.9.0"
+firebaseCrashlyticsPlugin = "3.0.6"
 fontAwesomeCompose = "1.0.0"
 googleid = "1.2.0"
 junit = "4.13.2"
@@ -63,6 +65,9 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetwork" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version.ref = "fontAwesomeCompose" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -82,6 +87,7 @@ play-services-auth = { module = "com.google.android.gms:play-services-auth", ver
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 play-services = { id = "com.google.gms.google-services", version.ref = "playservices" }
