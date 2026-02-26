@@ -29,8 +29,8 @@ android {
         applicationId = "net.kibotu.trail"
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0"
 
         // Still needed for minSdk 23 to support vector drawable features from API 24+
         // Can be removed when minSdk is upgraded to 24+

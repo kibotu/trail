@@ -51,15 +51,22 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # Extract version code: MAJOR * 10000000 + MINOR * 100000 + HOTFIX * 1000 + BUILD_NUMBER
+          IFS='.' read -r major minor hotfix <<< "$VERSION"
+          BUILD_NUMBER=${{ github.run_number }}
+          VERSION_CODE=$((major * 10000000 + minor * 100000 + hotfix * 1000 + BUILD_NUMBER))
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
 
       - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleRelease -Porg.gradle.offline=false --no-daemon --stacktrace
+        run: ./gradlew assembleRelease -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }} -Porg.gradle.offline=false --no-daemon --stacktrace
 
       - name: Build release AAB
         working-directory: android
-        run: ./gradlew bundleRelease -Porg.gradle.offline=false --no-daemon --stacktrace
+        run: ./gradlew bundleRelease -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }} -Porg.gradle.offline=false --no-daemon --stacktrace
 
       - name: Rename artifacts
         working-directory: android/app/build/outputs
