@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.feature.home.CommentState
@@ -52,6 +53,7 @@ import net.kibotu.trail.shared.theme.ui.EntryCard
 fun MyFeedScreen(
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
+    onNavigateToSearch: (String) -> Unit = {},
     scrollConnection: NestedScrollConnection? = null
 ) {
     val authViewModel = LocalAuthViewModel.current
@@ -109,13 +111,14 @@ fun MyFeedScreen(
                     entry = entry,
                     currentUserId = authState.user?.id,
                     isAdmin = authState.user?.isAdmin ?: false,
+                    baseUrl = BuildConfig.API_BASE_URL,
                     showTags = showTags,
                     currentlyPlayingVideoId = currentlyPlayingVideoId,
                     onVideoPlay = viewModel::onVideoPlay,
                     onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
                     onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
                     onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                    onTagClick = { tag -> onNavigateToUser(tag) },
+                    onTagClick = { tag -> onNavigateToSearch("#$tag") },
                     onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                     onShare = { viewModel.shareEntry(context, entry) },
                     onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },

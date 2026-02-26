@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
@@ -85,6 +86,7 @@ fun EntryDetailScreen(
                     entry = entry,
                     currentUserId = authState.user?.id,
                     isAdmin = authState.user?.isAdmin ?: false,
+                    baseUrl = BuildConfig.API_BASE_URL,
                     showTags = showTags,
                     currentlyPlayingVideoId = currentlyPlayingVideoId,
                     onVideoPlay = viewModel::onVideoPlay,

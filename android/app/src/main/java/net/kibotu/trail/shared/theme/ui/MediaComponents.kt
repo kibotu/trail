@@ -551,8 +551,8 @@ private fun VideoPlayerContent(
 /**
  * Builds the full URL from base URL and relative path
  */
-private fun buildFullUrl(baseUrl: String, relativePath: String): String {
-    val cleanBase = baseUrl.trimEnd('/')
-    val cleanPath = relativePath.trimStart('/')
-    return "$cleanBase/$cleanPath"
+private fun buildFullUrl(baseUrl: String, path: String): String {
+    if (path.startsWith("http://") || path.startsWith("https://")) return path
+    if (baseUrl.isBlank()) return path
+    return "${baseUrl.trimEnd('/')}/${path.trimStart('/')}"
 }

@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
@@ -141,6 +142,7 @@ fun UserProfileScreen(
                     entry = entry,
                     currentUserId = authState.user?.id,
                     isAdmin = authState.user?.isAdmin ?: false,
+                    baseUrl = BuildConfig.API_BASE_URL,
                     showTags = showTags,
                     onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
                     onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },

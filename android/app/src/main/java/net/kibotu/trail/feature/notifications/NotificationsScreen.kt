@@ -106,8 +106,10 @@ fun NotificationsScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     viewModel.markRead(notification.id)
-                                    notification.entryHashId?.let { onNavigateToEntry(it) }
-                                        ?: notification.actorNickname?.let { onNavigateToUser(it) }
+                                    when {
+                                        notification.entryHashId != null -> onNavigateToEntry(notification.entryHashId)
+                                        notification.actorNickname != null -> onNavigateToUser(notification.actorNickname)
+                                    }
                                 },
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(

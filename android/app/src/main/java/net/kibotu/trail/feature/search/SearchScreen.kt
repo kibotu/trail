@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
@@ -42,9 +44,16 @@ import net.kibotu.trail.shared.theme.ui.EntryCard
 fun SearchScreen(
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
+    initialQuery: String = "",
     scrollConnection: NestedScrollConnection? = null,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current))
 ) {
+    LaunchedEffect(initialQuery) {
+        if (initialQuery.isNotBlank()) {
+            viewModel.updateQuery(initialQuery)
+        }
+    }
+
     val query by viewModel.query.collectAsState()
     val results = viewModel.searchResults.collectAsLazyPagingItems()
     val authState by LocalAuthViewModel.current.state.collectAsState()
@@ -115,6 +124,7 @@ fun SearchScreen(
                             entry = entry,
                             currentUserId = authState.user?.id,
                             isAdmin = authState.user?.isAdmin ?: false,
+                            baseUrl = BuildConfig.API_BASE_URL,
                             showTags = showTags,
                             onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
                             onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },

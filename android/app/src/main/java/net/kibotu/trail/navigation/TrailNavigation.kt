@@ -39,13 +39,14 @@ object Routes {
     const val HOME = "home"
     const val MY_FEED = "my_feed"
     const val PROFILE = "profile"
-    const val SEARCH = "search"
+    const val SEARCH = "search?query={query}"
     const val ENTRY_DETAIL = "entry/{hashId}"
     const val USER_PROFILE = "user/{nickname}"
     const val NOTIFICATIONS = "notifications"
 
     fun entryDetail(hashId: String) = "entry/$hashId"
     fun userProfile(nickname: String) = "user/$nickname"
+    fun search(query: String = "") = if (query.isNotBlank()) "search?query=${java.net.URLEncoder.encode(query, "UTF-8")}" else "search"
 }
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -59,7 +60,7 @@ fun TrailNavigation(
     val currentRoute = navBackStackEntry?.destination?.route
 
     val tabRoutes = listOf(Routes.HOME, Routes.MY_FEED, Routes.PROFILE, Routes.SEARCH)
-    val isOnTabScreen = currentRoute in tabRoutes
+    val isOnTabScreen = currentRoute in tabRoutes || currentRoute?.startsWith("search") == true
 
     val scrollConnection = rememberFloatingTabBarScrollConnection()
 
@@ -88,7 +89,10 @@ fun TrailNavigation(
                         navController.navigate(Routes.userProfile(nickname))
                     },
                     onNavigateToSearch = { query ->
-                        navController.navigate(Routes.SEARCH)
+                        navController.navigate(Routes.search(query))
+                    },
+                    onNavigateToNotifications = {
+                        navController.navigate(Routes.NOTIFICATIONS)
                     },
                     scrollConnection = scrollConnection
                 )
@@ -101,6 +105,9 @@ fun TrailNavigation(
                     },
                     onNavigateToUser = { nickname ->
                         navController.navigate(Routes.userProfile(nickname))
+                    },
+                    onNavigateToSearch = { query ->
+                        navController.navigate(Routes.search(query))
                     },
                     scrollConnection = scrollConnection
                 )
@@ -116,8 +123,13 @@ fun TrailNavigation(
                 )
             }
 
-            composable(Routes.SEARCH) {
+            composable(
+                route = Routes.SEARCH,
+                arguments = listOf(navArgument("query") { type = NavType.StringType; defaultValue = "" })
+            ) { backStackEntry ->
+                val initialQuery = backStackEntry.arguments?.getString("query") ?: ""
                 SearchScreen(
+                    initialQuery = initialQuery,
                     onNavigateToEntry = { hashId ->
                         navController.navigate(Routes.entryDetail(hashId))
                     },
@@ -250,13 +262,13 @@ fun TrailNavigation(
                             FaIcon(
                                 faIcon = FaIcons.Search,
                                 size = 20.dp,
-                                tint = if (currentRoute == Routes.SEARCH)
+                                tint = if (currentRoute?.startsWith("search") == true)
                                     MaterialTheme.colorScheme.primary
                                 else
                                     MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        onClick = { navigateToTab(Routes.SEARCH) }
+                        onClick = { navigateToTab(Routes.search()) }
                     )
                 }
             }
