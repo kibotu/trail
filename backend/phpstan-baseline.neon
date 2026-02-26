@@ -1,0 +1,193 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Function getAuthenticatedUser not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: src/Controllers/CommentController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Controllers/CommentController.php
+
+		-
+			message: '#^Function getAuthenticatedUser not found\.$#'
+			identifier: function.notFound
+			count: 2
+			path: src/Controllers/EntryController.php
+
+		-
+			message: '#^Static method Trail\\Controllers\\EntryController\:\:getOptionalUserId\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: src/Controllers/EntryController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: src/Controllers/EntryController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Controllers/EntryController.php
+
+		-
+			message: '#^Function getAuthenticatedUser not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: src/Controllers/TokenController.php
+
+		-
+			message: '#^Property Trail\\Controllers\\TokenController\:\:\$jwtService is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Controllers/TokenController.php
+
+		-
+			message: '#^Constant SESSION_COOKIE_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: src/Middleware/AuthMiddleware.php
+
+		-
+			message: '#^Function getAuthenticatedUser not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: src/Middleware/AuthMiddleware.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: src/Middleware/AuthMiddleware.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 4
+			path: src/Middleware/AuthMiddleware.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 2
+			path: src/Middleware/AuthMiddleware.php
+
+		-
+			message: '#^Variable \$whereConditions in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 2
+			path: src/Models/Entry.php
+
+		-
+			message: '#^Offset ''image/avif''\|''image/gif''\|''image/jpeg''\|''image/png''\|''image/svg\+xml''\|''image/webp'' on array\{''image/jpeg''\: ''jpg'', ''image/png''\: ''png'', ''image/gif''\: ''gif'', ''image/webp''\: ''webp'', ''image/avif''\: ''avif'', ''image/svg\+xml''\: ''svg''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Services/ImageProxyService.php
+
+		-
+			message: '#^Constant CURLE_SSL_CRL_BADFILE not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: src/Services/LinkHealthChecker.php
+
+		-
+			message: '#^Constant CURLE_SSL_ISSUER_ERROR not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: src/Services/LinkHealthChecker.php
+
+		-
+			message: '#^Constant CURLE_SSL_SHUTDOWN_FAILED not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: src/Services/LinkHealthChecker.php
+
+		-
+			message: '#^Method Trail\\Services\\PreviewImageService\:\:loadImageFromUrl\(\) never returns resource so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#1 \$image of function imagedestroy expects GdImage, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#1 \$image of function imagesx expects GdImage, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#1 \$image of function imagesy expects GdImage, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#1 \$image of function imagettftext expects GdImage, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#1 \$img of method Trail\\Services\\PreviewImageService\:\:drawText\(\) expects resource, GdImage given\.$#'
+			identifier: argument.type
+			count: 6
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Parameter \#2 \$src_image of function imagecopyresampled expects GdImage, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 2
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<2, max\> and 1 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<3, max\> and 2 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Services/PreviewImageService.php
+
+		-
+			message: '#^Method Trail\\Services\\RssGenerator\:\:escape\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: src/Services/RssGenerator.php
+
+		-
+			message: '#^Offset 0 on array\{list\<string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Services/TextSanitizer.php
+
+		-
+			message: '#^Property Embed\\Extractor\:\:\$providerName \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 2
+			path: src/Services/UrlEmbedService.php
+
+		-
+			message: '#^Property Trail\\Services\\UrlEmbedService\:\:\$iframelyApiUrl \(string\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: src/Services/UrlEmbedService.php

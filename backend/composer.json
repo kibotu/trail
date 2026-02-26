@@ -25,7 +25,9 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "analyse": "phpstan analyse --memory-limit=512M",
+        "lint": "php -l src/ && phpstan analyse --memory-limit=512M"
     },
     "config": {
         "optimize-autoloader": true,

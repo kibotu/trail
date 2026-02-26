@@ -57,7 +57,7 @@ jobs:
 
       - name: PHPStan static analysis
         working-directory: backend
-        run: vendor/bin/phpstan analyse --no-progress
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
       - name: PHPUnit tests
         working-directory: backend
