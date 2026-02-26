@@ -2,8 +2,12 @@ package net.kibotu.trail.shared.theme.ui
 
 import android.view.ViewGroup
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,6 +28,7 @@ import android.view.View
 import android.view.WindowInsetsController
 import android.os.Build
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PlayArrow
@@ -37,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,10 +51,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -62,6 +72,8 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import net.kibotu.trail.shared.entry.MediaItemData
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Displays a gallery of media items (images, GIFs, videos)
@@ -143,6 +155,7 @@ fun MediaItemView(
 ) {
     val fullUrl = buildFullUrl(baseUrl, item.url)
     val mediaId = "media_${item.id}"
+    var showFullscreenViewer by remember { mutableStateOf(false) }
 
     when {
         item.isVideo -> {
@@ -160,6 +173,7 @@ fun MediaItemView(
             GifImage(
                 url = fullUrl,
                 contentDescription = "Animated GIF",
+                onClick = { showFullscreenViewer = true },
                 modifier = modifier
             )
         }
@@ -167,9 +181,17 @@ fun MediaItemView(
             StaticImage(
                 url = fullUrl,
                 contentDescription = "Image",
+                onClick = { showFullscreenViewer = true },
                 modifier = modifier
             )
         }
+    }
+
+    if (showFullscreenViewer) {
+        FullscreenImageViewer(
+            url = fullUrl,
+            onDismiss = { showFullscreenViewer = false }
+        )
     }
 }
 
@@ -180,6 +202,7 @@ fun MediaItemView(
 fun StaticImage(
     url: String,
     contentDescription: String,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     AsyncImage(
@@ -189,7 +212,9 @@ fun StaticImage(
             .build(),
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
-        modifier = modifier
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        )
     )
 }
 
@@ -201,6 +226,7 @@ fun StaticImage(
 fun GifImage(
     url: String,
     contentDescription: String,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     AsyncImage(
@@ -210,7 +236,9 @@ fun GifImage(
             .build(),
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
-        modifier = modifier
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        )
     )
 }
 
@@ -544,6 +572,134 @@ private fun VideoPlayerContent(
                     modifier = Modifier.size(16.dp)
                 )
             }
+        }
+    }
+}
+
+/**
+ * Fullscreen image viewer with pinch-to-zoom, double-tap zoom, pan, and dismiss gestures.
+ */
+@Composable
+private fun FullscreenImageViewer(
+    url: String,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    var dismissOffsetY by remember { mutableFloatStateOf(0f) }
+
+    var targetScale by remember { mutableFloatStateOf(1f) }
+    val animatedScale by animateFloatAsState(
+        targetValue = targetScale,
+        animationSpec = tween(durationMillis = 300),
+        label = "zoomAnimation"
+    )
+
+    LaunchedEffect(animatedScale) {
+        scale = animatedScale
+        if (animatedScale == 1f) {
+            offsetX = 0f
+            offsetY = 0f
+        }
+    }
+
+    val scrimAlpha = if (scale <= 1f) {
+        (1f - (abs(dismissOffsetY) / 800f)).coerceIn(0.4f, 1f)
+    } else {
+        1f
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = scrimAlpha)),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(url)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Fullscreen image",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(0, dismissOffsetY.roundToInt()) }
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY
+                    )
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            targetScale = (targetScale * zoom).coerceIn(0.5f, 5f)
+                            scale = (scale * zoom).coerceIn(0.5f, 5f)
+
+                            if (scale > 1f) {
+                                val maxX = (size.width * (scale - 1f)) / 2f
+                                val maxY = (size.height * (scale - 1f)) / 2f
+                                offsetX = (offsetX + pan.x * scale).coerceIn(-maxX, maxX)
+                                offsetY = (offsetY + pan.y * scale).coerceIn(-maxY, maxY)
+                            } else {
+                                dismissOffsetY += pan.y
+                            }
+                        }
+                    }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                if (targetScale > 1f) {
+                                    targetScale = 1f
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                    dismissOffsetY = 0f
+                                } else {
+                                    targetScale = 2.5f
+                                }
+                            },
+                            onTap = {
+                                if (scale <= 1.01f) {
+                                    onDismiss()
+                                }
+                            }
+                        )
+                    }
+            )
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Black.copy(alpha = 0.5f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(dismissOffsetY) {
+        if (abs(dismissOffsetY) > 300f && scale <= 1f) {
+            onDismiss()
         }
     }
 }
