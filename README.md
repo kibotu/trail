@@ -207,6 +207,10 @@ Full REST API with public and authenticated endpoints. Generate an API token fro
 ./gradlew bundleRelease              # Build app bundle for Play Store
 ./gradlew installRelease             # Install release APK to device
 
+# Release with custom version (for manual builds)
+./gradlew assembleRelease -PversionName=1.0.0 -PversionCode=10000001
+./gradlew bundleRelease -PversionName=1.0.0 -PversionCode=10000001
+
 # Testing
 ./gradlew test                       # Run unit tests
 ./gradlew connectedAndroidTest       # Run instrumented tests
