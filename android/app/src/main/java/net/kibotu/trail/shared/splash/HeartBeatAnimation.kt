@@ -36,7 +36,7 @@ fun HeartBeatAnimation(
     exitAnimationDuration: Duration = Duration.ZERO,
     onStartExitAnimation: () -> Unit = {}
 ) {
-    val iconSize = 108.dp
+    val iconSize = 160.dp
     val circleSize = 144.dp
 
     val backgroundColor = MaterialTheme.colorScheme.primary
@@ -69,7 +69,6 @@ fun HeartBeatAnimation(
     val screenDiagonal = sqrt((screenWidth * screenWidth + screenHeight * screenHeight).toFloat())
 
     val exitDurationMs = exitAnimationDuration.toInt(DurationUnit.MILLISECONDS)
-    val fadeEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
     val snappyEasing = CubicBezierEasing(0.2f, 0.0f, 0.2f, 1.0f)
 
     // Icon scale: starts at 1.0 immediately (no animation), shrinks to 0 during exit
