@@ -20,6 +20,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GoogleAuth"
         android:usesCleartextTraffic="false"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="24">
         <activity
             android:name=".MainActivity"

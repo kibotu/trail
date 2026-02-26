@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Trail"
 include(":app")
- 
+include(":baselineprofile")

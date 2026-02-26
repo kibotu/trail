@@ -3,3 +3,6 @@
 app/certificates
 local.properties
 .kotlin
+
+*/**/startup-prof.txt
+*/**/baseline-prof.txt

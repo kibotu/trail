@@ -1,78 +1,87 @@
 [versions]
+activityCompose = "1.12.4"
 agp = "9.1.0-rc01"
+baselineprofile = "1.5.0-alpha03"
+benchmarkMacroJunit4 = "1.5.0-alpha03"
+browser = "1.9.0"
+coil = "3.4.0"
+coilNetwork = "3.4.0"
+composeBom = "2026.02.00"
+constraintlayoutCompose = "1.1.1"
 coreKtx = "1.17.0"
 credentials = "1.5.0"
+datastore = "1.1.1" #other versions don't have 16kb page size support apparently
 desugar_jdk_libs = "2.1.5"
+espressoCore = "3.7.0"
+fontAwesomeCompose = "1.0.0"
 googleid = "1.2.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
-espressoCore = "3.7.0"
+kotlin = "2.3.10"
+kotlinxSerialization = "1.10.0"
+ktor = "3.4.0"
 lifecycleRuntimeKtx = "2.10.0"
 lifecycleViewmodelKtx = "2.10.0"
-activityCompose = "1.12.4"
-kotlin = "2.3.10"
-composeBom = "2026.02.00"
+media3 = "1.9.2"
+navigation = "2.9.7"
+paging = "3.4.1"
 playServicesAuth = "21.5.1"
 playservices = "4.4.4"
-ktor = "3.4.0"
-kotlinxSerialization = "1.10.0"
-navigation = "2.9.7"
-datastore = "1.2.0"
-coil = "3.4.0"
-coilNetwork = "3.4.0"
-constraintlayoutCompose = "1.1.1"
-fontAwesomeCompose = "1.0.0"
-media3 = "1.9.2"
-paging = "3.4.1"
-browser = "1.9.0"
+profileinstaller = "1.4.1"
 splashScreen = "1.2.0"
 splashScreenCompose = "1.0.0"
+uiautomator = "2.3.0"
 
 [libraries]
-androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
-androidx-credentials-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
-desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
-googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
-androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashScreen" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
+androidx-splashscreen-compose = { module = "net.kibotu:androidx-splashscreen-compose", version.ref = "splashScreenCompose" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
+coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetwork" }
+desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version.ref = "fontAwesomeCompose" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
-ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
-androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetwork" }
-coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
-font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version.ref = "fontAwesomeCompose" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
-paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
 paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
-androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
-androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashScreen" }
-androidx-splashscreen-compose = { module = "net.kibotu:androidx-splashscreen-compose", version.ref = "splashScreenCompose" }
+paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 play-services = { id = "com.google.gms.google-services", version.ref = "playservices" }
