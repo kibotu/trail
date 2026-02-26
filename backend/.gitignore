@@ -1,4 +1,5 @@
 .phpunit.cache/
+.phpstan.cache/
 secrets.yml
 storage/preview-cache/*.png
 storage/temp/
