@@ -27,6 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -39,9 +41,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,20 +76,21 @@ fun ProfileScreen(
     themePreferences: ThemePreferences,
     onNavigateToEntry: (String) -> Unit,
     scrollConnection: NestedScrollConnection? = null,
-    viewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(LocalContext.current))
 ) {
     val authViewModel = LocalAuthViewModel.current
     val authState by authViewModel.state.collectAsState()
-    val profileState by viewModel.state.collectAsState()
-    val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
-    val showEntryTags by themePreferences.showEntryTags.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
 
     if (!authState.isLoggedIn) {
         LoginScreen(onLoginSuccess = { authViewModel.handleGoogleSignIn(it) })
         return
     }
+
+    val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(LocalContext.current))
+    val profileState by viewModel.state.collectAsState()
+    val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
+    val showEntryTags by themePreferences.showEntryTags.collectAsState()
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     if (profileState.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -228,6 +237,7 @@ fun ProfileScreen(
         // Muted users (always shown)
         item {
             Card(
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -280,11 +290,12 @@ fun ProfileScreen(
             }
         }
 
-        // Embed preview with copy controls
+        // Embed preview with copy controls (collapsed by default)
         profile.nickname?.let { nick ->
             item {
                 val embedUrl = "https://trail.kibotu.net/@$nick/embed"
                 val htmlSnippet = "<iframe src=\"$embedUrl\" width=\"100%\" height=\"400\" frameborder=\"0\"></iframe>"
+                var isExpanded by remember { mutableStateOf(false) }
 
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -292,60 +303,81 @@ fun ProfileScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Embed Preview", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        AndroidView(
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    webViewClient = WebViewClient()
-                                    settings.javaScriptEnabled = true
-                                    loadUrl(embedUrl)
-                                }
-                            },
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(300.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .clickable { isExpanded = !isExpanded },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(embedUrl))
-                                    Toast.makeText(context, "Embed URL copied", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                            Text("Embed Preview", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isExpanded) "Collapse" else "Expand"
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = isExpanded,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
+                        ) {
+                            Column {
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                AndroidView(
+                                    factory = { ctx ->
+                                        WebView(ctx).apply {
+                                            webViewClient = WebViewClient()
+                                            settings.javaScriptEnabled = true
+                                            loadUrl(embedUrl)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp)
+                                        .clip(RoundedCornerShape(12.dp))
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Copy URL", style = MaterialTheme.typography.labelMedium)
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(htmlSnippet))
-                                    Toast.makeText(context, "HTML snippet copied", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Copy HTML", style = MaterialTheme.typography.labelMedium)
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(embedUrl))
+                                            Toast.makeText(context, "Embed URL copied", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ContentCopy,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Copy URL", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(htmlSnippet))
+                                            Toast.makeText(context, "HTML snippet copied", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ContentCopy,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Copy HTML", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
                             }
                         }
                     }

@@ -79,10 +79,19 @@ class AuthViewModel(
             _state.value = _state.value.copy(isLoading = true, error = null)
             authRepository.googleSignIn(idToken).fold(
                 onSuccess = { response ->
+                    var user = response.user
+                    profileRepository.getProfile().onSuccess { profile ->
+                        val nickname = profile.nickname ?: user.nickname
+                        nickname?.let { authRepository.saveNickname(it) }
+                        user = user.copy(
+                            nickname = nickname,
+                            isAdmin = profile.isAdmin ?: user.isAdmin
+                        )
+                    }
                     _state.value = _state.value.copy(
                         isLoggedIn = true,
                         isLoading = false,
-                        user = response.user
+                        user = user
                     )
                     val pending = _state.value.pendingSharedText
                     if (pending != null) {
