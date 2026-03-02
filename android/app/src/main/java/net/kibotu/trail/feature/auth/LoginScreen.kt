@@ -56,8 +56,8 @@ fun LoginScreen(
                 CircularProgressIndicator()
             } else {
                 Image(
-                    painter = painterResource(id = R.drawable.android_light_rd_si),
-                    contentDescription = "Sign in with Google",
+                    painter = painterResource(id = R.drawable.login_whale),
+                    contentDescription = "Log in with Google",
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .clickable {
