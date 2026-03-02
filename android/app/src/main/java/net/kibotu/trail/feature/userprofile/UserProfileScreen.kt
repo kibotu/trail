@@ -88,9 +88,8 @@ fun UserProfileScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Profile header
             profileState.profile?.let { profile ->
-                item {
+                item(key = "profile_header") {
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -132,10 +131,9 @@ fun UserProfileScreen(
                 }
             }
 
-            // Entries
             items(
                 count = entries.itemCount,
-                key = { index -> entries[index]?.id ?: index }
+                key = { index -> "entry_$index" }
             ) { index ->
                 val entry = entries[index] ?: return@items
                 EntryCard(
@@ -151,7 +149,7 @@ fun UserProfileScreen(
             }
 
             if (entries.loadState.append is LoadState.Loading) {
-                item {
+                item(key = "loading_indicator") {
                     Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }

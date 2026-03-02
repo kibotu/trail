@@ -117,7 +117,7 @@ fun SearchScreen(
                 ) {
                     items(
                         count = results.itemCount,
-                        key = { index -> results[index]?.id ?: index }
+                        key = { index -> "entry_$index" }
                     ) { index ->
                         val entry = results[index] ?: return@items
                         EntryCard(
@@ -138,7 +138,7 @@ fun SearchScreen(
                     }
 
                     if (results.loadState.append is LoadState.Loading) {
-                        item {
+                        item(key = "loading_indicator") {
                             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator()
                             }

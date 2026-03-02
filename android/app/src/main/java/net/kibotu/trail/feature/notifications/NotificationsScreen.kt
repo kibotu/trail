@@ -98,7 +98,7 @@ fun NotificationsScreen(
                 ) {
                     items(
                         count = notifications.itemCount,
-                        key = { index -> notifications[index]?.id ?: index }
+                        key = { index -> "notification_$index" }
                     ) { index ->
                         val notification = notifications[index] ?: return@items
                         Card(
@@ -158,7 +158,7 @@ fun NotificationsScreen(
                     }
 
                     if (notifications.loadState.append is LoadState.Loading) {
-                        item {
+                        item(key = "loading_indicator") {
                             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator()
                             }

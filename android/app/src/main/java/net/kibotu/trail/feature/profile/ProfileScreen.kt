@@ -110,8 +110,7 @@ fun ProfileScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Profile header
-        item {
+        item(key = "profile_header") {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -153,8 +152,7 @@ fun ProfileScreen(
             }
         }
 
-        // Stats
-        item {
+        item(key = "stats") {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -174,8 +172,7 @@ fun ProfileScreen(
             }
         }
 
-        // Top entries by claps
-        item {
+        item(key = "top_by_claps") {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -204,8 +201,7 @@ fun ProfileScreen(
             }
         }
 
-        // Top entries by views
-        item {
+        item(key = "top_by_views") {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -234,8 +230,7 @@ fun ProfileScreen(
             }
         }
 
-        // Muted users (always shown)
-        item {
+        item(key = "muted_users") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -290,9 +285,8 @@ fun ProfileScreen(
             }
         }
 
-        // Embed preview with copy controls (collapsed by default)
         profile.nickname?.let { nick ->
-            item {
+            item(key = "embed_preview") {
                 val embedUrl = "https://trail.kibotu.net/@$nick/embed"
                 val htmlSnippet = "<iframe src=\"$embedUrl\" width=\"100%\" height=\"400\" frameborder=\"0\"></iframe>"
                 var isExpanded by remember { mutableStateOf(false) }
@@ -385,8 +379,7 @@ fun ProfileScreen(
             }
         }
 
-        // Settings: Theme toggle, Tag visibility toggle, and Logout
-        item {
+        item(key = "settings") {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

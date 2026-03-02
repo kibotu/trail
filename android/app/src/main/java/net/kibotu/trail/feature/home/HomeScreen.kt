@@ -104,7 +104,7 @@ fun HomeScreen(
                     ) {
                         items(
                             count = entries.itemCount,
-                            key = { index -> entries[index]?.id ?: index }
+                            key = { index -> "entry_$index" }
                         ) { index ->
                             val entry = entries[index] ?: return@items
                             val commentState = commentsState[entry.id] ?: CommentState()
@@ -141,7 +141,7 @@ fun HomeScreen(
                         }
 
                         if (entries.loadState.append is LoadState.Loading) {
-                            item {
+                            item(key = "loading_indicator") {
                                 Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(modifier = Modifier.padding(16.dp))
                                 }

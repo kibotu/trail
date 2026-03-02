@@ -89,8 +89,7 @@ fun MyFeedScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Compose card
-            item {
+            item(key = "compose_card") {
                 ComposeCard(
                     isPosting = isPosting,
                     onPost = { viewModel.createEntry(it) }
@@ -99,7 +98,7 @@ fun MyFeedScreen(
 
             items(
                 count = entries.itemCount,
-                key = { index -> entries[index]?.id ?: index }
+                key = { index -> "entry_$index" }
             ) { index ->
                 val entry = entries[index] ?: return@items
                 val commentState = commentsState[entry.id] ?: CommentState()
@@ -136,7 +135,7 @@ fun MyFeedScreen(
             }
 
             if (entries.loadState.append is LoadState.Loading) {
-                item {
+                item(key = "loading_indicator") {
                     Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
