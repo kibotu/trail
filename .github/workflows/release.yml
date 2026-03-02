@@ -10,10 +10,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  generate-baseline-profile:
+    name: Generate Baseline Profile
+    runs-on: macos-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,86 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate debug keystore
+        working-directory: android/app
+        run: |
+          mkdir -p certificates
+          keytool -genkeypair -v \
+            -keystore certificates/debug.jks \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Debug,OU=Debug,O=Debug,L=Debug,ST=Debug,C=US"
+
+      - name: Create local.properties for baseline profile
+        working-directory: android
+        run: |
+          printf '%s\n' \
+            'API_BASE_URL=https://trail.services.kibotu.net/' \
+            'DEBUG_KEYSTORE_PATH=certificates/debug.jks' \
+            'DEBUG_STORE_PASSWORD=android' \
+            'DEBUG_KEY_PASSWORD=android' \
+            'DEBUG_KEYSTORE_ALIAS=androiddebugkey' \
+            > local.properties
+
+      - name: Create google-services.json
+        working-directory: android/app
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
+
+      - name: Build app APK for baseline profile
+        working-directory: android
+        run: ./gradlew :app:assembleNonMinifiedRelease --no-daemon
+
+      - name: Build benchmark APK
+        working-directory: android
+        run: ./gradlew :baselineprofile:assembleNonMinifiedRelease --no-daemon
+
+      - name: Run baseline profile generation with emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_6
+          target: aosp_atd
+          disable-animations: true
+          disk-size: 6000M
+          heap-size: 600M
+          script: cd android && ./gradlew :app:generateBaselineProfile --no-daemon --stacktrace
+
+      - name: Upload baseline profile artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-profile
+          path: android/app/src/main/baseline-prof.txt
+          retention-days: 1
+
+  release:
+    name: Build and Release
+    needs: generate-baseline-profile
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Download baseline profile
+        uses: actions/download-artifact@v4
+        with:
+          name: baseline-profile
+          path: android/app/src/main/
 
       - name: Decode and setup release keystore
         working-directory: android/app
