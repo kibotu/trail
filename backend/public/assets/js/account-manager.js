@@ -101,9 +101,9 @@ class AccountManager {
                 <div class="modal-body">
                     <p>We're sorry to hear you'd like to leave Trail. Before you go, here's what will happen:</p>
                     <ul class="delete-consequences">
-                        <li><i class="fa-solid fa-eye-slash"></i><span>Your profile, entries, and comments will be <strong>hidden immediately</strong> from public view.</span></li>
-                        <li><i class="fa-solid fa-clock"></i><span>Your account and all data will be <strong>permanently deleted after 14 days</strong>.</span></li>
-                        <li><i class="fa-solid fa-rotate-left"></i><span>You can <strong>reverse this decision</strong> within the 14-day window by emailing <a href="mailto:contact@kibotu.net">contact@kibotu.net</a>.</span></li>
+                        <li><i class="fa-solid fa-eye-slash"></i>Your profile, entries, and comments will be <strong>hidden immediately</strong> from public view.</li>
+                        <li><i class="fa-solid fa-clock"></i>Your account and all data will be <strong>permanently deleted after 14 days</strong>.</li>
+                        <li><i class="fa-solid fa-rotate-left"></i>You can <strong>reverse this decision</strong> within the 14-day window by emailing <a href="mailto:contact@kibotu.net">contact@kibotu.net</a>.</li>
                     </ul>
                     <div class="delete-confirm-input">
                         <label for="deleteConfirmNickname">Type your nickname <strong>${this.nickname || 'your_nickname'}</strong> to confirm:</label>

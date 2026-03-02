@@ -7238,23 +7238,20 @@ main {
 }
 
 .delete-consequences li {
-    display: grid;
-    grid-template-columns: 1.25rem 1fr;
-    gap: 0.625rem;
-    padding: 0.5rem 0;
+    position: relative;
+    padding: 0.5rem 0 0.5rem 2rem;
     font-size: 0.9rem;
     color: var(--text-secondary);
     line-height: 1.55;
 }
 
 .delete-consequences li i {
-    color: var(--text-muted);
-    padding-top: 0.2rem;
+    position: absolute;
+    left: 0;
+    top: 0.7rem;
+    width: 1.25rem;
     text-align: center;
-}
-
-.delete-consequences li span {
-    display: inline;
+    color: var(--text-muted);
 }
 
 .delete-consequences li a {
@@ -7325,7 +7322,6 @@ main {
 
     .delete-consequences li {
         font-size: 0.825rem;
-        gap: 0.5rem;
     }
 
     .delete-modal-content .modal-footer {
@@ -7371,4 +7367,176 @@ main {
     flex-shrink: 0;
     font-size: 0.75rem;
     padding: 0.3rem 0.6rem;
+}
+
+/* Account Pending Deletion Blocker Page */
+.page-account-pending-deletion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem;
+}
+
+.deletion-blocker {
+    width: 100%;
+    max-width: 520px;
+    z-index: 1;
+}
+
+.deletion-blocker-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.deletion-blocker-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    font-size: 1.75rem;
+}
+
+.deletion-blocker-card h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    line-height: 1.35;
+}
+
+.deletion-blocker-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.75rem;
+}
+
+.deletion-blocker-info {
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.deletion-blocker-info-item {
+    position: relative;
+    padding: 0.5rem 0 0.5rem 2rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.deletion-blocker-info-item i {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
+    width: 1.25rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.deletion-blocker-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.deletion-blocker-actions .btn-revert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deletion-blocker-actions .btn-revert:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+}
+
+.deletion-blocker-actions .btn-revert:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.deletion-blocker-actions .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.deletion-blocker-actions .btn-ghost:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+    background: var(--bg-tertiary);
+}
+
+.deletion-blocker-contact {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.deletion-blocker-contact a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.deletion-blocker-contact a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .deletion-blocker-card {
+        padding: 2rem 1.25rem;
+        border-radius: 12px;
+    }
+
+    .deletion-blocker-card h1 {
+        font-size: 1.15rem;
+    }
+
+    .deletion-blocker-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .deletion-blocker-info-item {
+        font-size: 0.825rem;
+    }
+
+    .deletion-blocker-actions .btn-revert {
+        font-size: 0.875rem;
+        padding: 0.7rem 1.25rem;
+    }
 }

@@ -103,21 +103,22 @@ function createSession(
 
 /**
  * Validate a session and return user data if valid.
+ * Joins trail_users to include deletion_requested_at for blocker page checks.
  */
 function validateUserSession(PDO $db, string $sessionId): ?array
 {
-    // Check if jwt_token column exists
     try {
         $stmt = $db->prepare("
-            SELECT user_id, email, photo_url, is_admin, jwt_token, expires_at 
-            FROM trail_sessions 
-            WHERE session_id = ? AND expires_at > NOW()
+            SELECT s.user_id, s.email, s.photo_url, s.is_admin, s.jwt_token, s.expires_at,
+                   u.deletion_requested_at
+            FROM trail_sessions s
+            JOIN trail_users u ON u.id = s.user_id
+            WHERE s.session_id = ? AND s.expires_at > NOW()
         ");
         $stmt->execute([$sessionId]);
         return $stmt->fetch() ?: null;
     } catch (PDOException $e) {
-        // Fallback if jwt_token column doesn't exist yet
-        if (strpos($e->getMessage(), 'jwt_token') !== false) {
+        if (strpos($e->getMessage(), 'jwt_token') !== false || strpos($e->getMessage(), 'deletion_requested_at') !== false) {
             $stmt = $db->prepare("
                 SELECT user_id, email, photo_url, is_admin, expires_at 
                 FROM trail_sessions 
@@ -127,11 +128,34 @@ function validateUserSession(PDO $db, string $sessionId): ?array
             $result = $stmt->fetch();
             if ($result) {
                 $result['jwt_token'] = null;
+                $result['deletion_requested_at'] = null;
             }
             return $result ?: null;
         }
         throw $e;
     }
+}
+
+/**
+ * Check if the current session user has a pending deletion request.
+ * Returns deletion info or null if no pending deletion.
+ */
+function getDeletionInfo(?array $session): ?array
+{
+    if ($session === null || empty($session['deletion_requested_at'])) {
+        return null;
+    }
+
+    $requestedAt = new DateTime($session['deletion_requested_at']);
+    $deletionDate = (clone $requestedAt)->modify('+14 days');
+    $now = new DateTime();
+    $daysRemaining = max(0, (int) $now->diff($deletionDate)->days);
+
+    return [
+        'deletion_requested_at' => $session['deletion_requested_at'],
+        'deletion_requested_date' => $requestedAt->format('F j, Y'),
+        'days_remaining' => $daysRemaining,
+    ];
 }
 
 /**

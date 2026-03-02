@@ -303,6 +303,51 @@ class ProfileController
     }
 
     /**
+     * Revert a pending account deletion request (self-service from blocker page)
+     */
+    public static function revertDeletion(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $userId = $request->getAttribute('user_id');
+
+        if (!$userId) {
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $userModel = new User($db);
+
+        $user = $userModel->findById($userId);
+
+        if (!$user) {
+            $response->getBody()->write(json_encode(['error' => 'User not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (empty($user['deletion_requested_at'])) {
+            $response->getBody()->write(json_encode(['error' => 'No pending deletion request']));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        }
+
+        $success = $userModel->revertDeletion($userId);
+
+        if (!$success) {
+            $response->getBody()->write(json_encode(['error' => 'Failed to restore account']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+
+        $nickname = $user['nickname'] ?? $user['name'] ?? 'Unknown';
+        error_log("Account restored: User {$nickname} ({$user['email']}) reversed their deletion request");
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => 'Welcome back! Your account has been restored and your content is visible again.',
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * Export all user data as a self-contained HTML file (GDPR Art. 20 data portability)
      */
     public static function exportData(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

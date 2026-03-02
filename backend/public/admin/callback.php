@@ -54,7 +54,7 @@ try {
     $isAdminUser = ($adminEmail !== null && strtolower($email) === strtolower($adminEmail));
 
     // Find or create user in database
-    $stmt = $db->prepare("SELECT id, is_admin FROM trail_users WHERE google_id = ?");
+    $stmt = $db->prepare("SELECT id, is_admin, deletion_requested_at FROM trail_users WHERE google_id = ?");
     $stmt->execute([$googleId]);
     $user = $stmt->fetch();
 
@@ -105,8 +105,12 @@ try {
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());
 
-    // Redirect to landing page for all users
-    header('Location: /');
+    // Redirect to blocker page if deletion is pending, otherwise landing page
+    $redirectTo = '/';
+    if ($user && !empty($user['deletion_requested_at'])) {
+        $redirectTo = '/account-pending-deletion';
+    }
+    header('Location: ' . $redirectTo);
     exit;
 
 } catch (Exception $e) {

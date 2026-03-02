@@ -63,6 +63,37 @@ $app->add(new CorsMiddleware());
 $app->add(new SecurityMiddleware($config));
 // Note: Rate limiting is applied per-route, not globally
 
+// Account pending deletion blocker page
+$app->get('/account-pending-deletion', function ($request, $response) use ($config) {
+    require_once __DIR__ . '/helpers/session.php';
+    $db = \Trail\Database\Database::getInstance($config);
+    $session = getAuthenticatedUser($db);
+
+    if ($session === null) {
+        return $response->withHeader('Location', '/')->withStatus(302);
+    }
+
+    $deletionInfo = getDeletionInfo($session);
+    if ($deletionInfo === null) {
+        return $response->withHeader('Location', '/')->withStatus(302);
+    }
+
+    $deletionRequestedDate = $deletionInfo['deletion_requested_date'];
+    $daysRemaining = $deletionInfo['days_remaining'];
+
+    $blockerPage = __DIR__ . '/../templates/public/account-pending-deletion.php';
+    ob_start();
+    include $blockerPage;
+    $html = ob_get_clean();
+    $response->getBody()->write($html);
+
+    return $response
+        ->withHeader('Content-Type', 'text/html')
+        ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        ->withHeader('Pragma', 'no-cache')
+        ->withHeader('Expires', '0');
+});
+
 // Root endpoint - Show public entries landing page
 $app->get('/', function ($request, $response) use ($config) {
     $landingPage = __DIR__ . '/../templates/public/landing.php';
@@ -73,6 +104,12 @@ $app->get('/', function ($request, $response) use ($config) {
         $db = \Trail\Database\Database::getInstance($config);
         $session = getAuthenticatedUser($db);
         $isLoggedIn = $session !== null;
+
+        // Redirect to blocker if deletion is pending
+        if ($isLoggedIn && getDeletionInfo($session) !== null) {
+            return $response->withHeader('Location', '/account-pending-deletion')->withStatus(302);
+        }
+
         $userId = $session['user_id'] ?? null;
         $userName = $session['email'] ?? null;
         $userPhotoUrl = $session['photo_url'] ?? null;
@@ -116,10 +153,13 @@ $app->get('/profile', function ($request, $response) use ($config) {
         $isLoggedIn = $session !== null;
         
         if (!$isLoggedIn) {
-            // Redirect to home if not logged in
             return $response
                 ->withHeader('Location', '/')
                 ->withStatus(302);
+        }
+
+        if (getDeletionInfo($session) !== null) {
+            return $response->withHeader('Location', '/account-pending-deletion')->withStatus(302);
         }
         
         $userName = $session['email'] ?? null;
@@ -153,6 +193,11 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
         $db = \Trail\Database\Database::getInstance($config);
         $session = getAuthenticatedUser($db);
         $isLoggedIn = $session !== null;
+
+        if ($isLoggedIn && getDeletionInfo($session) !== null) {
+            return $response->withHeader('Location', '/account-pending-deletion')->withStatus(302);
+        }
+
         $userId = $session['user_id'] ?? null;
         $userName = $session['email'] ?? null;
         $userPhotoUrl = $session['photo_url'] ?? null;
@@ -245,6 +290,11 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
         $db = \Trail\Database\Database::getInstance($config);
         $session = getAuthenticatedUser($db);
         $isLoggedIn = $session !== null;
+
+        if ($isLoggedIn && getDeletionInfo($session) !== null) {
+            return $response->withHeader('Location', '/account-pending-deletion')->withStatus(302);
+        }
+
         $userId = $session['user_id'] ?? null;
         $userName = $session['email'] ?? null;
         $userPhotoUrl = $session['photo_url'] ?? null;
@@ -377,6 +427,7 @@ $app->post('/api/auth/logout', function ($request, $response) use ($config) {
 $app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
 $app->put('/api/profile', [ProfileController::class, 'updateProfile'])->add(new AuthMiddleware($config));
 $app->post('/api/profile/delete', [ProfileController::class, 'requestDeletion'])->add(new AuthMiddleware($config));
+$app->post('/api/profile/revert-deletion', [ProfileController::class, 'revertDeletion'])->add(new AuthMiddleware($config));
 $app->get('/api/profile/export', [ProfileController::class, 'exportData'])->add(new AuthMiddleware($config));
 
 // API Token routes (authenticated)
