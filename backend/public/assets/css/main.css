@@ -7172,15 +7172,47 @@ main {
 /* Delete Account Modal */
 .delete-modal-content {
     max-width: 480px;
+    position: relative;
+    overflow: hidden;
 }
 
-.delete-modal-header {
-    background: rgba(239, 68, 68, 0.1);
-    border-bottom-color: rgba(239, 68, 68, 0.2);
+.delete-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.45);
+    border: none;
+    color: #fff;
+    font-size: 1.25rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    line-height: 1;
 }
 
-.delete-modal-header h3 {
-    color: var(--error);
+.delete-modal-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.delete-modal-mascot {
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1rem 0;
+}
+
+.delete-modal-mascot img {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    display: block;
 }
 
 .delete-modal-content .btn-danger {
@@ -7304,12 +7336,12 @@ main {
         border-radius: 10px;
     }
 
-    .delete-modal-content .modal-header {
-        padding: 0.875rem 1rem;
+    .delete-modal-mascot {
+        padding: 0.75rem 0.75rem 0;
     }
 
-    .delete-modal-content .modal-header h3 {
-        font-size: 1rem;
+    .delete-modal-mascot img {
+        max-width: 240px;
     }
 
     .delete-modal-content .modal-body {
@@ -7388,37 +7420,35 @@ main {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 2.5rem 2rem;
-    text-align: center;
+    overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
-.deletion-blocker-icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 1.5rem;
+.deletion-blocker-mascot {
+    background: #1a1a1a;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
-    font-size: 1.75rem;
+    padding: 1.5rem 1.5rem 0.5rem;
 }
 
-.deletion-blocker-card h1 {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-    line-height: 1.35;
+.deletion-blocker-mascot img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    display: block;
+}
+
+.deletion-blocker-body {
+    padding: 1.5rem 2rem 2rem;
+    text-align: center;
 }
 
 .deletion-blocker-subtitle {
     font-size: 0.95rem;
     color: var(--text-secondary);
     line-height: 1.6;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.5rem;
 }
 
 .deletion-blocker-info {
@@ -7519,12 +7549,19 @@ main {
 
 @media (max-width: 480px) {
     .deletion-blocker-card {
-        padding: 2rem 1.25rem;
         border-radius: 12px;
     }
 
-    .deletion-blocker-card h1 {
-        font-size: 1.15rem;
+    .deletion-blocker-mascot {
+        padding: 1rem 1rem 0.25rem;
+    }
+
+    .deletion-blocker-mascot img {
+        max-width: 220px;
+    }
+
+    .deletion-blocker-body {
+        padding: 1.25rem 1.25rem 1.5rem;
     }
 
     .deletion-blocker-subtitle {

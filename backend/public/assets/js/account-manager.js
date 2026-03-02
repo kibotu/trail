@@ -94,12 +94,12 @@ class AccountManager {
         modal.className = 'modal-overlay';
         modal.innerHTML = `
             <div class="modal-content delete-modal-content">
-                <div class="modal-header delete-modal-header">
-                    <h3><i class="fa-solid fa-heart-crack"></i> We're sad to see you go</h3>
-                    <button class="modal-close" id="deleteModalClose">&times;</button>
+                <button class="delete-modal-close" id="deleteModalClose">&times;</button>
+                <div class="delete-modal-mascot">
+                    <img src="/assets/delete-whale.png" alt="Are you sure you want to say goodbye?" />
                 </div>
                 <div class="modal-body">
-                    <p>We're sorry to hear you'd like to leave Trail. Before you go, here's what will happen:</p>
+                    <p>Before you go, here's what will happen:</p>
                     <ul class="delete-consequences">
                         <li><i class="fa-solid fa-eye-slash"></i>Your profile, entries, and comments will be <strong>hidden immediately</strong> from public view.</li>
                         <li><i class="fa-solid fa-clock"></i>Your account and all data will be <strong>permanently deleted after 14 days</strong>.</li>

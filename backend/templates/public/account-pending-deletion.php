@@ -18,47 +18,45 @@
 
     <div class="deletion-blocker">
         <div class="deletion-blocker-card">
-            <div class="deletion-blocker-icon">
-                <i class="fa-solid fa-hourglass-half"></i>
-            </div>
-            <h1>Your account is scheduled for deletion</h1>
-            <p class="deletion-blocker-subtitle">
-                You requested account deletion on
-                <strong><?= htmlspecialchars($deletionRequestedDate) ?></strong>.
-                Your data will be permanently removed
-                <strong><?= $daysRemaining > 0 ? "in {$daysRemaining} day" . ($daysRemaining !== 1 ? 's' : '') : 'soon' ?></strong>.
-            </p>
-
-            <div class="deletion-blocker-info">
-                <div class="deletion-blocker-info-item">
-                    <i class="fa-solid fa-eye-slash"></i>
-                    <span>Your profile, entries, and comments are currently hidden from public view.</span>
-                </div>
-                <div class="deletion-blocker-info-item">
-                    <i class="fa-solid fa-clock"></i>
-                    <span>Permanent deletion occurs 14 days after your request.</span>
-                </div>
-                <div class="deletion-blocker-info-item">
-                    <i class="fa-solid fa-rotate-left"></i>
-                    <span>You can still change your mind and restore your account.</span>
-                </div>
+            <div class="deletion-blocker-mascot">
+                <img src="/assets/undo-delete-whale.png" alt="Changed your mind? Keep my account!" />
             </div>
 
-            <div class="deletion-blocker-actions">
-                <button type="button" class="btn btn-revert" id="revertDeletionBtn">
-                    <i class="fa-solid fa-rotate-left"></i>
-                    <span>I changed my mind — Restore my account</span>
-                </button>
-                <a href="/api/auth/logout" class="btn btn-ghost" id="logoutBtn" onclick="event.preventDefault(); fetch('/api/auth/logout', {method:'POST',credentials:'same-origin'}).then(()=>window.location.href='/');">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Log out</span>
-                </a>
-            </div>
+            <div class="deletion-blocker-body">
+                <p class="deletion-blocker-subtitle">
+                    You requested account deletion on
+                    <strong><?= htmlspecialchars($deletionRequestedDate) ?></strong>.
+                    Your data will be permanently removed
+                    <strong><?= $daysRemaining > 0 ? "in {$daysRemaining} day" . ($daysRemaining !== 1 ? 's' : '') : 'soon' ?></strong>.
+                </p>
 
-            <p class="deletion-blocker-contact">
-                You can also restore your account by emailing
-                <a href="mailto:contact@kibotu.net">contact@kibotu.net</a>.
-            </p>
+                <div class="deletion-blocker-info">
+                    <div class="deletion-blocker-info-item">
+                        <i class="fa-solid fa-eye-slash"></i>
+                        <span>Your profile, entries, and comments are currently hidden from public view.</span>
+                    </div>
+                    <div class="deletion-blocker-info-item">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Permanent deletion occurs 14 days after your request.</span>
+                    </div>
+                </div>
+
+                <div class="deletion-blocker-actions">
+                    <button type="button" class="btn btn-revert" id="revertDeletionBtn">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Keep my account</span>
+                    </button>
+                    <a href="/api/auth/logout" class="btn btn-ghost" id="logoutBtn" onclick="event.preventDefault(); fetch('/api/auth/logout', {method:'POST',credentials:'same-origin'}).then(()=>window.location.href='/');">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Log out</span>
+                    </a>
+                </div>
+
+                <p class="deletion-blocker-contact">
+                    You can also restore your account by emailing
+                    <a href="mailto:contact@kibotu.net">contact@kibotu.net</a>.
+                </p>
+            </div>
         </div>
     </div>
 
@@ -101,7 +99,7 @@
                 }
                 btn.disabled = false;
                 icon.className = originalIconClass;
-                label.textContent = 'I changed my mind — Restore my account';
+                label.textContent = 'Keep my account';
             }
         });
     </script>
