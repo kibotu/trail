@@ -27,26 +27,21 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Generate debug keystore
+      - name: Decode and setup release keystore
         working-directory: android/app
         run: |
           mkdir -p certificates
-          keytool -genkeypair -v \
-            -keystore certificates/debug.jks \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Debug,OU=Debug,O=Debug,L=Debug,ST=Debug,C=US"
+          echo "${{ secrets.STORE_KEYSTORE_FILE }}" | base64 -d > certificates/store.jks
 
       - name: Create local.properties for baseline profile
         working-directory: android
         run: |
           printf '%s\n' \
             'API_BASE_URL=https://trail.services.kibotu.net/' \
-            'DEBUG_KEYSTORE_PATH=certificates/debug.jks' \
-            'DEBUG_STORE_PASSWORD=android' \
-            'DEBUG_KEY_PASSWORD=android' \
-            'DEBUG_KEYSTORE_ALIAS=androiddebugkey' \
+            'RELEASE_KEYSTORE_PATH=certificates/store.jks' \
+            'RELEASE_KEYSTORE_ALIAS=release' \
+            'RELEASE_STORE_PASSWORD=${{ secrets.STORE_STORE_PASSWORD }}' \
+            'RELEASE_KEY_PASSWORD=${{ secrets.STORE_KEY_PASSWORD }}' \
             > local.properties
 
       - name: Create google-services.json
