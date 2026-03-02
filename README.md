@@ -1,5 +1,9 @@
 # Trail
 
+[![Build](https://github.com/kibotu/trail/actions/workflows/build.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/build.yml)
+[![Backend](https://github.com/kibotu/trail/actions/workflows/backend.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/backend.yml)
+[![Release](https://github.com/kibotu/trail/actions/workflows/release.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/release.yml)
+
 A self-hosted micro link journal. Multi-user, chronological, yours.
 
 **Live demo:** https://trail.services.kibotu.net
@@ -50,6 +54,9 @@ Personal link journaling without algorithmic feeds. Share what matters, own your
 - **RSS feeds** (global + per-user)
 - **Google OAuth 2.0** + persistent API tokens
 - **Twitter/X archive migration** (one command)
+- **Account deletion** with grace period and **account restore**
+- **Data export** — download all your data
+- [**Data Privacy**](https://trail.services.kibotu.net/data-privacy/) and [**Terms & Conditions**](https://trail.services.kibotu.net/terms-and-conditions/)
 
 ### Embedding
 

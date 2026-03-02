@@ -68,7 +68,7 @@ jobs:
           VERSION_CODE=$((major * 10000000 + minor * 100000 + hotfix * 1000 + BUILD_NUMBER))
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
 
-      - name: Generate baseline profile and run startup benchmarks
+      - name: Generate baseline profile
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -80,10 +80,7 @@ jobs:
           disable-animations: true
           disk-size: 6000M
           heap-size: 600M
-          script: |
-            cd android
-            ./gradlew :app:generateBaselineProfile --no-daemon --stacktrace
-            ./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest --no-daemon --stacktrace
+          script: cd android && ./gradlew :app:generateBaselineProfile --no-daemon --stacktrace
 
       - name: Build release APK
         working-directory: android
