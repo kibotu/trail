@@ -22,7 +22,6 @@ import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.network.ApiClient
-import net.kibotu.trail.shared.notification.NotificationRepository
 import net.kibotu.trail.shared.user.UserRepository
 
 data class CommentState(
@@ -34,8 +33,7 @@ data class CommentState(
 class HomeViewModel(
     private val entryRepository: EntryRepository,
     private val commentRepository: CommentRepository,
-    private val userRepository: UserRepository,
-    private val notificationRepository: NotificationRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     val entries: Flow<PagingData<Entry>> = Pager(
@@ -48,21 +46,6 @@ class HomeViewModel(
 
     private val _currentlyPlayingVideoId = MutableStateFlow<String?>(null)
     val currentlyPlayingVideoId: StateFlow<String?> = _currentlyPlayingVideoId.asStateFlow()
-
-    private val _unreadNotificationCount = MutableStateFlow(0)
-    val unreadNotificationCount: StateFlow<Int> = _unreadNotificationCount.asStateFlow()
-
-    init {
-        refreshUnreadNotifications()
-    }
-
-    fun refreshUnreadNotifications() {
-        viewModelScope.launch {
-            notificationRepository.getNotifications(limit = 1).onSuccess {
-                _unreadNotificationCount.value = it.unreadCount
-            }
-        }
-    }
 
     fun onVideoPlay(id: String?) {
         _currentlyPlayingVideoId.value = id
@@ -183,8 +166,7 @@ class HomeViewModel(
             return HomeViewModel(
                 EntryRepository(client),
                 CommentRepository(client),
-                UserRepository(client),
-                NotificationRepository(client)
+                UserRepository(client)
             ) as T
         }
     }

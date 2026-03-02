@@ -1,27 +1,20 @@
 package net.kibotu.trail.feature.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,12 +23,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.guru.fontawesomecomposelib.FaIcon
-import com.guru.fontawesomecomposelib.FaIcons
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
@@ -47,7 +37,6 @@ fun HomeScreen(
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
     onNavigateToSearch: (String) -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {},
     scrollConnection: NestedScrollConnection? = null,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
@@ -56,14 +45,7 @@ fun HomeScreen(
     val entries = viewModel.entries.collectAsLazyPagingItems()
     val commentsState by viewModel.commentsState.collectAsState()
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
-    val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val context = LocalContext.current
-
-    LaunchedEffect(authState.isLoggedIn) {
-        if (authState.isLoggedIn) {
-            viewModel.refreshUnreadNotifications()
-        }
-    }
 
     val isRefreshing = entries.loadState.refresh is LoadState.Loading
 
@@ -72,10 +54,7 @@ fun HomeScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = {
-                entries.refresh()
-                viewModel.refreshUnreadNotifications()
-            },
+            onRefresh = { entries.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
             when {
@@ -152,40 +131,5 @@ fun HomeScreen(
             }
         }
 
-        // Notification bell — top right, respects status bar
-        if (authState.isLoggedIn) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = statusBarTop + 8.dp, end = 12.dp)
-                    .zIndex(1f)
-            ) {
-                IconButton(
-                    onClick = onNavigateToNotifications,
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
-                ) {
-                    FaIcon(
-                        faIcon = if (unreadCount > 0) FaIcons.Bell else FaIcons.BellRegular,
-                        size = 20.dp,
-                        tint = if (unreadCount > 0)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (unreadCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 0.dp, y = 6.dp)
-                            .size(10.dp)
-                            .background(MaterialTheme.colorScheme.error, CircleShape)
-                    )
-                }
-            }
-        }
     }
 }
