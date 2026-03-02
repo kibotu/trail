@@ -13,8 +13,8 @@ dependencies = [
 import-twitter = "import_twitter_archive:main"
 test-api = "test_api:main"
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
 
 [build-system]
 requires = ["hatchling"]

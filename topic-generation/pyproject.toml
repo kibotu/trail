@@ -12,8 +12,8 @@ dependencies = [
 [project.scripts]
 generate-tags = "generate_tags:main"
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
 
 [build-system]
 requires = ["hatchling"]
