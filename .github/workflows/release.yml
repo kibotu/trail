@@ -29,6 +29,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Decode and setup release keystore
         working-directory: android/app
         run: |
@@ -62,6 +68,20 @@ jobs:
           VERSION_CODE=$((major * 10000000 + minor * 100000 + hotfix * 1000 + BUILD_NUMBER))
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
 
+      - name: Generate baseline profile
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          target: aosp_atd
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          disk-size: 6000M
+          heap-size: 600M
+          script: cd android && ./gradlew :app:generateBaselineProfile --no-daemon --stacktrace
+
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease -PversionName=${{ steps.version.outputs.VERSION }} -PversionCode=${{ steps.version.outputs.VERSION_CODE }} -Porg.gradle.offline=false --no-daemon --stacktrace
@@ -73,10 +93,7 @@ jobs:
       - name: Rename artifacts
         working-directory: android/app/build/outputs
         run: |
-          # Rename APK
           mv apk/release/app-release.apk apk/release/trail-${{ steps.version.outputs.VERSION }}.apk
-          
-          # Rename AAB
           mv bundle/release/app-release.aab bundle/release/trail-${{ steps.version.outputs.VERSION }}.aab
 
       - name: Create GitHub Release
