@@ -81,7 +81,7 @@ class TagGenerator:
         api_url: Optional[str] = None,
         cache_file: str = ".tag_generation_cache.json",
         dry_run: bool = False,
-        skip_tagged: bool = False,
+        include_tagged: bool = False,
         delay_ms: int = DEFAULT_DELAY_MS,
         model: Optional[str] = None,
         verbose: bool = False,
@@ -95,7 +95,7 @@ class TagGenerator:
         )
         self.cache_file = cache_file
         self.dry_run = dry_run
-        self.skip_tagged = skip_tagged
+        self.include_tagged = include_tagged
         self.delay_ms = delay_ms
         self.model = model
         self.verbose = verbose
@@ -394,10 +394,11 @@ class TagGenerator:
     def run(self, limit: Optional[int] = None) -> None:
         """Main loop: fetch, iterate, generate, apply, cache."""
         print("🏷️  Trail Tag Generator")
-        print(f"   API:        {self.api_url}")
-        print(f"   Cache:      {self.cache_file}")
-        print(f"   Dry run:    {self.dry_run}")
-        print(f"   Model:      {self.model or '(default)'}")
+        print(f"   API:            {self.api_url}")
+        print(f"   Cache:          {self.cache_file}")
+        print(f"   Dry run:        {self.dry_run}")
+        print(f"   Include tagged: {self.include_tagged}")
+        print(f"   Model:          {self.model or '(default)'}")
         print()
 
         # Step 1: Fetch all entries
@@ -415,7 +416,7 @@ class TagGenerator:
             if hid in self.processed:
                 self.stats["skipped_cached"] += 1
                 continue
-            if self.skip_tagged and entry.get("tags"):
+            if not self.include_tagged and entry.get("tags"):
                 self.stats["skipped_has_tags"] += 1
                 continue
             to_process.append(entry)
@@ -431,7 +432,7 @@ class TagGenerator:
 
         print(f"📋 To process: {len(to_process)}")
         print(f"⏭️  Skipped (cached): {self.stats['skipped_cached']}")
-        if self.skip_tagged:
+        if self.stats['skipped_has_tags']:
             print(f"⏭️  Skipped (has tags): {self.stats['skipped_has_tags']}")
         print()
 
@@ -499,7 +500,7 @@ class TagGenerator:
         print(f"Processed:                  {self.stats['processed']} ✅")
         print(f"Failed:                     {self.stats['failed']} ❌")
         print(f"Skipped (cached):           {self.stats['skipped_cached']} ⏭️")
-        if self.skip_tagged:
+        if self.stats['skipped_has_tags'] > 0:
             print(f"Skipped (has tags):         {self.stats['skipped_has_tags']} ⏭️")
         if self.stats['skipped_not_owner'] > 0:
             print(f"Skipped (not owner):        {self.stats['skipped_not_owner']} 🔒")
@@ -567,9 +568,10 @@ Examples:
     )
     
     parser.add_argument(
-        "--skip-tagged",
+        "--include-tagged",
         action="store_true",
-        help="Skip entries that already have tags assigned",
+        help="Also process entries that already have tags. By default, entries "
+             "with existing tags are skipped.",
     )
     
     parser.add_argument(
