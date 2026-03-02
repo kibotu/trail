@@ -37,12 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.entry.CreateEntryRequest
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.network.ApiClient
+import net.kibotu.trail.shared.review.LocalInAppReviewManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +62,8 @@ fun ShareScreen(
         return
     }
 
+    val context = LocalContext.current
+    val inAppReviewManager = LocalInAppReviewManager.current
     val entryRepository = remember { EntryRepository(ApiClient.client) }
     var text by remember { mutableStateOf(initialText) }
     var isPosting by remember { mutableStateOf(false) }
@@ -147,7 +152,12 @@ fun ShareScreen(
                                         errorMessage = null
                                         entryRepository.createEntry(CreateEntryRequest(text))
                                             .fold(
-                                                onSuccess = { onShareSuccess() },
+                                                onSuccess = {
+                                                    (context as? Activity)?.let { activity ->
+                                                        inAppReviewManager.promptIfEligible(activity)
+                                                    }
+                                                    onShareSuccess()
+                                                },
                                                 onFailure = { e ->
                                                     errorMessage =
                                                         e.message ?: "Failed to share"

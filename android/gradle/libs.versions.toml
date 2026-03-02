@@ -28,6 +28,7 @@ lifecycleViewmodelKtx = "2.10.0"
 media3 = "1.9.2"
 navigation = "2.9.7"
 paging = "3.4.1"
+playReview = "2.0.2"
 playServicesAuth = "21.5.1"
 playservices = "4.4.4"
 profileinstaller = "1.4.1"
@@ -83,6 +84,8 @@ media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = 
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
+play-review = { module = "com.google.android.play:review", version.ref = "playReview" }
+play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]

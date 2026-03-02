@@ -197,6 +197,10 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.play.services.auth)
 
+    // in-app review
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
+
     // networking with ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)

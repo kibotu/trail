@@ -21,6 +21,8 @@ import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.navigation.TrailNavigation
 import net.kibotu.trail.shared.splash.HeartBeatAnimation
+import net.kibotu.trail.shared.review.InAppReviewManager
+import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.TrailTheme
@@ -28,6 +30,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
     private lateinit var themePreferences: ThemePreferences
+    private lateinit var inAppReviewManager: InAppReviewManager
     private var splashScreenDecorator: net.kibotu.splashscreen.SplashScreenDecorator? = null
     private val _pendingSharedText = MutableStateFlow<String?>(null)
     private val pendingSharedText = _pendingSharedText.asStateFlow()
@@ -51,6 +54,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         themePreferences = ThemePreferences(applicationContext)
+        inAppReviewManager = InAppReviewManager(applicationContext)
 
         setContent {
             val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
@@ -66,7 +70,8 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(
                 LocalAuthViewModel provides authViewModel,
-                LocalThemePreferences provides themePreferences
+                LocalThemePreferences provides themePreferences,
+                LocalInAppReviewManager provides inAppReviewManager
             ) {
                 TrailTheme(darkTheme = isDarkTheme) {
                     Surface(

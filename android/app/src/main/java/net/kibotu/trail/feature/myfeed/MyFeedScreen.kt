@@ -23,7 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +44,7 @@ import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.feature.home.CommentState
+import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
 
@@ -68,13 +71,22 @@ fun MyFeedScreen(
         }
         return
     }
-    val viewModel: MyFeedViewModel = viewModel(factory = MyFeedViewModel.Factory(LocalContext.current, nickname))
+    val context = LocalContext.current
+    val inAppReviewManager = LocalInAppReviewManager.current
+    val viewModel: MyFeedViewModel = viewModel(factory = MyFeedViewModel.Factory(context, nickname, inAppReviewManager))
     val entries = viewModel.entries.collectAsLazyPagingItems()
     val commentsState by viewModel.commentsState.collectAsState()
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
     val showTags by LocalThemePreferences.current.showEntryTags.collectAsState()
     val isPosting by viewModel.isPosting.collectAsState()
-    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.reviewEvent.collect {
+            (context as? Activity)?.let { activity ->
+                inAppReviewManager.promptIfEligible(activity)
+            }
+        }
+    }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 

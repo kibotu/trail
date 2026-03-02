@@ -10,8 +10,11 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.comment.Comment
@@ -23,6 +26,7 @@ import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.entry.UserEntriesPagingSource
 import net.kibotu.trail.shared.network.ApiClient
+import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.user.UserRepository
 import net.kibotu.trail.feature.home.CommentState
 
@@ -30,7 +34,8 @@ class MyFeedViewModel(
     private val entryRepository: EntryRepository,
     private val commentRepository: CommentRepository,
     private val userRepository: UserRepository,
-    private val nickname: String
+    private val nickname: String,
+    private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
 
     private val _pagingSource = MutableStateFlow<UserEntriesPagingSource?>(null)
@@ -53,13 +58,21 @@ class MyFeedViewModel(
     private val _isPosting = MutableStateFlow(false)
     val isPosting: StateFlow<Boolean> = _isPosting.asStateFlow()
 
+    private val _reviewEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val reviewEvent: SharedFlow<Unit> = _reviewEvent.asSharedFlow()
+
     fun onVideoPlay(id: String?) { _currentlyPlayingVideoId.value = id }
 
     fun createEntry(text: String) {
         viewModelScope.launch {
             _isPosting.value = true
             entryRepository.createEntry(CreateEntryRequest(text)).fold(
-                onSuccess = { _pagingSource.value?.invalidate() },
+                onSuccess = {
+                    _pagingSource.value?.invalidate()
+                    if (inAppReviewManager.shouldPrompt()) {
+                        _reviewEvent.tryEmit(Unit)
+                    }
+                },
                 onFailure = {}
             )
             _isPosting.value = false
@@ -120,11 +133,15 @@ class MyFeedViewModel(
         context.startActivity(Intent.createChooser(intent, "Share entry"))
     }
 
-    class Factory(private val context: Context, private val nickname: String) : ViewModelProvider.Factory {
+    class Factory(
+        private val context: Context,
+        private val nickname: String,
+        private val inAppReviewManager: InAppReviewManager
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val client = ApiClient.client
-            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), nickname) as T
+            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), nickname, inAppReviewManager) as T
         }
     }
 }
