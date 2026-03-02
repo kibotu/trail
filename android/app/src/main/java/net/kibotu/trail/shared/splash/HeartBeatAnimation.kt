@@ -200,7 +200,7 @@ fun HeartBeatAnimation(
     val curveX = curveDirection * iconPx * 0.6f * p * (1f - p) * 4f
     val curveY = -iconPx * 2.8f * p
     val tilt = curveDirection * -8f * p * (1f - p) * 4f
-    val iconScale = 1f + 0.1f * p * (1f - p) * 4f - 0.3f * p * p
+    val iconScale = 1f + 0.08f * p * (1f - p) * 4f - 0.7f * p * p
 
     Box(
         modifier = modifier.fillMaxSize(),
