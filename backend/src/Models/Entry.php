@@ -70,7 +70,7 @@ class Entry
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
         }
         
-        $sql .= " WHERE e.id = ?";
+        $sql .= " WHERE e.id = ? AND u.deletion_requested_at IS NULL";
         
         $stmt = $this->db->prepare($sql);
         
@@ -87,6 +87,64 @@ class Entry
         }
         
         // Add tags
+        $tagModel = new Tag($this->db);
+        $entry['tags'] = $tagModel->getTagsForEntry((int) $entry['id']);
+        
+        return $entry;
+    }
+
+    /**
+     * Find entry by ID without deletion filtering (for admin use)
+     */
+    public function findByIdUnfiltered(int $id, ?int $currentUserId = null): ?array
+    {
+        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url,
+                p.url as preview_url, p.title as preview_title, p.description as preview_description,
+                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
+                COALESCE(clap_totals.total_claps, 0) as clap_count,
+                COALESCE(comment_counts.comment_count, 0) as comment_count,
+                COALESCE(view_counts.view_count, 0) as view_count";
+        
+        if ($currentUserId !== null) {
+            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
+        }
+        
+        $sql .= " FROM {$this->table} e 
+                 JOIN trail_users u ON e.user_id = u.id 
+                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
+                 LEFT JOIN (
+                     SELECT entry_id, SUM(clap_count) as total_claps
+                     FROM trail_claps
+                     GROUP BY entry_id
+                 ) clap_totals ON e.id = clap_totals.entry_id
+                 LEFT JOIN (
+                     SELECT entry_id, COUNT(*) as comment_count
+                     FROM trail_comments
+                     GROUP BY entry_id
+                 ) comment_counts ON e.id = comment_counts.entry_id
+                 LEFT JOIN trail_view_counts view_counts 
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+        
+        if ($currentUserId !== null) {
+            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
+        }
+        
+        $sql .= " WHERE e.id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        
+        if ($currentUserId !== null) {
+            $stmt->execute([$currentUserId, $id]);
+        } else {
+            $stmt->execute([$id]);
+        }
+        
+        $entry = $stmt->fetch();
+        
+        if (!$entry) {
+            return null;
+        }
+        
         $tagModel = new Tag($this->db);
         $entry['tags'] = $tagModel->getTagsForEntry((int) $entry['id']);
         
@@ -149,7 +207,7 @@ class Entry
         return $stmt->fetchAll();
     }
 
-    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null): array
+    public function getAll(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null, bool $includeDeleted = false): array
     {
         // Build SELECT with clap counts, comment counts, and view counts
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
@@ -199,6 +257,10 @@ class Entry
         // Add tag filter parameter (must come after user claps join param)
         if ($tagFilter !== null) {
             $params[] = $tagFilter;
+        }
+        
+        if (!$includeDeleted) {
+            $whereConditions[] = "u.deletion_requested_at IS NULL";
         }
         
         if ($before !== null) {
@@ -718,9 +780,9 @@ class Entry
     /**
      * Get all entries with image URLs attached
      */
-    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null): array
+    public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null, bool $includeDeleted = false): array
     {
-        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter, $tagFilter);
+        $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter, $tagFilter, $includeDeleted);
         $entries = array_map([$this, 'attachImageUrls'], $entries);
         return $this->attachTagsToEntries($entries);
     }
@@ -794,7 +856,7 @@ class Entry
         }
         
         // Build WHERE clause
-        $whereConditions = [];
+        $whereConditions = ["u.deletion_requested_at IS NULL"];
         
         // Add search condition
         if ($useFulltext) {
@@ -994,7 +1056,7 @@ class Entry
                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id";
         
         $params = [];
-        $whereConditions = [];
+        $whereConditions = ["u.deletion_requested_at IS NULL"];
         
         // Add search condition
         if ($useFulltext) {
@@ -1089,7 +1151,7 @@ class Entry
         }
         
         // Build WHERE clause
-        $whereConditions = ["t.slug = ?"];
+        $whereConditions = ["t.slug = ?", "u.deletion_requested_at IS NULL"];
         $params[] = $tagSlug;
         
         if ($before !== null) {
@@ -1144,11 +1206,12 @@ class Entry
     {
         $sql = "SELECT COUNT(DISTINCT e.id) as total
                 FROM trail_entries e
+                JOIN trail_users u ON e.user_id = u.id
                 JOIN trail_entry_tags et ON e.id = et.entry_id
                 JOIN trail_tags t ON et.tag_id = t.id";
         
         $params = [];
-        $whereConditions = ["t.slug = ?"];
+        $whereConditions = ["t.slug = ?", "u.deletion_requested_at IS NULL"];
         $params[] = $tagSlug;
         
         if ($excludeUserId !== null) {

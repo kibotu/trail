@@ -70,8 +70,8 @@ class AdminController
             }
         }
 
-        // Admin view includes clap counts (no user-specific counts needed)
-        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter, $tagFilter);
+        // Admin view includes clap counts (no user-specific counts needed), includes soft-deleted users
+        $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter, $tagFilter, true);
 
         // Initialize HashIdService
         $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
@@ -201,6 +201,35 @@ class AdminController
         $deleted = $entryModel->deleteByUser($userId);
 
         $response->getBody()->write(json_encode(['success' => true, 'deleted' => $deleted]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public static function revertDeletion(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $userId = (int) $args['id'];
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $userModel = new User($db);
+
+        $user = $userModel->findById($userId);
+
+        if (!$user) {
+            $response->getBody()->write(json_encode(['error' => 'User not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (empty($user['deletion_requested_at'])) {
+            $response->getBody()->write(json_encode(['error' => 'User has no pending deletion request']));
+            return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
+        }
+
+        $success = $userModel->revertDeletion($userId);
+
+        $response->getBody()->write(json_encode([
+            'success' => $success,
+            'message' => $success ? 'Deletion request reverted successfully' : 'Failed to revert deletion',
+        ]));
         return $response->withHeader('Content-Type', 'application/json');
     }
 

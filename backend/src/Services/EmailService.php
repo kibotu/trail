@@ -536,6 +536,179 @@ TEXT;
     }
 
     /**
+     * Notify admin that a user has requested account deletion
+     */
+    public function sendDeletionRequestNotification(array $user): bool
+    {
+        $userName = htmlspecialchars($user['name'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
+        $userEmail = htmlspecialchars($user['email'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+        $userId = (int) ($user['id'] ?? 0);
+        $adminUrl = $this->baseUrl . '/admin/users.php';
+        $requestedAt = date('M j, Y \a\t g:i A');
+
+        $subject = "Account Deletion Request - {$userName}";
+
+        $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Request</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -30px -30px 30px -30px; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .info-section { background-color: #f9fafb; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 4px; }
+        .info-label { font-weight: 600; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .info-value { color: #111827; font-size: 14px; margin-bottom: 12px; }
+        .action-button { display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
+        .notice { background-color: #fef3c7; border: 1px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 14px; margin: 16px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account Deletion Request</h1>
+        </div>
+        <p>A user has requested to delete their Trail account.</p>
+        <div class="info-section">
+            <div class="info-label">User</div>
+            <div class="info-value">{$userName} ({$userEmail})</div>
+            <div class="info-label">User ID</div>
+            <div class="info-value">#{$userId}</div>
+            <div class="info-label">Requested At</div>
+            <div class="info-value">{$requestedAt}</div>
+        </div>
+        <div class="notice">
+            The user's content has been hidden from public view. Their account and data will be permanently deleted in <strong>14 days</strong> unless reverted from the admin panel.
+        </div>
+        <a href="{$adminUrl}" class="action-button">View in Admin Panel &rarr;</a>
+        <div class="footer">
+            <p>This is an automated notification from Trail.</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+        $textBody = <<<TEXT
+ACCOUNT DELETION REQUEST
+========================
+
+A user has requested to delete their Trail account.
+
+User: {$userName} ({$userEmail})
+User ID: #{$userId}
+Requested At: {$requestedAt}
+
+The user's content has been hidden from public view. Their account and data will be permanently deleted in 14 days unless reverted from the admin panel.
+
+View in Admin Panel: {$adminUrl}
+
+---
+This is an automated notification from Trail.
+TEXT;
+
+        return $this->sendEmail($this->adminEmail, $subject, $htmlBody, $textBody);
+    }
+
+    /**
+     * Send deletion confirmation email to the user
+     */
+    public function sendDeletionConfirmation(array $user, string $contactEmail): bool
+    {
+        $userName = htmlspecialchars($user['name'] ?? 'there', ENT_QUOTES, 'UTF-8');
+        $userEmail = $user['email'] ?? '';
+
+        if (empty($userEmail)) {
+            return false;
+        }
+
+        $subject = "Your Trail account deletion request";
+
+        $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Confirmation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -30px -30px 30px -30px; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .info-box { background-color: #f0fdf4; border: 1px solid #86efac; padding: 16px; border-radius: 8px; margin: 20px 0; }
+        .info-box strong { color: #166534; }
+        .timeline { background-color: #f9fafb; border-left: 4px solid #6366f1; padding: 16px; margin: 20px 0; border-radius: 4px; }
+        .timeline-item { margin-bottom: 12px; font-size: 14px; }
+        .timeline-item:last-child { margin-bottom: 0; }
+        .timeline-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+        .dot-now { background-color: #6366f1; }
+        .dot-future { background-color: #d1d5db; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
+        a { color: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>We're sad to see you go</h1>
+        </div>
+        <p>Hi {$userName},</p>
+        <p>We've received your request to delete your Trail account. We're sorry to see you go, and we want to make sure this process is as smooth as possible for you.</p>
+
+        <div class="timeline">
+            <div class="timeline-item"><span class="timeline-dot dot-now"></span> <strong>Now:</strong> Your profile, entries, and comments are hidden from public view.</div>
+            <div class="timeline-item"><span class="timeline-dot dot-future"></span> <strong>Within 14 days:</strong> Your account and all associated data will be permanently deleted.</div>
+        </div>
+
+        <div class="info-box">
+            <strong>Changed your mind?</strong> No worries! You can reverse this decision within the next 14 days by reaching out to us at <a href="mailto:{$contactEmail}">{$contactEmail}</a>. We'd be happy to restore your account.
+        </div>
+
+        <p>Thank you for being part of Trail. If you ever want to come back, you're always welcome.</p>
+        <p>Take care,<br>The Trail Team</p>
+
+        <div class="footer">
+            <p>This is an automated message from Trail.<br>
+            <a href="mailto:{$contactEmail}">{$contactEmail}</a></p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+        $textBody = <<<TEXT
+We're sad to see you go
+
+Hi {$userName},
+
+We've received your request to delete your Trail account. We're sorry to see you go.
+
+What happens now:
+- Now: Your profile, entries, and comments are hidden from public view.
+- Within 14 days: Your account and all associated data will be permanently deleted.
+
+Changed your mind? No worries! You can reverse this decision within the next 14 days by reaching out to us at {$contactEmail}. We'd be happy to restore your account.
+
+Thank you for being part of Trail. If you ever want to come back, you're always welcome.
+
+Take care,
+The Trail Team
+
+---
+This is an automated message from Trail.
+{$contactEmail}
+TEXT;
+
+        return $this->sendEmail($userEmail, $subject, $htmlBody, $textBody);
+    }
+
+    /**
      * Send email using PHP mail() function
      */
     private function sendEmail(string $to, string $subject, string $htmlBody, string $textBody): bool

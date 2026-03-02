@@ -231,6 +231,19 @@
                     </div>
                 </section>
 
+                <!-- Your Data Section -->
+                <section class="profile-section data-section">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-download"></i>
+                        <h2>Your Data</h2>
+                    </div>
+                    <p class="data-section-description">Download a complete copy of all your data, including your profile, entries, comments, images, and more. The export is a self-contained HTML file you can open in any browser.</p>
+                    <button type="button" class="btn btn-primary" id="exportDataBtn">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>Download My Data</span>
+                    </button>
+                </section>
+
                 <!-- Embed Section -->
                 <section class="profile-section embed-section">
                     <button class="embed-section-toggle" id="embedSectionToggle" type="button" aria-expanded="false" aria-controls="embedSectionContent">
@@ -298,6 +311,19 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Danger Zone -->
+                <section class="profile-section danger-zone">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <h2>Danger Zone</h2>
+                    </div>
+                    <p class="danger-zone-description">Once your account is deleted, your profile, entries, and comments will be hidden from public view immediately. After a 14-day grace period, all data is permanently removed.</p>
+                    <button type="button" class="btn btn-danger" id="deleteAccountBtn">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>Delete My Account</span>
+                    </button>
+                </section>
             </main>
         </div>
     </div>
@@ -307,6 +333,7 @@
     <script src="/assets/js/profile-manager.js"></script>
     <script src="/assets/js/api-token-manager.js"></script>
     <script src="/assets/js/embed-configurator.js"></script>
+    <script src="/assets/js/account-manager.js"></script>
     
     <!-- Page Initialization -->
     <script src="/assets/js/profile-page.js"></script>

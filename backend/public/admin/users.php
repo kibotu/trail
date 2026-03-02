@@ -227,6 +227,32 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                                 <div class="user-email-text"><?= htmlspecialchars($user['email']) ?></div>
                             </div>
                         </div>
+
+                        <?php if (!empty($user['deletion_requested_at'])): ?>
+                            <?php
+                                $requestedAt = new DateTime($user['deletion_requested_at']);
+                                $now = new DateTime();
+                                $daysElapsed = (int) $now->diff($requestedAt)->days;
+                                $daysRemaining = max(0, 14 - $daysElapsed);
+                                $relativeTime = $daysElapsed === 0 ? 'today' : $daysElapsed . ' day' . ($daysElapsed !== 1 ? 's' : '') . ' ago';
+                            ?>
+                            <div class="deletion-pending-banner" id="deletion-banner-<?= $user['id'] ?>">
+                                <div class="deletion-pending-info">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <span>
+                                        Deletion requested <strong><?= $relativeTime ?></strong>
+                                        <?php if ($daysRemaining > 0): ?>
+                                            &mdash; auto-deletes in <strong><?= $daysRemaining ?> day<?= $daysRemaining !== 1 ? 's' : '' ?></strong>
+                                        <?php else: ?>
+                                            &mdash; <strong>ready for permanent deletion</strong>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <button class="button small" onclick="revertDeletion(<?= $user['id'] ?>)">
+                                    <i class="fa-solid fa-rotate-left"></i> Revert
+                                </button>
+                            </div>
+                        <?php endif; ?>
                         
                         <div class="user-meta">
                             <div class="meta-item">

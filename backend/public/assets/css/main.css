@@ -7093,3 +7093,282 @@ main {
         gap: 1rem;
     }
 }
+
+/* Data Section (profile page) */
+.data-section .data-section-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+/* Danger Zone (profile page) */
+.danger-zone {
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    background: rgba(239, 68, 68, 0.05) !important;
+}
+
+.danger-zone .profile-section-header i {
+    color: var(--error);
+}
+
+.danger-zone .profile-section-header h2 {
+    color: var(--error);
+}
+
+.danger-zone .danger-zone-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.page-profile .btn-danger {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.page-profile .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.page-profile .btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-profile .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.page-profile .btn-secondary:hover {
+    background: var(--bg-primary);
+    border-color: var(--text-muted);
+}
+
+/* Delete Account Modal */
+.delete-modal-content {
+    max-width: 480px;
+}
+
+.delete-modal-header {
+    background: rgba(239, 68, 68, 0.1);
+    border-bottom-color: rgba(239, 68, 68, 0.2);
+}
+
+.delete-modal-header h3 {
+    color: var(--error);
+}
+
+.delete-modal-content .btn-danger {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.delete-modal-content .btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.delete-modal-content .btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.delete-modal-content .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.delete-modal-content .btn-secondary:hover {
+    background: var(--bg-primary);
+    border-color: var(--text-muted);
+}
+
+.delete-consequences {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.delete-consequences li {
+    display: grid;
+    grid-template-columns: 1.25rem 1fr;
+    gap: 0.625rem;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.delete-consequences li i {
+    color: var(--text-muted);
+    padding-top: 0.2rem;
+    text-align: center;
+}
+
+.delete-consequences li span {
+    display: inline;
+}
+
+.delete-consequences li a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.delete-consequences li a:hover {
+    text-decoration: underline;
+}
+
+.delete-confirm-input {
+    margin-top: 1.25rem;
+}
+
+.delete-confirm-input label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.delete-confirm-input input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    box-sizing: border-box;
+}
+
+.delete-confirm-input input:focus {
+    outline: none;
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+.btn-loading {
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+@media (max-width: 480px) {
+    .delete-modal-content {
+        max-width: calc(100% - 1rem);
+        margin: 0.5rem;
+        border-radius: 10px;
+    }
+
+    .delete-modal-content .modal-header {
+        padding: 0.875rem 1rem;
+    }
+
+    .delete-modal-content .modal-header h3 {
+        font-size: 1rem;
+    }
+
+    .delete-modal-content .modal-body {
+        padding: 1rem;
+    }
+
+    .delete-modal-content .modal-body > p {
+        font-size: 0.85rem;
+    }
+
+    .delete-consequences li {
+        font-size: 0.825rem;
+        gap: 0.5rem;
+    }
+
+    .delete-modal-content .modal-footer {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+    }
+
+    .delete-modal-content .modal-footer .btn-secondary,
+    .delete-modal-content .modal-footer .btn-danger {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Deletion Pending Banner (admin users page) */
+.deletion-pending-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.deletion-pending-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.deletion-pending-info i {
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+
+.deletion-pending-banner .button.small {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+}

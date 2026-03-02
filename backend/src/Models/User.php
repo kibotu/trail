@@ -460,6 +460,52 @@ class User
         return $stmt->fetchAll();
     }
 
+    public function requestDeletion(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table}
+             SET deletion_requested_at = NOW(), updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deletion_requested_at IS NULL"
+        );
+
+        return $stmt->execute([$id]) && $stmt->rowCount() > 0;
+    }
+
+    public function revertDeletion(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table}
+             SET deletion_requested_at = NULL, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND deletion_requested_at IS NOT NULL"
+        );
+
+        return $stmt->execute([$id]) && $stmt->rowCount() > 0;
+    }
+
+    public function getDeletionPendingUsers(): array
+    {
+        $stmt = $this->db->query(
+            "SELECT * FROM {$this->table}
+             WHERE deletion_requested_at IS NOT NULL
+             ORDER BY deletion_requested_at ASC"
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    public function getExpiredDeletionRequests(int $days = 14): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->table}
+             WHERE deletion_requested_at IS NOT NULL
+               AND deletion_requested_at < NOW() - INTERVAL ? DAY
+             ORDER BY deletion_requested_at ASC"
+        );
+        $stmt->execute([$days]);
+
+        return $stmt->fetchAll();
+    }
+
     /**
      * Generate a cryptographically secure API token
      */

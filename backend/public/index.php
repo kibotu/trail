@@ -166,8 +166,7 @@ $app->get('/@{nickname}', function ($request, $response, array $args) use ($conf
         $userModel = new \Trail\Models\User($db);
         $user = $userModel->findByNickname($nickname);
         
-        if ($user === null) {
-            // User not found - show 404 error page
+        if ($user === null || !empty($user['deletion_requested_at'])) {
             require_once __DIR__ . '/helpers/error.php';
             return sendErrorPage($response, 404, $config);
         }
@@ -206,7 +205,7 @@ $app->get('/@{nickname}/embed', function ($request, $response, array $args) use 
         $userModel = new \Trail\Models\User($db);
         $user = $userModel->findByNickname($nickname);
 
-        if ($user === null) {
+        if ($user === null || !empty($user['deletion_requested_at'])) {
             require_once __DIR__ . '/helpers/error.php';
             return sendErrorPage($response, 404, $config);
         }
@@ -377,6 +376,8 @@ $app->post('/api/auth/logout', function ($request, $response) use ($config) {
 // Profile routes (authenticated)
 $app->get('/api/profile', [ProfileController::class, 'getProfile'])->add(new AuthMiddleware($config));
 $app->put('/api/profile', [ProfileController::class, 'updateProfile'])->add(new AuthMiddleware($config));
+$app->post('/api/profile/delete', [ProfileController::class, 'requestDeletion'])->add(new AuthMiddleware($config));
+$app->get('/api/profile/export', [ProfileController::class, 'exportData'])->add(new AuthMiddleware($config));
 
 // API Token routes (authenticated)
 $app->get('/api/token', [\Trail\Controllers\ApiTokenController::class, 'getToken'])->add(new AuthMiddleware($config));
@@ -624,6 +625,7 @@ $app->group('/api/admin', function ($group) {
     $group->delete('/users/{id}', [AdminController::class, 'deleteUser']);
     $group->delete('/users/{id}/entries', [AdminController::class, 'deleteUserEntries']);
     $group->delete('/users/{id}/comments', [AdminController::class, 'deleteUserComments']);
+    $group->post('/users/{id}/revert-deletion', [AdminController::class, 'revertDeletion']);
     $group->post('/cache/clear', [AdminController::class, 'clearCache']);
     $group->get('/error-logs', [AdminController::class, 'errorLogs']);
     $group->get('/error-stats', [AdminController::class, 'errorStats']);

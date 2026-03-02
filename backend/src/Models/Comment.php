@@ -53,7 +53,7 @@ class Comment
             $sql .= " LEFT JOIN trail_comment_claps user_claps ON c.id = user_claps.comment_id AND user_claps.user_id = ?";
         }
         
-        $sql .= " WHERE c.id = ?";
+        $sql .= " WHERE c.id = ? AND u.deletion_requested_at IS NULL";
         
         $stmt = $this->db->prepare($sql);
         
@@ -92,7 +92,7 @@ class Comment
             $sql .= " LEFT JOIN trail_comment_claps user_claps ON c.id = user_claps.comment_id AND user_claps.user_id = ?";
         }
         
-        $whereConditions = ["c.entry_id = ?"];
+        $whereConditions = ["c.entry_id = ?", "u.deletion_requested_at IS NULL"];
         $params = [];
         
         if ($currentUserId !== null) {

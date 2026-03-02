@@ -13,10 +13,19 @@
     // Initialize profile manager
     const profileManager = new ProfileManager({ apiBase: '/api' });
 
+    // Initialize account manager (data export + deletion)
+    const accountManager = new AccountManager({ apiBase: '/api' });
+
     // Load profile and setup form
     profileManager.loadProfile().then(() => {
         // Setup auto-save tracking after profile is loaded
         profileManager.setupDirtyTracking();
+
+        // Pass nickname to account manager for deletion confirmation
+        const nicknameEl = document.getElementById('identity-nickname-text');
+        if (nicknameEl && nicknameEl.textContent) {
+            accountManager.setNickname(nicknameEl.textContent.trim());
+        }
     });
 
     // Load muted users

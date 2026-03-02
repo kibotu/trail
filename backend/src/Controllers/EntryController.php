@@ -743,7 +743,7 @@ class EntryController
         $userModel = new \Trail\Models\User($db);
         $user = $userModel->findByNickname($nickname);
 
-        if (!$user) {
+        if (!$user || !empty($user['deletion_requested_at'])) {
             $response->getBody()->write(json_encode(['error' => 'User not found']));
             return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }

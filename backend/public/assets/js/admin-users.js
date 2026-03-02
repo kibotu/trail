@@ -93,6 +93,40 @@ async function deleteUserEntries(userId, count) {
 }
 
 /**
+ * Revert a pending account deletion request
+ */
+async function revertDeletion(userId) {
+    if (!confirm('Are you sure you want to restore this user\'s account? Their content will become visible again.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/revert-deletion`, {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+            const banner = document.getElementById(`deletion-banner-${userId}`);
+            if (banner) {
+                banner.style.transition = 'opacity 0.3s, max-height 0.3s';
+                banner.style.opacity = '0';
+                banner.style.maxHeight = '0';
+                banner.style.overflow = 'hidden';
+                setTimeout(() => banner.remove(), 300);
+            }
+            alert('Deletion request reverted successfully. The user\'s account has been restored.');
+        } else {
+            const data = await response.json().catch(() => ({ error: 'Unknown error' }));
+            alert('Failed to revert deletion: ' + (data.error || `HTTP ${response.status}`));
+        }
+    } catch (error) {
+        console.error('Error reverting deletion:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+/**
  * Delete all comments for a user
  */
 async function deleteUserComments(userId, count) {
