@@ -14,6 +14,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import net.kibotu.splashscreen.splash
 import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
@@ -27,6 +29,8 @@ import kotlin.time.Duration.Companion.milliseconds
 class MainActivity : ComponentActivity() {
     private lateinit var themePreferences: ThemePreferences
     private var splashScreenDecorator: net.kibotu.splashscreen.SplashScreenDecorator? = null
+    private val _pendingSharedText = MutableStateFlow<String?>(null)
+    private val pendingSharedText = _pendingSharedText.asStateFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreenDecorator = splash {
@@ -69,7 +73,11 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        TrailNavigation(themePreferences = themePreferences)
+                        TrailNavigation(
+                            themePreferences = themePreferences,
+                            pendingSharedText = pendingSharedText,
+                            onConsumeSharedText = { _pendingSharedText.value = null }
+                        )
                     }
                 }
             }
@@ -91,12 +99,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSharedContent(intent: Intent?) {
-        when (intent?.action) {
-            Intent.ACTION_SEND -> {
-                if (intent.type == "text/plain") {
-                    intent.getStringExtra(Intent.EXTRA_TEXT)
-                }
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
+                _pendingSharedText.value = text
             }
+            intent.action = null
         }
     }
 }

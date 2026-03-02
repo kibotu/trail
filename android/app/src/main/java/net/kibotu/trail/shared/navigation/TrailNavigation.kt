@@ -15,7 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.StateFlow
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
@@ -40,6 +43,7 @@ import net.kibotu.trail.feature.myfeed.MyFeedScreen
 import net.kibotu.trail.feature.notifications.NotificationsScreen
 import net.kibotu.trail.feature.profile.ProfileScreen
 import net.kibotu.trail.feature.search.SearchScreen
+import net.kibotu.trail.feature.share.ShareScreen
 import net.kibotu.trail.feature.userprofile.UserProfileScreen
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.ui.FloatingTabBar
@@ -58,6 +62,7 @@ object Routes {
     const val ENTRY_DETAIL = "entry/{hashId}"
     const val USER_PROFILE = "user/{nickname}"
     const val NOTIFICATIONS = "notifications"
+    const val SHARE = "share"
 
     fun entryDetail(hashId: String) = "entry/$hashId"
     fun userProfile(nickname: String) = "user/$nickname"
@@ -67,6 +72,8 @@ object Routes {
 @Composable
 fun TrailNavigation(
     themePreferences: ThemePreferences,
+    pendingSharedText: StateFlow<String?>,
+    onConsumeSharedText: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -82,6 +89,19 @@ fun TrailNavigation(
     val authState by LocalAuthViewModel.current.state.collectAsState()
     val notificationRepository = remember { NotificationRepository(ApiClient.client) }
     var unreadCount by remember { mutableIntStateOf(0) }
+
+    var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
+    val pendingText by pendingSharedText.collectAsState()
+
+    LaunchedEffect(pendingText) {
+        pendingText?.let { text ->
+            sharedTextForScreen = text
+            onConsumeSharedText()
+            navController.navigate(Routes.SHARE) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     LaunchedEffect(authState.isLoggedIn, currentRoute) {
         if (authState.isLoggedIn) {
@@ -206,6 +226,26 @@ fun TrailNavigation(
                     },
                     onNavigateToUser = { nickname ->
                         navController.navigate(Routes.userProfile(nickname))
+                    }
+                )
+            }
+
+            composable(Routes.SHARE) {
+                ShareScreen(
+                    initialText = sharedTextForScreen ?: "",
+                    onShareSuccess = {
+                        sharedTextForScreen = null
+                        navController.navigate(Routes.MY_FEED) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
+                    onBack = {
+                        sharedTextForScreen = null
+                        navController.popBackStack()
                     }
                 )
             }
