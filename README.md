@@ -1,8 +1,8 @@
 # Trail
 
-[![Build](https://github.com/kibotu/trail/actions/workflows/build.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/build.yml)
-[![Backend](https://github.com/kibotu/trail/actions/workflows/backend.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/backend.yml)
-[![Release](https://github.com/kibotu/trail/actions/workflows/release.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/release.yml)
+[![Android CI](https://github.com/kibotu/trail/actions/workflows/android-ci.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/android-ci.yml)
+[![Backend CI](https://github.com/kibotu/trail/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/backend-ci.yml)
+[![Android Release](https://github.com/kibotu/trail/actions/workflows/android-release.yml/badge.svg)](https://github.com/kibotu/trail/actions/workflows/android-release.yml)
 
 A self-hosted micro link journal. Multi-user, chronological, yours.
 
