@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -40,7 +41,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # Constants
-OPENCODE_BIN = "/opt/homebrew/bin/opencode"
+OPENCODE_BIN = shutil.which("opencode") or "opencode"
 CACHE_VERSION = 1
 DEFAULT_API_URL = "https://trail.services.kibotu.net/api"
 DEFAULT_DELAY_MS = 2000  # 2 seconds between opencode calls
@@ -605,8 +606,8 @@ Examples:
         sys.exit(1)
 
     # Validate opencode is installed
-    if not Path(OPENCODE_BIN).exists():
-        print(f"❌ Error: opencode not found at {OPENCODE_BIN}")
+    if not shutil.which(OPENCODE_BIN):
+        print("❌ Error: opencode not found on PATH")
         print("   Install opencode: https://opencode.ai/docs/")
         sys.exit(1)
 

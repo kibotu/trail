@@ -9,23 +9,27 @@
 """
 Trail Entry Rewriter Script
 
-Rewrites a single Trail entry in a witty, Jake Wharton-inspired style using opencode.
+Rewrites Trail entries in a witty, Jake Wharton-inspired style using opencode.
 
 Features:
 - Fetches entry by hash_id via Trail API
 - Uses opencode CLI to rewrite entry text with personality
 - Updates entry via Trail API (PUT /api/entries/{hash_id})
 - Preserves original URL in the rewritten text
+- By default only rewrites entries whose text is a bare URL (no existing commentary)
+- Use --rewrite-all to also rewrite entries that already have text
 - Dry-run mode for previewing without updating
 
 Usage:
     uv run rewrite_entry.py --api-key YOUR_API_KEY --entry-id HASH_ID [--dry-run] [-v]
+    uv run rewrite_entry.py --api-key YOUR_API_KEY [--rewrite-all] [--dry-run] [-v]
 """
 
 import argparse
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -39,7 +43,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # Constants
-OPENCODE_BIN = "/opt/homebrew/bin/opencode"
+OPENCODE_BIN = shutil.which("opencode") or "opencode"
 DEFAULT_API_URL = "https://trail.services.kibotu.net/api"
 CACHE_VERSION = 1
 DEFAULT_DELAY_MS = 500  # 2 seconds between opencode calls
@@ -81,6 +85,7 @@ class EntryRewriter:
         dry_run: bool = False,
         delay_ms: int = DEFAULT_DELAY_MS,
         model: Optional[str] = None,
+        rewrite_all: bool = False,
         verbose: bool = False,
     ):
         self.api_key = api_key
@@ -94,6 +99,7 @@ class EntryRewriter:
         self.dry_run = dry_run
         self.delay_ms = delay_ms
         self.model = model
+        self.rewrite_all = rewrite_all
         self.verbose = verbose
 
         # Statistics
@@ -101,6 +107,7 @@ class EntryRewriter:
             "total_entries": 0,
             "skipped_cached": 0,
             "skipped_no_url": 0,
+            "skipped_has_text": 0,
             "skipped_not_owner": 0,
             "skipped_too_long": 0,
             "skipped_url_missing": 0,
@@ -177,6 +184,14 @@ class EntryRewriter:
             "User-Agent": "Trail-Entry-Rewriter/1.0 (Admin Tool)",
         })
         return session
+
+    @staticmethod
+    def _is_url_only(text: str) -> bool:
+        """Return True if the text is just a URL with no additional commentary."""
+        stripped = text.strip()
+        if not stripped:
+            return False
+        return bool(re.match(r'^https?://\S+$', stripped))
 
     def fetch_all_entries(self) -> List[Dict]:
         """Fetch all entries using cursor-based pagination."""
@@ -496,6 +511,7 @@ class EntryRewriter:
         print(f"   API:        {self.api_url}")
         print(f"   Cache:      {self.cache_file}")
         print(f"   Dry run:    {self.dry_run}")
+        print(f"   Rewrite all:{self.rewrite_all}")
         print(f"   Model:      {self.model or '(default)'}")
         print()
 
@@ -518,6 +534,10 @@ class EntryRewriter:
             if not entry.get("preview_url"):
                 self.stats["skipped_no_url"] += 1
                 continue
+            # By default only rewrite entries whose text is just a bare URL
+            if not self.rewrite_all and not self._is_url_only(entry.get("text", "")):
+                self.stats["skipped_has_text"] += 1
+                continue
             to_process.append(entry)
 
         # Dry run: cap at 5
@@ -532,6 +552,8 @@ class EntryRewriter:
         print(f"📋 To process: {len(to_process)}")
         print(f"⏭️  Skipped (cached): {self.stats['skipped_cached']}")
         print(f"⏭️  Skipped (no URL): {self.stats['skipped_no_url']}")
+        if self.stats['skipped_has_text']:
+            print(f"⏭️  Skipped (has text): {self.stats['skipped_has_text']}")
         print()
 
         # Step 3: Process
@@ -620,6 +642,8 @@ class EntryRewriter:
         print(f"Failed:                     {self.stats['failed']} ❌")
         print(f"Skipped (cached):           {self.stats['skipped_cached']} ⏭️")
         print(f"Skipped (no URL):           {self.stats['skipped_no_url']} ⏭️")
+        if self.stats['skipped_has_text'] > 0:
+            print(f"Skipped (has text):         {self.stats['skipped_has_text']} ⏭️")
         if self.stats['skipped_not_owner'] > 0:
             print(f"Skipped (not owner):        {self.stats['skipped_not_owner']} 🔒")
         if self.stats['skipped_too_long'] > 0:
@@ -652,8 +676,11 @@ Examples:
   # Batch mode: process all entries (dry run)
   uv run rewrite_entry.py --api-key YOUR_API_KEY --dry-run
 
-  # Batch mode: process all entries
+  # Batch mode: process URL-only entries (default)
   uv run rewrite_entry.py --api-key YOUR_API_KEY
+
+  # Batch mode: rewrite ALL entries (including ones with existing text)
+  uv run rewrite_entry.py --api-key YOUR_API_KEY --rewrite-all
 
   # Batch mode: limit to 10 entries
   uv run rewrite_entry.py --api-key YOUR_API_KEY --limit 10
@@ -701,6 +728,13 @@ Examples:
     )
 
     parser.add_argument(
+        "--rewrite-all",
+        action="store_true",
+        help="Rewrite all entries, not just URL-only ones. By default only entries "
+             "whose text is a bare URL are rewritten.",
+    )
+
+    parser.add_argument(
         "--delay-ms",
         type=int,
         default=DEFAULT_DELAY_MS,
@@ -734,8 +768,8 @@ Examples:
         sys.exit(1)
 
     # Validate opencode is installed
-    if not Path(OPENCODE_BIN).exists():
-        print(f"❌ Error: opencode not found at {OPENCODE_BIN}")
+    if not shutil.which(OPENCODE_BIN):
+        print("❌ Error: opencode not found on PATH")
         print("   Install opencode: https://opencode.ai/docs/")
         sys.exit(1)
 
@@ -747,6 +781,7 @@ Examples:
         dry_run=args.dry_run,
         delay_ms=args.delay_ms,
         model=args.model,
+        rewrite_all=args.rewrite_all,
         verbose=args.verbose,
     )
 
