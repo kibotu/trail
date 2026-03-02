@@ -15,12 +15,14 @@ Features:
 - Fetches all entries via cursor-based pagination
 - Uses opencode CLI to generate tags based on entry metadata + URL content
 - Applies tags via Trail API (PUT /api/entries/{hash_id}/tags)
+- By default skips entries that already have tags assigned
+- Use --include-tagged to also re-tag entries with existing tags
 - Supports resume via JSON cache file
 - Dry-run mode for testing (first 5 entries, no API writes)
 - Graceful shutdown with cache save on Ctrl+C
 
 Usage:
-    uv run generate_tags.py --api-key YOUR_API_KEY [--dry-run] [--limit N] [-v]
+    uv run generate_tags.py --api-key YOUR_API_KEY [--include-tagged] [--dry-run] [--limit N] [-v]
 """
 
 import argparse
@@ -524,8 +526,8 @@ Examples:
   # Quick test (dry run)
   uv run generate_tags.py --api-key YOUR_API_KEY --dry-run
 
-  # Process all entries, skip ones with existing tags
-  uv run generate_tags.py --api-key YOUR_API_KEY --skip-tagged
+  # Process all entries (including ones with existing tags)
+  uv run generate_tags.py --api-key YOUR_API_KEY --include-tagged
 
   # Use specific model
   uv run generate_tags.py --api-key YOUR_API_KEY --model anthropic/claude-sonnet-4.5
@@ -619,7 +621,7 @@ Examples:
         api_url=args.api_url,
         cache_file=args.cache_file,
         dry_run=args.dry_run,
-        skip_tagged=args.skip_tagged,
+        include_tagged=args.include_tagged,
         delay_ms=args.delay_ms,
         model=args.model,
         verbose=args.verbose,
