@@ -1,5 +1,6 @@
 package net.kibotu.trail.feature.userprofile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -35,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +51,7 @@ import net.kibotu.trail.shared.theme.ui.EntryCard
 @Composable
 fun UserProfileScreen(
     nickname: String,
+    hazeState: HazeState,
     onNavigateBack: () -> Unit,
     onNavigateToEntry: (String) -> Unit,
     viewModel: UserProfileViewModel = viewModel(
@@ -148,23 +150,25 @@ fun UserProfileScreen(
             }
         }
 
-        FilledIconButton(
-            onClick = onNavigateBack,
+        val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
+        Box(
             modifier = Modifier
                 .statusBarsPadding()
                 .padding(start = 12.dp, top = 8.dp)
                 .size(40.dp)
-                .align(Alignment.TopStart),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+                .align(Alignment.TopStart)
+                .clip(CircleShape)
+                .hazeEffect(state = hazeState) {
+                    backgroundColor = hazeBackgroundColor
+                }
+                .clickable(onClick = onNavigateBack),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }

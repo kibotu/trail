@@ -26,9 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,9 +43,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun NotificationsScreen(
+    hazeState: HazeState? = null,
     onNavigateBack: (() -> Unit)? = null,
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
@@ -148,29 +149,34 @@ fun NotificationsScreen(
         }
 
         if (onNavigateBack != null) {
-            Row(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(start = 12.dp, end = 12.dp, top = 8.dp)
-                    .align(Alignment.TopStart),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilledIconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.size(40.dp),
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        modifier = Modifier.size(20.dp)
-                    )
+            val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
+            val backButtonModifier = Modifier
+                .statusBarsPadding()
+                .padding(start = 12.dp, top = 8.dp)
+                .size(40.dp)
+                .align(Alignment.TopStart)
+                .clip(CircleShape)
+                .let { mod ->
+                    if (hazeState != null) {
+                        mod.hazeEffect(state = hazeState) {
+                            backgroundColor = hazeBackgroundColor
+                        }
+                    } else {
+                        mod
+                    }
                 }
+                .clickable(onClick = onNavigateBack)
+
+            Box(
+                modifier = backButtonModifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
 
