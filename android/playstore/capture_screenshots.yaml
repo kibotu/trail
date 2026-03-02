@@ -1,0 +1,72 @@
+appId: net.kibotu.trail
+---
+
+# App must be launched before running this flow (the Python script handles it).
+
+# ── Home Screen ──────────────────────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Home
+    timeout: 10000
+- takeScreenshot: screen_home
+
+# ── Entry Detail ─────────────────────────────────────────────────────
+# Tap the timestamp on the first card to trigger card click → entry detail
+- tapOn:
+    text: "1d"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Back
+    timeout: 10000
+- takeScreenshot: screen_detail
+
+# ── My Feed ──────────────────────────────────────────────────────────
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: My Feed
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: "What are you working on?"
+    timeout: 5000
+- takeScreenshot: screen_myfeed
+
+# ── Profile ──────────────────────────────────────────────────────────
+- tapOn: Profile
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: Stats
+    timeout: 5000
+- takeScreenshot: screen_profile
+
+# ── Notifications ────────────────────────────────────────────────────
+- tapOn: Alerts
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: "Mark all read"
+    timeout: 5000
+- takeScreenshot: screen_notifications
+
+# ── Search (with query) ──────────────────────────────────────────────
+- tapOn: Home
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: "90%,95%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: "Search entries or #hashtags..."
+- inputText: "android"
+- waitForAnimationToEnd:
+    timeout: 2000
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "#android"
+    timeout: 5000
+- takeScreenshot: screen_search
