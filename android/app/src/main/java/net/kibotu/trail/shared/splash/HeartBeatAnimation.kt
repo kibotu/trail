@@ -114,6 +114,7 @@ fun HeartBeatAnimation(
 
     val iconProgress = remember { Animatable(0f) }
     val iconAlpha = remember { Animatable(1f) }
+    val curveDirection = remember { if (Random.nextBoolean()) 1f else -1f }
 
     val sparkleCount = 20
     val sparkles = remember {
@@ -195,6 +196,12 @@ fun HeartBeatAnimation(
         label = "circleScale"
     )
 
+    val p = iconProgress.value
+    val curveX = curveDirection * iconPx * 0.6f * p * (1f - p) * 4f
+    val curveY = -iconPx * 2.8f * p
+    val tilt = curveDirection * -8f * p * (1f - p) * 4f
+    val iconScale = 1f + 0.1f * p * (1f - p) * 4f - 0.3f * p * p
+
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -203,6 +210,8 @@ fun HeartBeatAnimation(
             modifier = Modifier
                 .size(circleSize)
                 .graphicsLayer {
+                    translationX = curveX
+                    translationY = curveY
                     scaleX = circleScale
                     scaleY = circleScale
                     alpha = circleAlpha
@@ -215,12 +224,6 @@ fun HeartBeatAnimation(
 
         iconBitmap?.let { bitmap ->
             val imageBitmap = remember { bitmap.asImageBitmap() }
-
-            val p = iconProgress.value
-            val curveX = iconPx * 0.6f * p * (1f - p) * 4f
-            val curveY = -iconPx * 2.8f * p
-            val tilt = -8f * p * (1f - p) * 4f
-            val scale = 1f + 0.1f * p * (1f - p) * 4f - 0.3f * p * p
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cx = size.width / 2f
@@ -261,8 +264,8 @@ fun HeartBeatAnimation(
                     .graphicsLayer {
                         translationX = curveX
                         translationY = curveY
-                        scaleX = scale.coerceAtLeast(0f)
-                        scaleY = scale.coerceAtLeast(0f)
+                        scaleX = iconScale.coerceAtLeast(0f)
+                        scaleY = iconScale.coerceAtLeast(0f)
                         rotationZ = tilt
                         alpha = iconAlpha.value
                     }
