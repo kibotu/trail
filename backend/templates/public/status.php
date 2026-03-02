@@ -103,5 +103,12 @@
     
     <!-- Page Initialization -->
     <script src="/assets/js/status-page.js"></script>
+
+    <footer class="site-footer">
+        <div class="site-footer-links">
+            <a href="/data-privacy/">Data Privacy</a>
+            <a href="/terms-and-conditions/">Terms &amp; Conditions</a>
+        </div>
+    </footer>
 </body>
 </html>

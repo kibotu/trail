@@ -1658,7 +1658,9 @@ j.mp, dlvr.it, fb.me, lnkd.in, rebrand.ly, cutt.ly, and 20+ more</code>
                     <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.875rem;">
                         <a href="/" style="color: var(--accent); text-decoration: none;">Home</a> • 
                         <a href="/api/rss" style="color: var(--accent); text-decoration: none;">RSS Feed</a> • 
-                        <a href="/api/health" style="color: var(--accent); text-decoration: none;">Health Check</a>
+                        <a href="/api/health" style="color: var(--accent); text-decoration: none;">Health Check</a> • 
+                        <a href="/data-privacy/" style="color: var(--accent); text-decoration: none;">Data Privacy</a> • 
+                        <a href="/terms-and-conditions/" style="color: var(--accent); text-decoration: none;">Terms &amp; Conditions</a>
                     </p>
                 </div>
             </main>

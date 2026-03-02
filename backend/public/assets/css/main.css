@@ -7054,3 +7054,42 @@ main {
         width: 100%;
     }
 }
+
+/* ============================================
+   SITE FOOTER (legal links)
+   ============================================ */
+.site-footer {
+    margin-top: 3rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.site-footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.site-footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.site-footer-links a:hover {
+    color: var(--text);
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .site-footer {
+        padding: 1rem 0.75rem;
+    }
+    .site-footer-links {
+        gap: 1rem;
+    }
+}
