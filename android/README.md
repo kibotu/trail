@@ -45,6 +45,9 @@ cd android
 
 # Release (minified, R8)
 ./gradlew assembleRelease
+
+# Release bundle with specific version (e.g. 1.2.3)
+VERSION=1.2.3 && ./gradlew bundleRelease -PversionName=$VERSION -PversionCode=$(($(echo $VERSION | awk -F. '{print $1*10000000+$2*100000+$3*1000}')))
 ```
 
 APKs land in `app/build/outputs/apk/`.

@@ -442,7 +442,11 @@ private fun TrailNavigationContent(
                                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                     label = "alertsBounce"
                                 )
-                                Box(modifier = Modifier.offset(y = tabBounce)) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(y = tabBounce)
+                                        .padding(top = 2.dp, end = 4.dp)
+                                ) {
                                     FaIcon(
                                         faIcon = if (isSelected || unreadCount > 0) FaIcons.Bell else FaIcons.BellRegular,
                                         size = 20.dp,
@@ -463,7 +467,6 @@ private fun TrailNavigationContent(
                                         Box(
                                             modifier = Modifier
                                                 .align(Alignment.TopEnd)
-                                                .offset(x = 4.dp, y = (-2).dp)
                                                 .graphicsLayer {
                                                     scaleX = badgeScale
                                                     scaleY = badgeScale
