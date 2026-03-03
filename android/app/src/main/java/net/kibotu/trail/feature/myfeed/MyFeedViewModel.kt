@@ -26,7 +26,6 @@ import net.kibotu.trail.shared.entry.UserEntriesPagingSource
 import net.kibotu.trail.shared.image.ImageUploadManager
 import net.kibotu.trail.shared.image.ImageUploadRepository
 import net.kibotu.trail.shared.network.ApiClient
-import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.user.UserRepository
 import net.kibotu.trail.feature.home.CommentState
 import net.kibotu.trail.shared.util.shareEntry
@@ -37,7 +36,6 @@ class MyFeedViewModel(
     private val userRepository: UserRepository,
     private val imageUploadManager: ImageUploadManager,
     private val nickname: String,
-    private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
 
     private val commentStateManager = CommentStateManager(commentRepository, viewModelScope)
@@ -94,9 +92,7 @@ class MyFeedViewModel(
             entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
                     _pagingSource.value?.invalidate()
-                    if (inAppReviewManager.shouldPrompt()) {
-                        reviewEvent.tryEmit(Unit)
-                    }
+                    reviewEvent.tryEmit(Unit)
                 },
                 onFailure = {}
             )
@@ -132,13 +128,12 @@ class MyFeedViewModel(
     class Factory(
         private val context: Context,
         private val nickname: String,
-        private val inAppReviewManager: InAppReviewManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val client = ApiClient.client
             val imageUploadManager = ImageUploadManager(ImageUploadRepository(client))
-            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), imageUploadManager, nickname, inAppReviewManager) as T
+            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), imageUploadManager, nickname) as T
         }
     }
 }

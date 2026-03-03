@@ -127,7 +127,8 @@ private fun TrailNavigationContent(
     var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
     val pendingText by pendingSharedText.collectAsState()
 
-    LaunchedEffect(pendingText) {
+    LaunchedEffect(pendingText, authState.isLoading) {
+        if (authState.isLoading) return@LaunchedEffect
         pendingText?.let { text ->
             sharedTextForScreen = text
             onConsumeSharedText()

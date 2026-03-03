@@ -93,7 +93,7 @@ fun MyFeedScreen(
     }
     val context = LocalContext.current
     val inAppReviewManager = LocalInAppReviewManager.current
-    val viewModel: MyFeedViewModel = viewModel(factory = MyFeedViewModel.Factory(context, nickname, inAppReviewManager))
+    val viewModel: MyFeedViewModel = viewModel(factory = MyFeedViewModel.Factory(context, nickname))
     val entries = viewModel.entries.collectAsLazyPagingItems()
     val commentsState by viewModel.commentsState.collectAsState()
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()

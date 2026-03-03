@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        inAppUpdateManager.unregisterListener()
         splashScreenDecorator?.dismiss()
         splashScreenDecorator = null
         super.onDestroy()
