@@ -81,6 +81,7 @@ class ProfileController
             'created_at' => $user['created_at'],
             'updated_at' => $user['updated_at'],
             'stats' => $stats,
+            'deletion_requested_at' => $user['deletion_requested_at'] ?? null,
         ];
 
         $response->getBody()->write(json_encode($profileData));
