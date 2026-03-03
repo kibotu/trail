@@ -1,0 +1,75 @@
+appId: net.kibotu.trail
+---
+
+- openLink: https://trail.services.kibotu.net
+
+# ── Home Screen ──────────────────────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Home
+    timeout: 10000
+- assertVisible: Home
+
+# ── Entry Detail ─────────────────────────────────────────────────────
+# Tap right-side padding of the first entry card (88% horizontal, 18%
+# vertical) to trigger onCardClick without hitting action buttons.
+- tapOn:
+    point: "88%,18%"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Back
+    timeout: 10000
+- assertVisible: Back
+
+# ── Back to Home ─────────────────────────────────────────────────────
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: Home
+
+# ── My Feed ──────────────────────────────────────────────────────────
+- tapOn: My Feed
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: "What are you working on?"
+    timeout: 10000
+- assertVisible: "What are you working on?"
+
+# ── Profile ──────────────────────────────────────────────────────────
+- tapOn: Profile
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: "Profile picture"
+    timeout: 10000
+- assertVisible: "Profile picture"
+
+# ── Alerts ───────────────────────────────────────────────────────────
+- tapOn: Alerts
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Alerts
+    timeout: 10000
+- assertVisible: Alerts
+
+# ── Search ───────────────────────────────────────────────────────────
+- tapOn: Home
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: "90%,95%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: "Search entries or #hashtags..."
+- inputText: "#ai-prompts"
+- waitForAnimationToEnd:
+    timeout: 2000
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "#ai-prompts"
+    timeout: 10000
+- assertVisible: "#ai-prompts"
