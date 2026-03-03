@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -96,6 +97,7 @@ fun DeletionBlockerScreen(
     ) {
         Card(
             modifier = Modifier
+                .widthIn(max = 500.dp)
                 .fillMaxWidth()
                 .padding(24.dp),
             shape = RoundedCornerShape(16.dp),

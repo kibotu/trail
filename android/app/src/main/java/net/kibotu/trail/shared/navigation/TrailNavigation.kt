@@ -60,6 +60,8 @@ import net.kibotu.trail.feature.search.SearchScreen
 import net.kibotu.trail.feature.share.ShareScreen
 import net.kibotu.trail.feature.userprofile.UserProfileScreen
 import net.kibotu.trail.shared.storage.ThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.FloatingTabBar
 import net.kibotu.trail.shared.theme.ui.FloatingTabBarDefaults
 import net.kibotu.trail.shared.theme.ui.rememberFloatingTabBarScrollConnection
@@ -326,11 +328,15 @@ private fun TrailNavigationContent(
         }
 
         if (isOnTabScreen) {
+            val isCompact = LocalWindowSizeClass.current.isCompactWidth
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(
+                        horizontal = if (isCompact) 16.dp else 24.dp,
+                        vertical = if (isCompact) 8.dp else 4.dp
+                    )
             ) {
                 FloatingTabBar(
                     selectedTabKey = currentRoute ?: Routes.HOME,

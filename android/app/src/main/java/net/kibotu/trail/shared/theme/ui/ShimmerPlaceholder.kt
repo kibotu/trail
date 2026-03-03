@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 
 @Composable
 private fun shimmerBrush(): Brush {
@@ -152,12 +154,39 @@ fun ShimmerEntryCard(modifier: Modifier = Modifier) {
 
 @Composable
 fun ShimmerFeed(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        repeat(3) { index ->
-            ShimmerEntryCard(modifier = Modifier.staggeredFadeIn(index))
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+
+    if (isCompact) {
+        Column(
+            modifier = modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            repeat(3) { index ->
+                ShimmerEntryCard(modifier = Modifier.staggeredFadeIn(index))
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(2) { rowIndex ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ShimmerEntryCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .staggeredFadeIn(rowIndex * 2)
+                    )
+                    ShimmerEntryCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .staggeredFadeIn(rowIndex * 2 + 1)
+                    )
+                }
+            }
         }
     }
 }

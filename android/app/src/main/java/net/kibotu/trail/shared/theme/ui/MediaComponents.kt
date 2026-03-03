@@ -81,6 +81,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.compose.ui.platform.LocalConfiguration
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -134,6 +135,8 @@ fun MediaGallery(
             }
         }
     } else {
+        val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+        val galleryHeight = (screenHeightDp * 0.3f).coerceIn(140.dp, 280.dp)
         LazyRow(
             modifier = modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -151,7 +154,7 @@ fun MediaGallery(
                     currentlyPlayingId = currentlyPlayingId,
                     onVideoPlay = onVideoPlay,
                     modifier = Modifier
-                        .height(200.dp)
+                        .height(galleryHeight)
                         .aspectRatio(itemAspectRatio.coerceIn(0.5f, 2f))
                         .clip(RoundedCornerShape(12.dp))
                 )

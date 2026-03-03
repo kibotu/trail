@@ -5,9 +5,11 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -45,26 +48,31 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.Center
         ) {
-            if (isLoading) {
-                CircularProgressIndicator()
-            } else {
-                Image(
-                    painter = painterResource(id = R.drawable.login_whale),
-                    contentDescription = "Log in with Google",
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .clickable {
-                            coroutineScope.launch {
-                                val idToken = performGoogleSignIn(context, webClientId)
-                                idToken?.let { onLoginSuccess(it) }
+            Column(
+                modifier = Modifier.widthIn(max = 400.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator()
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.login_whale),
+                        contentDescription = "Log in with Google",
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .clickable {
+                                coroutineScope.launch {
+                                    val idToken = performGoogleSignIn(context, webClientId)
+                                    idToken?.let { onLoginSuccess(it) }
+                                }
                             }
-                        }
-                )
+                    )
+                }
             }
         }
     }

@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +36,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
@@ -56,6 +61,8 @@ fun HomeScreen(
     val isRefreshing = entries.loadState.refresh is LoadState.Loading
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+    val bottomPadding = if (isCompact) 100.dp else 72.dp
 
     Box(modifier = Modifier.fillMaxSize()) {
         PullToRefreshBox(
@@ -100,66 +107,117 @@ fun HomeScreen(
                         }
                     }
                     else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize()
-                                .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(
-                                count = entries.itemCount,
-                                key = { index -> entries[index]?.id ?: index }
-                            ) { index ->
-                                val entry = entries[index] ?: return@items
-                                val commentState = commentsState[entry.id] ?: CommentState()
+                        if (isCompact) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize()
+                                    .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = bottomPadding),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(
+                                    count = entries.itemCount,
+                                    key = { index -> entries[index]?.id ?: index }
+                                ) { index ->
+                                    val entry = entries[index] ?: return@items
+                                    val commentState = commentsState[entry.id] ?: CommentState()
 
-                                EntryCard(
-                                    entry = entry,
-                                    modifier = Modifier
-                                        .animateItem(
-                                            fadeInSpec = tween(300),
-                                            fadeOutSpec = tween(200),
-                                            placementSpec = spring(
-                                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                                stiffness = Spring.StiffnessLow
+                                    EntryCard(
+                                        entry = entry,
+                                        modifier = Modifier
+                                            .animateItem(
+                                                fadeInSpec = tween(300),
+                                                fadeOutSpec = tween(200),
+                                                placementSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
                                             )
-                                        )
-                                        .staggeredFadeIn(index),
-                                    currentUserId = authState.user?.id,
-                                    isAdmin = authState.user?.isAdmin ?: false,
-                                    baseUrl = BuildConfig.API_BASE_URL,
-                                    showTags = showTags,
-                                    currentlyPlayingVideoId = currentlyPlayingVideoId,
-                                    onVideoPlay = viewModel::onVideoPlay,
-                                    onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                    onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                    onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                    onTagClick = { tag -> onNavigateToSearch("#$tag") },
-                                    onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
-                                    onShare = { viewModel.shareEntry(context, entry) },
-                                    onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
-                                    onMuteUser = { viewModel.muteUser(entry.userId) },
-                                    onEditEntry = { text -> viewModel.updateEntry(entry.id, text) },
-                                    onDeleteEntry = { viewModel.deleteEntry(entry.id) },
-                                    onToggleComments = { viewModel.toggleComments(entry.id, entry.hashId) },
-                                    comments = commentState.comments,
-                                    commentsLoading = commentState.isLoading,
-                                    commentsExpanded = commentState.isExpanded,
-                                    onLoadComments = { viewModel.loadComments(entry.id, entry.hashId) },
-                                    onCreateComment = { text -> viewModel.createComment(entry.id, entry.hashId, text) },
-                                    onUpdateComment = { commentId, text -> viewModel.updateComment(commentId, text, entry.id) },
-                                    onDeleteComment = { commentId -> viewModel.deleteComment(commentId, entry.id) },
-                                    onClapComment = { commentId, count -> viewModel.clapComment(commentId, count, entry.id) },
-                                    onReportComment = { commentId -> viewModel.reportComment(commentId, entry.id) },
-                                    onMentionClick = { nick -> onNavigateToUser(nick) }
-                                )
-                            }
+                                            .staggeredFadeIn(index),
+                                        currentUserId = authState.user?.id,
+                                        isAdmin = authState.user?.isAdmin ?: false,
+                                        baseUrl = BuildConfig.API_BASE_URL,
+                                        showTags = showTags,
+                                        currentlyPlayingVideoId = currentlyPlayingVideoId,
+                                        onVideoPlay = viewModel::onVideoPlay,
+                                        onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
+                                        onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onTagClick = { tag -> onNavigateToSearch("#$tag") },
+                                        onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
+                                        onShare = { viewModel.shareEntry(context, entry) },
+                                        onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
+                                        onMuteUser = { viewModel.muteUser(entry.userId) },
+                                        onEditEntry = { text -> viewModel.updateEntry(entry.id, text) },
+                                        onDeleteEntry = { viewModel.deleteEntry(entry.id) },
+                                        onToggleComments = { viewModel.toggleComments(entry.id, entry.hashId) },
+                                        comments = commentState.comments,
+                                        commentsLoading = commentState.isLoading,
+                                        commentsExpanded = commentState.isExpanded,
+                                        onLoadComments = { viewModel.loadComments(entry.id, entry.hashId) },
+                                        onCreateComment = { text -> viewModel.createComment(entry.id, entry.hashId, text) },
+                                        onUpdateComment = { commentId, text -> viewModel.updateComment(commentId, text, entry.id) },
+                                        onDeleteComment = { commentId -> viewModel.deleteComment(commentId, entry.id) },
+                                        onClapComment = { commentId, count -> viewModel.clapComment(commentId, count, entry.id) },
+                                        onReportComment = { commentId -> viewModel.reportComment(commentId, entry.id) },
+                                        onMentionClick = { nick -> onNavigateToUser(nick) }
+                                    )
+                                }
 
-                            if (entries.loadState.append is LoadState.Loading) {
-                                item(key = "loading_indicator") {
-                                    Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                                if (entries.loadState.append is LoadState.Loading) {
+                                    item(key = "loading_indicator") {
+                                        Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                                        }
                                     }
+                                }
+                            }
+                        } else {
+                            LazyVerticalStaggeredGrid(
+                                columns = StaggeredGridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize()
+                                    .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = bottomPadding),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalItemSpacing = 12.dp
+                            ) {
+                                items(
+                                    count = entries.itemCount,
+                                    key = { index -> entries[index]?.id ?: index }
+                                ) { index ->
+                                    val entry = entries[index] ?: return@items
+                                    val commentState = commentsState[entry.id] ?: CommentState()
+
+                                    EntryCard(
+                                        entry = entry,
+                                        modifier = Modifier.staggeredFadeIn(index),
+                                        currentUserId = authState.user?.id,
+                                        isAdmin = authState.user?.isAdmin ?: false,
+                                        baseUrl = BuildConfig.API_BASE_URL,
+                                        showTags = showTags,
+                                        currentlyPlayingVideoId = currentlyPlayingVideoId,
+                                        onVideoPlay = viewModel::onVideoPlay,
+                                        onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
+                                        onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onTagClick = { tag -> onNavigateToSearch("#$tag") },
+                                        onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
+                                        onShare = { viewModel.shareEntry(context, entry) },
+                                        onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
+                                        onMuteUser = { viewModel.muteUser(entry.userId) },
+                                        onEditEntry = { text -> viewModel.updateEntry(entry.id, text) },
+                                        onDeleteEntry = { viewModel.deleteEntry(entry.id) },
+                                        onToggleComments = { viewModel.toggleComments(entry.id, entry.hashId) },
+                                        comments = commentState.comments,
+                                        commentsLoading = commentState.isLoading,
+                                        commentsExpanded = commentState.isExpanded,
+                                        onLoadComments = { viewModel.loadComments(entry.id, entry.hashId) },
+                                        onCreateComment = { text -> viewModel.createComment(entry.id, entry.hashId, text) },
+                                        onUpdateComment = { commentId, text -> viewModel.updateComment(commentId, text, entry.id) },
+                                        onDeleteComment = { commentId -> viewModel.deleteComment(commentId, entry.id) },
+                                        onClapComment = { commentId, count -> viewModel.clapComment(commentId, count, entry.id) },
+                                        onReportComment = { commentId -> viewModel.reportComment(commentId, entry.id) },
+                                        onMentionClick = { nick -> onNavigateToUser(nick) }
+                                    )
                                 }
                             }
                         }

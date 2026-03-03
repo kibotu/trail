@@ -56,6 +56,8 @@ import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import net.kibotu.trail.shared.notification.Notification
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
@@ -71,6 +73,8 @@ fun NotificationsScreen(
     val notifications = viewModel.notifications.collectAsLazyPagingItems()
     val unreadCount by viewModel.unreadCount.collectAsState()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+    val bottomPadding = if (isCompact) 100.dp else 72.dp
 
     Box(Modifier.fillMaxSize()) {
         val notifState = when {
@@ -98,7 +102,7 @@ fun NotificationsScreen(
                 else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = bottomPadding),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(

@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +38,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
@@ -57,6 +61,7 @@ fun EntryDetailScreen(
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
     val context = LocalContext.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
 
     LaunchedEffect(Unit) {
         viewModel.entryDeleted.collect { onNavigateBack() }
@@ -90,9 +95,16 @@ fun EntryDetailScreen(
 
                 else -> {
                 val entry = detailState.entry ?: return@Crossfade
-                LazyColumn(
+                val horizontalPadding = if (isCompact) 16.dp else 24.dp
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .then(if (isCompact) Modifier.fillMaxWidth() else Modifier.widthIn(max = 600.dp))
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = statusBarTop + 56.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
@@ -128,6 +140,7 @@ fun EntryDetailScreen(
                             onMentionClick = { nick -> onNavigateToUser(nick) }
                         )
                     }
+                }
                 }
                 }
             }

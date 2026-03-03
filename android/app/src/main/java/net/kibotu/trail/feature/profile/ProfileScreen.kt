@@ -86,6 +86,9 @@ import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.profile.ProfileEntry
 import net.kibotu.trail.shared.storage.ThemePreferences
+import androidx.compose.ui.platform.LocalConfiguration
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.util.openInCustomTab
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -120,12 +123,14 @@ fun ProfileScreen(
     val profile = profileState.profile ?: return
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+    val bottomPadding = if (isCompact) 100.dp else 72.dp
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
@@ -514,6 +519,8 @@ fun ProfileScreen(
                             Column {
                                 Spacer(modifier = Modifier.height(8.dp))
 
+                                val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+                                val webViewHeight = (screenHeightDp * 0.4f).coerceIn(200.dp, 400.dp)
                                 AndroidView(
                                     factory = { ctx ->
                                         WebView(ctx).apply {
@@ -524,7 +531,7 @@ fun ProfileScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(300.dp)
+                                        .height(webViewHeight)
                                         .clip(RoundedCornerShape(12.dp))
                                 )
 

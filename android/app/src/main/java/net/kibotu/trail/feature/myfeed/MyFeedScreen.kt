@@ -79,6 +79,8 @@ import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.feature.home.CommentState
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
@@ -124,6 +126,8 @@ fun MyFeedScreen(
     }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+    val bottomPadding = if (isCompact) 100.dp else 72.dp
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var showPostSuccess by remember { mutableStateOf(false) }
@@ -151,7 +155,7 @@ fun MyFeedScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize()
                     .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = bottomPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(key = "compose_card") {

@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -42,6 +45,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
@@ -67,6 +72,8 @@ fun SearchScreen(
     val context = LocalContext.current
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val isCompact = LocalWindowSizeClass.current.isCompactWidth
+    val bottomPadding = if (isCompact) 100.dp else 72.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -127,50 +134,85 @@ fun SearchScreen(
                     }
                 }
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize()
-                            .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(
-                            count = results.itemCount,
-                            key = { index -> results[index]?.id ?: index }
-                        ) { index ->
-                            val entry = results[index] ?: return@items
-                            EntryCard(
-                                entry = entry,
-                                modifier = Modifier
-                                    .animateItem(
-                                        fadeInSpec = tween(300),
-                                        fadeOutSpec = tween(200),
-                                        placementSpec = spring(
-                                            dampingRatio = Spring.DampingRatioLowBouncy,
-                                            stiffness = Spring.StiffnessLow
+                    if (isCompact) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                                .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = bottomPadding),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(
+                                count = results.itemCount,
+                                key = { index -> results[index]?.id ?: index }
+                            ) { index ->
+                                val entry = results[index] ?: return@items
+                                EntryCard(
+                                    entry = entry,
+                                    modifier = Modifier
+                                        .animateItem(
+                                            fadeInSpec = tween(300),
+                                            fadeOutSpec = tween(200),
+                                            placementSpec = spring(
+                                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                                stiffness = Spring.StiffnessLow
+                                            )
                                         )
-                                    )
-                                    .staggeredFadeIn(index),
-                                currentUserId = authState.user?.id,
-                                isAdmin = authState.user?.isAdmin ?: false,
-                                baseUrl = BuildConfig.API_BASE_URL,
-                                showTags = showTags,
-                                onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                onTagClick = { tag -> viewModel.updateQuery("#$tag") },
-                                onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
-                                onShare = { viewModel.shareEntry(context, entry) },
-                                onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
-                                onMuteUser = { viewModel.muteUser(entry.userId) },
-                                onMentionClick = { nick -> onNavigateToUser(nick) }
-                            )
-                        }
+                                        .staggeredFadeIn(index),
+                                    currentUserId = authState.user?.id,
+                                    isAdmin = authState.user?.isAdmin ?: false,
+                                    baseUrl = BuildConfig.API_BASE_URL,
+                                    showTags = showTags,
+                                    onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
+                                    onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onTagClick = { tag -> viewModel.updateQuery("#$tag") },
+                                    onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
+                                    onShare = { viewModel.shareEntry(context, entry) },
+                                    onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
+                                    onMuteUser = { viewModel.muteUser(entry.userId) },
+                                    onMentionClick = { nick -> onNavigateToUser(nick) }
+                                )
+                            }
 
-                        if (results.loadState.append is LoadState.Loading) {
-                            item(key = "loading_indicator") {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
+                            if (results.loadState.append is LoadState.Loading) {
+                                item(key = "loading_indicator") {
+                                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator()
+                                    }
                                 }
+                            }
+                        }
+                    } else {
+                        LazyVerticalStaggeredGrid(
+                            columns = StaggeredGridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize()
+                                .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = bottomPadding),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalItemSpacing = 12.dp
+                        ) {
+                            items(
+                                count = results.itemCount,
+                                key = { index -> results[index]?.id ?: index }
+                            ) { index ->
+                                val entry = results[index] ?: return@items
+                                EntryCard(
+                                    entry = entry,
+                                    modifier = Modifier.staggeredFadeIn(index),
+                                    currentUserId = authState.user?.id,
+                                    isAdmin = authState.user?.isAdmin ?: false,
+                                    baseUrl = BuildConfig.API_BASE_URL,
+                                    showTags = showTags,
+                                    onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
+                                    onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onTagClick = { tag -> viewModel.updateQuery("#$tag") },
+                                    onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
+                                    onShare = { viewModel.shareEntry(context, entry) },
+                                    onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
+                                    onMuteUser = { viewModel.muteUser(entry.userId) },
+                                    onMentionClick = { nick -> onNavigateToUser(nick) }
+                                )
                             }
                         }
                     }

@@ -26,8 +26,11 @@ import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.TrailTheme
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.update.InAppUpdateManager
 import net.kibotu.trail.shared.update.LocalInAppUpdateManager
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartIntentSenderForResult()
     ) { /* result handling is optional for flexible updates */ }
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreenDecorator = splash {
             exitAnimationDuration = 1250
@@ -79,7 +83,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val windowSizeClass = calculateWindowSizeClass(this@MainActivity)
+
             CompositionLocalProvider(
+                LocalWindowSizeClass provides windowSizeClass,
                 LocalAuthViewModel provides authViewModel,
                 LocalThemePreferences provides themePreferences,
                 LocalInAppReviewManager provides inAppReviewManager,

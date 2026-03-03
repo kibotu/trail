@@ -58,9 +58,12 @@ import dev.chrisbanes.haze.hazeEffect
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
+import androidx.compose.ui.platform.LocalConfiguration
 import net.kibotu.trail.shared.util.openInCustomTab
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -105,6 +108,9 @@ fun UserProfileScreen(
                 ) {
                     profileState.profile?.let { profile ->
                         item(key = "profile_header") {
+                            val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+                            val headerContainerHeight = (screenHeightDp * 0.25f).coerceIn(140.dp, 200.dp)
+                            val headerImageHeight = (headerContainerHeight - 40.dp).coerceAtLeast(100.dp)
                             Card(
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -117,14 +123,14 @@ fun UserProfileScreen(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(180.dp)
+                                                .height(headerContainerHeight)
                                         ) {
                                             AsyncImage(
                                                 model = profile.headerImageUrl,
                                                 contentDescription = "Header",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .height(140.dp)
+                                                    .height(headerImageHeight)
                                                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                                                 contentScale = ContentScale.Crop
                                             )
