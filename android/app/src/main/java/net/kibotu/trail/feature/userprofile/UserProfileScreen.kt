@@ -55,8 +55,10 @@ import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
-import net.kibotu.trail.shared.theme.ui.StatRow
 import net.kibotu.trail.shared.util.openInCustomTab
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -89,7 +91,7 @@ fun UserProfileScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     profileState.profile?.let { profile ->
                         item(key = "profile_header") {
@@ -99,9 +101,9 @@ fun UserProfileScreen(
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
+                                    // Header image
                                     if (profile.headerImageUrl != null) {
                                         Box(
                                             modifier = Modifier
@@ -116,13 +118,16 @@ fun UserProfileScreen(
                                                 contentScale = ContentScale.Crop
                                             )
                                         }
+                                        // Avatar overlapping header
                                         AsyncImage(
                                             model = profile.avatarUrl,
                                             contentDescription = "Avatar",
                                             modifier = Modifier
+                                                .padding(start = 20.dp)
                                                 .size(80.dp)
                                                 .offset(y = (-40).dp)
-                                                .clip(CircleShape)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop
                                         )
                                         Spacer(modifier = Modifier.height((-28).dp))
                                     } else {
@@ -130,70 +135,119 @@ fun UserProfileScreen(
                                         AsyncImage(
                                             model = profile.avatarUrl,
                                             contentDescription = "Avatar",
-                                            modifier = Modifier.size(72.dp).clip(CircleShape)
+                                            modifier = Modifier
+                                                .padding(start = 20.dp)
+                                                .size(72.dp)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop
                                         )
                                         Spacer(modifier = Modifier.height(12.dp))
                                     }
 
-                                    Text(profile.name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                                    profile.nickname?.let {
+                                    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                                        // Name & nickname - left aligned like web
                                         Text(
-                                            "@$it",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            profile.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 22.sp
                                         )
-                                    }
-                                    profile.bio?.let {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            it,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.padding(horizontal = 20.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(12.dp))
-
-                                    FlowRow(
-                                        modifier = Modifier.padding(horizontal = 20.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            FaIcon(FaIcons.CalendarAlt, size = 12.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                            Spacer(Modifier.width(4.dp))
+                                        profile.nickname?.let {
                                             Text(
-                                                "Joined ${profile.createdAt.take(10)}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                "@$it",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        profile.stats.previousLoginAt?.let { lastSeen ->
+
+                                        // Bio
+                                        profile.bio?.let {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Text(
+                                                it,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 22.sp
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // Joined + Last post row
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                FaIcon(FaIcons.Clock, size = 12.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                                Spacer(Modifier.width(4.dp))
+                                                FaIcon(
+                                                    FaIcons.CalendarAlt,
+                                                    size = 12.dp,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                )
+                                                Spacer(Modifier.width(5.dp))
                                                 Text(
-                                                    "Last seen ${formatRelativeDate(lastSeen)}",
+                                                    "Joined ${formatMonthYear(profile.createdAt)}",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                                 )
                                             }
+                                            profile.stats.lastEntryAt?.let { lastEntry ->
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    FaIcon(
+                                                        FaIcons.PenFancy,
+                                                        size = 12.dp,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    )
+                                                    Spacer(Modifier.width(5.dp))
+                                                    Text(
+                                                        "Last post ${formatRelativeDate(lastEntry)}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    )
+                                                }
+                                            }
                                         }
-                                        profile.stats.lastEntryAt?.let { lastEntry ->
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                FaIcon(FaIcons.PenFancy, size = 12.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    "Last entry ${formatRelativeDate(lastEntry)}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                                )
+
+                                        // Inline stats row (like web: "2,951 Entries  13.5K Views  2,609 Claps")
+                                        val statItems = buildList {
+                                            if (profile.stats.entryCount > 0)
+                                                add(formatCompactNumber(profile.stats.entryCount) to "Entries")
+                                            if (profile.stats.totalEntryViews > 0)
+                                                add(formatCompactNumber(profile.stats.totalEntryViews) to "Views")
+                                            if (profile.stats.totalEntryClaps > 0)
+                                                add(formatCompactNumber(profile.stats.totalEntryClaps) to "Claps")
+                                            if (profile.stats.commentCount > 0)
+                                                add(formatCompactNumber(profile.stats.commentCount) to "Comments")
+                                        }
+
+                                        if (statItems.isNotEmpty()) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                statItems.forEach { (value, label) ->
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            value,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 14.sp,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                        Spacer(Modifier.width(4.dp))
+                                                        Text(
+                                                            label,
+                                                            fontSize = 13.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(14.dp))
 
+                                    // Action buttons
                                     Row(
                                         modifier = Modifier.padding(horizontal = 20.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -222,25 +276,6 @@ fun UserProfileScreen(
                                     }
 
                                     Spacer(modifier = Modifier.height(20.dp))
-                                }
-                            }
-                        }
-
-                        item(key = "user_stats") {
-                            Card(
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Text("Stats", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    StatRow("Entries", profile.stats.entryCount.toString())
-                                    StatRow("Comments", profile.stats.commentCount.toString())
-                                    StatRow("Links", profile.stats.linkCount.toString())
-                                    StatRow("Entry Views", profile.stats.totalEntryViews.toString())
-                                    StatRow("Entry Claps", profile.stats.totalEntryClaps.toString())
-                                    StatRow("Profile Views", profile.stats.totalProfileViews.toString())
                                 }
                             }
                         }
@@ -299,21 +334,65 @@ fun UserProfileScreen(
     }
 }
 
+/**
+ * "2026-01-27 ..." → "January 2026"
+ */
+private fun formatMonthYear(dateString: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val date = inputFormat.parse(dateString) ?: return dateString.take(10)
+        val outputFormat = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH)
+        outputFormat.format(date)
+    } catch (e: Exception) {
+        dateString.take(10)
+    }
+}
+
+/**
+ * Relative time: "1h ago", "today", "yesterday", "3d ago", etc.
+ */
 private fun formatRelativeDate(dateString: String): String {
     return try {
-        val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val date = inputFormat.parse(dateString) ?: return dateString.take(10)
-        val now = java.util.Date()
-        val diffInDays = (now.time - date.time) / (1000 * 60 * 60 * 24)
+        val now = Date()
+        val diffMs = now.time - date.time
+        val diffMinutes = diffMs / (1000 * 60)
+        val diffHours = diffMs / (1000 * 60 * 60)
+        val diffDays = diffMs / (1000 * 60 * 60 * 24)
         when {
-            diffInDays < 1 -> "today"
-            diffInDays < 2 -> "yesterday"
-            diffInDays < 7 -> "${diffInDays}d ago"
-            diffInDays < 30 -> "${diffInDays / 7}w ago"
-            diffInDays < 365 -> "${diffInDays / 30}mo ago"
-            else -> "${diffInDays / 365}y ago"
+            diffMinutes < 1 -> "just now"
+            diffMinutes < 60 -> "${diffMinutes}m ago"
+            diffHours < 24 -> "${diffHours}h ago"
+            diffDays < 2 -> "yesterday"
+            diffDays < 7 -> "${diffDays}d ago"
+            diffDays < 30 -> "${diffDays / 7}w ago"
+            diffDays < 365 -> "${diffDays / 30}mo ago"
+            else -> "${diffDays / 365}y ago"
         }
     } catch (e: Exception) {
         dateString.take(10)
+    }
+}
+
+/**
+ * Compact number formatting: 1234 → "1,234", 13500 → "13.5K", 1200000 → "1.2M"
+ */
+private fun formatCompactNumber(value: Int): String {
+    return when {
+        value >= 1_000_000 -> {
+            val formatted = value / 100_000 / 10.0
+            if (formatted == formatted.toLong().toDouble()) "${formatted.toLong()}M"
+            else "${formatted}M"
+        }
+        value >= 10_000 -> {
+            val formatted = value / 100 / 10.0
+            if (formatted == formatted.toLong().toDouble()) "${formatted.toLong()}K"
+            else "${formatted}K"
+        }
+        value >= 1_000 -> {
+            String.format(Locale.US, "%,d", value)
+        }
+        else -> value.toString()
     }
 }
