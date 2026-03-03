@@ -132,7 +132,7 @@ fun MyFeedScreen(
 
             items(
                 count = entries.itemCount,
-                key = { index -> "entry_$index" }
+                key = { index -> entries[index]?.id ?: index }
             ) { index ->
                 val entry = entries[index] ?: return@items
                 val commentState = commentsState[entry.id] ?: CommentState()

@@ -46,7 +46,7 @@ fun SearchScreen(
     onNavigateToUser: (String) -> Unit,
     initialQuery: String = "",
     scrollConnection: NestedScrollConnection? = null,
-    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current))
+    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory())
 ) {
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) {
@@ -117,7 +117,7 @@ fun SearchScreen(
                 ) {
                     items(
                         count = results.itemCount,
-                        key = { index -> "entry_$index" }
+                        key = { index -> results[index]?.id ?: index }
                     ) { index ->
                         val entry = results[index] ?: return@items
                         EntryCard(

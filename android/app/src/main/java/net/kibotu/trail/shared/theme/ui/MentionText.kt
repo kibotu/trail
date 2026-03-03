@@ -1,14 +1,18 @@
 package net.kibotu.trail.shared.theme.ui
 
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import net.kibotu.trail.shared.util.openInCustomTab
@@ -45,44 +49,57 @@ fun MentionText(
 
     val hasAnnotations = segments.isNotEmpty()
 
-    val annotated = buildAnnotatedString {
-        var lastIndex = 0
-        segments.forEach { segment ->
-            append(text.substring(lastIndex, segment.start))
-            pushStringAnnotation(segment.tag, segment.value)
-            val spanStyle = when (segment.tag) {
-                "mention" -> SpanStyle(color = primaryColor, fontWeight = FontWeight.Medium)
-                "url" -> SpanStyle(color = primaryColor)
-                else -> SpanStyle()
-            }
-            withStyle(spanStyle) {
-                append(text.substring(segment.start, segment.end))
-            }
-            pop()
-            lastIndex = segment.end
-        }
-        append(text.substring(lastIndex))
-    }
-
     if (hasAnnotations) {
-        ClickableText(
-            text = annotated,
-            modifier = modifier,
-            style = style.copy(color = textColor, lineHeight = lineHeight),
-            onClick = { offset ->
-                val mention = annotated.getStringAnnotations("mention", offset, offset).firstOrNull()
-                val url = annotated.getStringAnnotations("url", offset, offset).firstOrNull()
-                when {
-                    mention != null -> onMentionClick(mention.item)
-                    url != null -> context.openInCustomTab(url.item)
-                    else -> onClick()
+        val annotated = buildAnnotatedString {
+            var lastIndex = 0
+            segments.forEach { segment ->
+                append(text.substring(lastIndex, segment.start))
+                when (segment.tag) {
+                    "mention" -> {
+                        val nickname = segment.value
+                        withLink(
+                            LinkAnnotation.Clickable(
+                                tag = "mention",
+                                styles = TextLinkStyles(
+                                    style = SpanStyle(color = primaryColor, fontWeight = FontWeight.Medium)
+                                ),
+                                linkInteractionListener = { onMentionClick(nickname) }
+                            )
+                        ) {
+                            append(text.substring(segment.start, segment.end))
+                        }
+                    }
+                    "url" -> {
+                        val url = segment.value
+                        withLink(
+                            LinkAnnotation.Clickable(
+                                tag = "url",
+                                styles = TextLinkStyles(
+                                    style = SpanStyle(color = primaryColor)
+                                ),
+                                linkInteractionListener = { context.openInCustomTab(url) }
+                            )
+                        ) {
+                            append(text.substring(segment.start, segment.end))
+                        }
+                    }
+                    else -> {
+                        append(text.substring(segment.start, segment.end))
+                    }
                 }
+                lastIndex = segment.end
             }
+            append(text.substring(lastIndex))
+        }
+        BasicText(
+            text = annotated,
+            modifier = modifier.clickable(onClick = onClick),
+            style = style.copy(color = textColor, lineHeight = lineHeight)
         )
     } else {
         androidx.compose.material3.Text(
             text = text,
-            modifier = modifier,
+            modifier = modifier.clickable(onClick = onClick),
             style = style,
             color = textColor,
             lineHeight = lineHeight

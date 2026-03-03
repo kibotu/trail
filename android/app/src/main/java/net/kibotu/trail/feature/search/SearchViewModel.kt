@@ -1,7 +1,7 @@
 package net.kibotu.trail.feature.search
 
 import android.content.Context
-import android.content.Intent
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,7 +14,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
@@ -23,17 +22,18 @@ import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
+import net.kibotu.trail.shared.util.shareEntry
 
 class SearchViewModel(
     private val entryRepository: EntryRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _query = MutableStateFlow("")
-    val query: StateFlow<String> = _query.asStateFlow()
+    val query: StateFlow<String>
+        field = MutableStateFlow("")
 
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-    val searchResults: Flow<PagingData<Entry>> = _query
+    val searchResults: Flow<PagingData<Entry>> = query
         .debounce(300)
         .flatMapLatest { q ->
             Pager(
@@ -44,7 +44,7 @@ class SearchViewModel(
         .cachedIn(viewModelScope)
 
     fun updateQuery(newQuery: String) {
-        _query.value = newQuery
+        query.value = newQuery
     }
 
     fun addClaps(hashId: String, count: Int) {
@@ -60,12 +60,10 @@ class SearchViewModel(
     }
 
     fun shareEntry(context: Context, entry: Entry) {
-        val url = "https://trail.kibotu.net/status/${entry.hashId}"
-        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${entry.text}\n$url") }
-        context.startActivity(Intent.createChooser(intent, "Share entry"))
+        shareEntry(context, entry)
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val client = ApiClient.client

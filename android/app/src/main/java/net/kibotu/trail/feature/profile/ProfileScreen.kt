@@ -673,7 +673,7 @@ fun ProfileScreen(
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF2D1517)
+                    containerColor = MaterialTheme.colorScheme.errorContainer
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
@@ -682,19 +682,19 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        FaIcon(FaIcons.ExclamationTriangle, size = 16.dp, tint = Color(0xFFEF5350))
+                        FaIcon(FaIcons.ExclamationTriangle, size = 16.dp, tint = MaterialTheme.colorScheme.error)
                         Text(
                             "Danger Zone",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = Color(0xFFEF5350)
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Requesting deletion will hide your content immediately. Your account will be permanently deleted after 14 days.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFCFCFCF)
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
@@ -702,12 +702,12 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFD32F2F)
+                            containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        FaIcon(FaIcons.TrashAlt, size = 14.dp, tint = Color.White)
+                        FaIcon(FaIcons.TrashAlt, size = 14.dp, tint = MaterialTheme.colorScheme.onError)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Delete My Account", color = Color.White)
+                        Text("Delete My Account", color = MaterialTheme.colorScheme.onError)
                     }
                 }
             }
@@ -737,7 +737,7 @@ fun ProfileScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF1A1A1A))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                                     .padding(top = 16.dp, bottom = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {

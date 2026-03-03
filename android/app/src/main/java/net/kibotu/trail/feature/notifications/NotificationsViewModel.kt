@@ -1,6 +1,5 @@
 package net.kibotu.trail.feature.notifications
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,7 +10,6 @@ import androidx.paging.cachedIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.notification.Notification
@@ -31,8 +29,8 @@ class NotificationsViewModel(
         }
     ).flow.cachedIn(viewModelScope)
 
-    private val _unreadCount = MutableStateFlow(0)
-    val unreadCount: StateFlow<Int> = _unreadCount.asStateFlow()
+    val unreadCount: StateFlow<Int>
+        field = MutableStateFlow(0)
 
     init {
         refreshUnreadCount()
@@ -41,7 +39,7 @@ class NotificationsViewModel(
     private fun refreshUnreadCount() {
         viewModelScope.launch {
             repository.getNotifications(limit = 1).onSuccess {
-                _unreadCount.value = it.unreadCount
+                unreadCount.value = it.unreadCount
             }
         }
     }
@@ -70,7 +68,7 @@ class NotificationsViewModel(
         }
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return NotificationsViewModel(NotificationRepository(ApiClient.client)) as T

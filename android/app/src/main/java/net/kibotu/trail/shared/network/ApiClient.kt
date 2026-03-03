@@ -13,13 +13,14 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.kibotu.trail.BuildConfig
+import java.util.concurrent.atomic.AtomicReference
 
 object ApiClient {
 
-    private var authToken: String? = null
+    private val authTokenRef = AtomicReference<String?>(null)
 
     fun setAuthToken(token: String?) {
-        authToken = token
+        authTokenRef.set(token)
     }
 
     val client = HttpClient(Android) {
@@ -28,7 +29,7 @@ object ApiClient {
                 ignoreUnknownKeys = true
                 isLenient = true
                 encodeDefaults = true
-                prettyPrint = true
+                prettyPrint = BuildConfig.DEBUG
             })
         }
 
@@ -39,7 +40,7 @@ object ApiClient {
 
         install(Logging) {
             logger = Logger.ANDROID
-            level = LogLevel.ALL
+            level = if (BuildConfig.DEBUG) LogLevel.ALL else LogLevel.NONE
         }
 
         install(HttpTimeout) {
@@ -50,7 +51,7 @@ object ApiClient {
 
         defaultRequest {
             url(BuildConfig.API_BASE_URL)
-            authToken?.let {
+            authTokenRef.get()?.let {
                 headers.append("Authorization", "Bearer $it")
             }
         }

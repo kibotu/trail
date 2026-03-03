@@ -97,3 +97,8 @@ data class CommentClapResponse(
     @SerialName("user_claps") val userClaps: Int? = null,
     val total: Int? = null
 )
+
+@Serializable
+data class RecordViewRequest(
+    val fingerprint: String? = null
+)

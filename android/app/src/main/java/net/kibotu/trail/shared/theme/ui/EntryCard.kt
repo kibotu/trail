@@ -43,8 +43,9 @@ import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.toMediaItemDataList
 import net.kibotu.trail.shared.util.openInCustomTab
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -584,25 +585,22 @@ private fun extractDomain(url: String): String {
     }
 }
 
+private val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
 private fun formatRelativeTime(dateString: String): String {
     return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val date = inputFormat.parse(dateString) ?: return dateString
-        val now = Date()
-        val diffInMillis = now.time - date.time
-        val diffInSeconds = diffInMillis / 1000
-        val diffInMinutes = diffInSeconds / 60
-        val diffInHours = diffInMinutes / 60
-        val diffInDays = diffInHours / 24
+        val dateTime = LocalDateTime.parse(dateString, inputFormatter)
+        val now = LocalDateTime.now()
+        val diffInSeconds = ChronoUnit.SECONDS.between(dateTime, now)
+        val diffInMinutes = ChronoUnit.MINUTES.between(dateTime, now)
+        val diffInHours = ChronoUnit.HOURS.between(dateTime, now)
+        val diffInDays = ChronoUnit.DAYS.between(dateTime, now)
         when {
             diffInSeconds < 60 -> "just now"
             diffInMinutes < 60 -> "${diffInMinutes}m"
             diffInHours < 24 -> "${diffInHours}h"
             diffInDays < 7 -> "${diffInDays}d"
-            else -> {
-                val outputFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
-                outputFormat.format(date)
-            }
+            else -> dateTime.format(DateTimeFormatter.ofPattern("MMM dd", Locale.getDefault()))
         }
     } catch (e: Exception) {
         dateString

@@ -41,7 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +51,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
+import net.kibotu.trail.shared.notification.Notification
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun NotificationsScreen(
     onNavigateBack: (() -> Unit)? = null,
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
-    viewModel: NotificationsViewModel = viewModel(factory = NotificationsViewModel.Factory(LocalContext.current))
+    viewModel: NotificationsViewModel = viewModel(factory = NotificationsViewModel.Factory())
 ) {
     val notifications = viewModel.notifications.collectAsLazyPagingItems()
     val unreadCount by viewModel.unreadCount.collectAsState()
@@ -234,7 +235,7 @@ fun NotificationsScreen(
     }
 }
 
-private fun buildNotificationText(notification: net.kibotu.trail.shared.notification.Notification): String {
+private fun buildNotificationText(notification: Notification): String {
     val actorName = notification.actorName ?: "Someone"
     return when (notification.type) {
         "clap" -> {

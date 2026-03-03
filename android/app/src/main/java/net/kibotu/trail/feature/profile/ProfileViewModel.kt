@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.profile.ProfileRepository
 import net.kibotu.trail.shared.profile.ProfileResponse
@@ -32,8 +31,8 @@ class ProfileViewModel(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ProfileScreenState())
-    val state: StateFlow<ProfileScreenState> = _state.asStateFlow()
+    val state: StateFlow<ProfileScreenState>
+        field = MutableStateFlow(ProfileScreenState())
 
     init {
         loadProfile()
@@ -42,10 +41,10 @@ class ProfileViewModel(
 
     fun loadProfile() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            state.value = state.value.copy(isLoading = true)
             profileRepository.getProfile().fold(
-                onSuccess = { _state.value = _state.value.copy(profile = it, isLoading = false) },
-                onFailure = { _state.value = _state.value.copy(error = it.message, isLoading = false) }
+                onSuccess = { state.value = state.value.copy(profile = it, isLoading = false) },
+                onFailure = { state.value = state.value.copy(error = it.message, isLoading = false) }
             )
         }
     }
@@ -53,17 +52,17 @@ class ProfileViewModel(
     fun loadFilters() {
         viewModelScope.launch {
             userRepository.getFilters().onSuccess {
-                _state.value = _state.value.copy(filters = it)
+                state.value = state.value.copy(filters = it)
             }
         }
     }
 
     fun updateProfile(nickname: String, bio: String?) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isUpdating = true)
+            state.value = state.value.copy(isUpdating = true)
             profileRepository.updateProfile(UpdateProfileRequest(nickname, bio)).fold(
                 onSuccess = { loadProfile() },
-                onFailure = { _state.value = _state.value.copy(isUpdating = false) }
+                onFailure = { state.value = state.value.copy(isUpdating = false) }
             )
         }
     }
@@ -76,7 +75,7 @@ class ProfileViewModel(
 
     fun downloadExport(context: Context) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isExporting = true)
+            state.value = state.value.copy(isExporting = true)
             profileRepository.exportData().fold(
                 onSuccess = { bytes ->
                     try {
@@ -85,16 +84,20 @@ class ProfileViewModel(
                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
                         val intent = Intent(Intent.ACTION_VIEW).apply {
                             setDataAndType(uri, "text/html")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
-                        context.startActivity(intent)
+                        if (intent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(intent)
+                        } else {
+                            context.startActivity(Intent.createChooser(intent, "Open export"))
+                        }
                     } catch (e: Exception) {
-                        _state.value = _state.value.copy(error = "Could not open export file")
+                        state.value = state.value.copy(error = "Could not open export file")
                     }
-                    _state.value = _state.value.copy(isExporting = false)
+                    state.value = state.value.copy(isExporting = false)
                 },
                 onFailure = {
-                    _state.value = _state.value.copy(isExporting = false, error = it.message)
+                    state.value = state.value.copy(isExporting = false, error = it.message)
                 }
             )
         }
@@ -104,7 +107,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             profileRepository.requestDeletion().fold(
                 onSuccess = { onSuccess() },
-                onFailure = { _state.value = _state.value.copy(error = it.message) }
+                onFailure = { state.value = state.value.copy(error = it.message) }
             )
         }
     }

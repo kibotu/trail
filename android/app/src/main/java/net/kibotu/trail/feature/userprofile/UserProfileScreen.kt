@@ -56,8 +56,9 @@ import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.util.openInCustomTab
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -103,33 +104,32 @@ fun UserProfileScreen(
                                 Column(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    // Header image
                                     if (profile.headerImageUrl != null) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(140.dp)
-                                                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                                                .height(180.dp)
                                         ) {
                                             AsyncImage(
                                                 model = profile.headerImageUrl,
                                                 contentDescription = "Header",
-                                                modifier = Modifier.fillMaxSize(),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(140.dp)
+                                                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            AsyncImage(
+                                                model = profile.avatarUrl,
+                                                contentDescription = "Avatar",
+                                                modifier = Modifier
+                                                    .padding(start = 20.dp)
+                                                    .size(80.dp)
+                                                    .align(Alignment.BottomStart)
+                                                    .clip(CircleShape),
                                                 contentScale = ContentScale.Crop
                                             )
                                         }
-                                        // Avatar overlapping header
-                                        AsyncImage(
-                                            model = profile.avatarUrl,
-                                            contentDescription = "Avatar",
-                                            modifier = Modifier
-                                                .padding(start = 20.dp)
-                                                .size(80.dp)
-                                                .offset(y = (-40).dp)
-                                                .clip(CircleShape),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        Spacer(modifier = Modifier.height((-28).dp))
                                     } else {
                                         Spacer(modifier = Modifier.height(20.dp))
                                         AsyncImage(
@@ -334,32 +334,24 @@ fun UserProfileScreen(
     }
 }
 
-/**
- * "2026-01-27 ..." → "January 2026"
- */
+private val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
 private fun formatMonthYear(dateString: String): String {
     return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val date = inputFormat.parse(dateString) ?: return dateString.take(10)
-        val outputFormat = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH)
-        outputFormat.format(date)
+        val dateTime = LocalDateTime.parse(dateString, inputFormatter)
+        dateTime.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH))
     } catch (e: Exception) {
         dateString.take(10)
     }
 }
 
-/**
- * Relative time: "1h ago", "today", "yesterday", "3d ago", etc.
- */
 private fun formatRelativeDate(dateString: String): String {
     return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val date = inputFormat.parse(dateString) ?: return dateString.take(10)
-        val now = Date()
-        val diffMs = now.time - date.time
-        val diffMinutes = diffMs / (1000 * 60)
-        val diffHours = diffMs / (1000 * 60 * 60)
-        val diffDays = diffMs / (1000 * 60 * 60 * 24)
+        val dateTime = LocalDateTime.parse(dateString, inputFormatter)
+        val now = LocalDateTime.now()
+        val diffMinutes = ChronoUnit.MINUTES.between(dateTime, now)
+        val diffHours = ChronoUnit.HOURS.between(dateTime, now)
+        val diffDays = ChronoUnit.DAYS.between(dateTime, now)
         when {
             diffMinutes < 1 -> "just now"
             diffMinutes < 60 -> "${diffMinutes}m ago"

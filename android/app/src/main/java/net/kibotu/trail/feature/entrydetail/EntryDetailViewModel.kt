@@ -1,7 +1,7 @@
 package net.kibotu.trail.feature.entrydetail
 
 import android.content.Context
-import android.content.Intent
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.comment.CommentRepository
@@ -21,6 +19,7 @@ import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
+import net.kibotu.trail.shared.util.shareEntry
 
 data class EntryDetailState(
     val entry: Entry? = null,
@@ -37,14 +36,14 @@ class EntryDetailViewModel(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(EntryDetailState())
-    val state: StateFlow<EntryDetailState> = _state.asStateFlow()
+    val state: StateFlow<EntryDetailState>
+        field = MutableStateFlow(EntryDetailState())
 
-    private val _entryDeleted = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val entryDeleted: SharedFlow<Unit> = _entryDeleted.asSharedFlow()
+    val entryDeleted: SharedFlow<Unit>
+        field = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    private val _currentlyPlayingVideoId = MutableStateFlow<String?>(null)
-    val currentlyPlayingVideoId: StateFlow<String?> = _currentlyPlayingVideoId.asStateFlow()
+    val currentlyPlayingVideoId: StateFlow<String?>
+        field = MutableStateFlow<String?>(null)
 
     init {
         loadEntry()
@@ -55,8 +54,8 @@ class EntryDetailViewModel(
     private fun loadEntry() {
         viewModelScope.launch {
             entryRepository.getEntry(hashId).fold(
-                onSuccess = { _state.value = _state.value.copy(entry = it, isLoading = false) },
-                onFailure = { _state.value = _state.value.copy(error = it.message, isLoading = false) }
+                onSuccess = { state.value = state.value.copy(entry = it, isLoading = false) },
+                onFailure = { state.value = state.value.copy(error = it.message, isLoading = false) }
             )
         }
     }
@@ -65,17 +64,17 @@ class EntryDetailViewModel(
 
     fun loadComments() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isCommentsLoading = true)
+            state.value = state.value.copy(isCommentsLoading = true)
             commentRepository.getComments(hashId).fold(
                 onSuccess = { response ->
-                    _state.value = _state.value.copy(comments = response.comments, isCommentsLoading = false)
+                    state.value = state.value.copy(comments = response.comments, isCommentsLoading = false)
                     response.comments.forEach { comment ->
                         if (viewedCommentIds.add(comment.id)) {
                             launch { commentRepository.recordView(comment.id) }
                         }
                     }
                 },
-                onFailure = { _state.value = _state.value.copy(isCommentsLoading = false) }
+                onFailure = { state.value = state.value.copy(isCommentsLoading = false) }
             )
         }
     }
@@ -91,11 +90,11 @@ class EntryDetailViewModel(
     fun deleteEntry(entryId: Int) {
         viewModelScope.launch {
             entryRepository.deleteEntry(entryId).onSuccess {
-                _entryDeleted.tryEmit(Unit)
+                entryDeleted.tryEmit(Unit)
             }
         }
     }
-    fun onVideoPlay(id: String?) { _currentlyPlayingVideoId.value = id }
+    fun onVideoPlay(id: String?) { currentlyPlayingVideoId.value = id }
 
     fun createComment(text: String) {
         viewModelScope.launch {
@@ -124,10 +123,8 @@ class EntryDetailViewModel(
     }
 
     fun shareEntry(context: Context) {
-        val entry = _state.value.entry ?: return
-        val url = "https://trail.kibotu.net/status/${entry.hashId}"
-        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${entry.text}\n$url") }
-        context.startActivity(Intent.createChooser(intent, "Share entry"))
+        val entry = state.value.entry ?: return
+        shareEntry(context, entry)
     }
 
     class Factory(private val hashId: String) : ViewModelProvider.Factory {

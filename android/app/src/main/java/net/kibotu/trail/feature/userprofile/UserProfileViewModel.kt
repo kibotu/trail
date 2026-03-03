@@ -1,7 +1,7 @@
 package net.kibotu.trail.feature.userprofile
 
 import android.content.Context
-import android.content.Intent
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,7 +12,6 @@ import androidx.paging.cachedIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
@@ -20,6 +19,7 @@ import net.kibotu.trail.shared.entry.UserEntriesPagingSource
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.profile.ProfileResponse
 import net.kibotu.trail.shared.user.UserRepository
+import net.kibotu.trail.shared.util.shareEntry
 
 data class UserProfileState(
     val profile: ProfileResponse? = null,
@@ -34,8 +34,8 @@ class UserProfileViewModel(
     private val entryRepository: EntryRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(UserProfileState())
-    val state: StateFlow<UserProfileState> = _state.asStateFlow()
+    val state: StateFlow<UserProfileState>
+        field = MutableStateFlow(UserProfileState())
 
     val entries: Flow<PagingData<Entry>> = Pager(
         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
@@ -50,8 +50,8 @@ class UserProfileViewModel(
     private fun loadProfile() {
         viewModelScope.launch {
             userRepository.getPublicProfile(nickname).fold(
-                onSuccess = { _state.value = _state.value.copy(profile = it, isLoading = false) },
-                onFailure = { _state.value = _state.value.copy(error = it.message, isLoading = false) }
+                onSuccess = { state.value = state.value.copy(profile = it, isLoading = false) },
+                onFailure = { state.value = state.value.copy(error = it.message, isLoading = false) }
             )
         }
     }
@@ -61,19 +61,19 @@ class UserProfileViewModel(
     }
 
     fun muteUser() {
-        val userId = _state.value.profile?.id ?: return
+        val userId = state.value.profile?.id ?: return
         viewModelScope.launch {
             userRepository.muteUser(userId).onSuccess {
-                _state.value = _state.value.copy(isMuted = true)
+                state.value = state.value.copy(isMuted = true)
             }
         }
     }
 
     fun unmuteUser() {
-        val userId = _state.value.profile?.id ?: return
+        val userId = state.value.profile?.id ?: return
         viewModelScope.launch {
             userRepository.unmuteUser(userId).onSuccess {
-                _state.value = _state.value.copy(isMuted = false)
+                state.value = state.value.copy(isMuted = false)
             }
         }
     }
@@ -83,9 +83,7 @@ class UserProfileViewModel(
     }
 
     fun shareEntry(context: Context, entry: Entry) {
-        val url = "https://trail.kibotu.net/status/${entry.hashId}"
-        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${entry.text}\n$url") }
-        context.startActivity(Intent.createChooser(intent, "Share entry"))
+        shareEntry(context, entry)
     }
 
     class Factory(private val nickname: String) : ViewModelProvider.Factory {

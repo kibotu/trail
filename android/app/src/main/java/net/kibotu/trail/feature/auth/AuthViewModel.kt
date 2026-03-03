@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.auth.AuthRepository
@@ -31,8 +30,8 @@ class AuthViewModel(
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(AuthState())
-    val state: StateFlow<AuthState> = _state.asStateFlow()
+    val state: StateFlow<AuthState>
+        field = MutableStateFlow(AuthState())
 
     init {
         viewModelScope.launch {
@@ -56,7 +55,7 @@ class AuthViewModel(
                 }
 
                 val resolvedUserId = userId
-                _state.value = AuthState(
+                state.value = AuthState(
                     isLoggedIn = true,
                     isLoading = false,
                     pendingDeletion = deletionRequestedAt != null,
@@ -74,14 +73,14 @@ class AuthViewModel(
                     } else null
                 )
             } else {
-                _state.value = AuthState(isLoggedIn = false, isLoading = false)
+                state.value = AuthState(isLoggedIn = false, isLoading = false)
             }
         }
     }
 
     fun handleGoogleSignIn(idToken: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
+            state.value = state.value.copy(isLoading = true, error = null)
             authRepository.googleSignIn(idToken).fold(
                 onSuccess = { response ->
                     var user = response.user
@@ -95,7 +94,7 @@ class AuthViewModel(
                         )
                         deletionRequestedAt = profile.deletionRequestedAt
                     }
-                    _state.value = _state.value.copy(
+                    state.value = state.value.copy(
                         isLoggedIn = true,
                         isLoading = false,
                         user = user,
@@ -105,7 +104,7 @@ class AuthViewModel(
                     )
                 },
                 onFailure = { e ->
-                    _state.value = _state.value.copy(
+                    state.value = state.value.copy(
                         isLoading = false,
                         error = e.message
                     )
@@ -117,22 +116,22 @@ class AuthViewModel(
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            _state.value = AuthState(isLoggedIn = false, isLoading = false)
+            state.value = AuthState(isLoggedIn = false, isLoading = false)
         }
     }
 
     fun setPendingSharedText(text: String) {
-        _state.value = _state.value.copy(pendingSharedText = text)
+        state.value = state.value.copy(pendingSharedText = text)
     }
 
     fun consumePendingSharedText(): String? {
-        val text = _state.value.pendingSharedText
-        _state.value = _state.value.copy(pendingSharedText = null)
+        val text = state.value.pendingSharedText
+        state.value = state.value.copy(pendingSharedText = null)
         return text
     }
 
     fun clearPendingDeletion() {
-        _state.value = _state.value.copy(pendingDeletion = false, deletionRequestedAt = null)
+        state.value = state.value.copy(pendingDeletion = false, deletionRequestedAt = null)
     }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

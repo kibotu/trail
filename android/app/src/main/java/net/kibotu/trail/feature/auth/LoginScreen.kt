@@ -1,6 +1,5 @@
 package net.kibotu.trail.feature.auth
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -32,7 +31,6 @@ import kotlinx.coroutines.launch
 import net.kibotu.trail.R
 import timber.log.Timber
 import java.security.SecureRandom
-import java.util.Base64
 
 @Composable
 fun LoginScreen(
@@ -72,11 +70,13 @@ fun LoginScreen(
     }
 }
 
-@SuppressLint("NewApi")
 private fun generateSecureRandomNonce(byteLength: Int = 32): String {
     val randomBytes = ByteArray(byteLength)
-    SecureRandom.getInstanceStrong().nextBytes(randomBytes)
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
+    SecureRandom().nextBytes(randomBytes)
+    return android.util.Base64.encodeToString(
+        randomBytes,
+        android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP
+    )
 }
 
 private suspend fun performGoogleSignIn(context: Context, webClientId: String): String? {

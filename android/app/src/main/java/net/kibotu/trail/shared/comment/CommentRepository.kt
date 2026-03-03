@@ -62,7 +62,7 @@ class CommentRepository(private val client: HttpClient) {
     suspend fun recordView(commentId: Int): Result<Unit> = runCatching {
         client.post("api/comments/$commentId/views") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("fingerprint" to null))
+            setBody(RecordViewRequest())
         }
     }
 }

@@ -1,7 +1,7 @@
 package net.kibotu.trail.feature.myfeed
 
 import android.content.Context
-import android.content.Intent
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,13 +14,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.net.Uri
-import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.comment.CommentRepository
-import net.kibotu.trail.shared.comment.CreateCommentRequest
+import net.kibotu.trail.shared.comment.CommentStateManager
 import net.kibotu.trail.shared.entry.CreateEntryRequest
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
@@ -32,15 +29,18 @@ import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.user.UserRepository
 import net.kibotu.trail.feature.home.CommentState
+import net.kibotu.trail.shared.util.shareEntry
 
 class MyFeedViewModel(
     private val entryRepository: EntryRepository,
-    private val commentRepository: CommentRepository,
+    commentRepository: CommentRepository,
     private val userRepository: UserRepository,
     private val imageUploadManager: ImageUploadManager,
     private val nickname: String,
     private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
+
+    private val commentStateManager = CommentStateManager(commentRepository, viewModelScope)
 
     private val _pagingSource = MutableStateFlow<UserEntriesPagingSource?>(null)
 
@@ -53,98 +53,64 @@ class MyFeedViewModel(
         }
     ).flow.cachedIn(viewModelScope)
 
-    private val _commentsState = MutableStateFlow<Map<Int, CommentState>>(emptyMap())
-    val commentsState: StateFlow<Map<Int, CommentState>> = _commentsState.asStateFlow()
+    val commentsState: StateFlow<Map<Int, CommentState>> = commentStateManager.commentsState
 
-    private val _currentlyPlayingVideoId = MutableStateFlow<String?>(null)
-    val currentlyPlayingVideoId: StateFlow<String?> = _currentlyPlayingVideoId.asStateFlow()
+    val currentlyPlayingVideoId: StateFlow<String?>
+        field = MutableStateFlow<String?>(null)
 
-    private val _isPosting = MutableStateFlow(false)
-    val isPosting: StateFlow<Boolean> = _isPosting.asStateFlow()
+    val isPosting: StateFlow<Boolean>
+        field = MutableStateFlow(false)
 
-    private val _reviewEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val reviewEvent: SharedFlow<Unit> = _reviewEvent.asSharedFlow()
+    val reviewEvent: SharedFlow<Unit>
+        field = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    fun onVideoPlay(id: String?) { _currentlyPlayingVideoId.value = id }
+    fun onVideoPlay(id: String?) { currentlyPlayingVideoId.value = id }
 
-    private val _uploadProgress = MutableStateFlow(0f)
-    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
+    val uploadProgress: StateFlow<Float>
+        field = MutableStateFlow(0f)
 
     fun createEntry(context: Context, text: String, imageUris: List<Uri> = emptyList()) {
         viewModelScope.launch {
-            _isPosting.value = true
-            _uploadProgress.value = 0f
+            isPosting.value = true
+            uploadProgress.value = 0f
 
             val imageIds = mutableListOf<Int>()
             for ((index, uri) in imageUris.withIndex()) {
                 imageUploadManager.uploadImage(context, uri) { progress ->
                     val base = index.toFloat() / imageUris.size
                     val portion = 1f / imageUris.size
-                    _uploadProgress.value = base + progress * portion
+                    uploadProgress.value = base + progress * portion
                 }.fold(
                     onSuccess = { imageId -> imageIds.add(imageId) },
                     onFailure = {
-                        _isPosting.value = false
-                        _uploadProgress.value = 0f
+                        isPosting.value = false
+                        uploadProgress.value = 0f
                         return@launch
                     }
                 )
             }
 
-            _uploadProgress.value = 0f
+            uploadProgress.value = 0f
             entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
                     _pagingSource.value?.invalidate()
                     if (inAppReviewManager.shouldPrompt()) {
-                        _reviewEvent.tryEmit(Unit)
+                        reviewEvent.tryEmit(Unit)
                     }
                 },
                 onFailure = {}
             )
-            _isPosting.value = false
+            isPosting.value = false
         }
     }
 
-    fun toggleComments(entryId: Int, hashId: String?) {
-        val current = _commentsState.value[entryId] ?: CommentState()
-        val newExpanded = !current.isExpanded
-        _commentsState.value = _commentsState.value + (entryId to current.copy(isExpanded = newExpanded))
-        if (newExpanded && current.comments.isEmpty() && hashId != null) {
-            loadComments(entryId, hashId)
-        }
-    }
-
-    private val viewedCommentIds = mutableSetOf<Int>()
-
-    fun loadComments(entryId: Int, hashId: String?) {
-        if (hashId == null) return
-        val current = _commentsState.value[entryId] ?: CommentState()
-        _commentsState.value = _commentsState.value + (entryId to current.copy(isLoading = true))
-        viewModelScope.launch {
-            commentRepository.getComments(hashId).fold(
-                onSuccess = { response ->
-                    val updated = _commentsState.value[entryId] ?: CommentState()
-                    _commentsState.value = _commentsState.value + (entryId to updated.copy(comments = response.comments, isLoading = false))
-                    response.comments.forEach { comment ->
-                        if (viewedCommentIds.add(comment.id)) {
-                            launch { commentRepository.recordView(comment.id) }
-                        }
-                    }
-                },
-                onFailure = {
-                    val updated = _commentsState.value[entryId] ?: CommentState()
-                    _commentsState.value = _commentsState.value + (entryId to updated.copy(isLoading = false))
-                }
-            )
-        }
-    }
-
-    fun createComment(entryId: Int, hashId: String?, text: String) {
-        if (hashId == null) return
-        viewModelScope.launch {
-            commentRepository.createComment(hashId, CreateCommentRequest(text)).onSuccess { loadComments(entryId, hashId) }
-        }
-    }
+    fun toggleComments(entryId: Int, hashId: String?) = commentStateManager.toggleComments(entryId, hashId)
+    fun loadComments(entryId: Int, hashId: String?) = commentStateManager.loadComments(entryId, hashId)
+    fun createComment(entryId: Int, hashId: String?, text: String) = commentStateManager.createComment(entryId, hashId, text)
+    fun updateComment(commentId: Int, text: String, entryId: Int) = commentStateManager.updateComment(commentId, text, entryId)
+    fun deleteComment(commentId: Int, entryId: Int) = commentStateManager.deleteComment(commentId, entryId)
+    fun clapComment(commentId: Int, count: Int, entryId: Int) = commentStateManager.clapComment(commentId, count)
+    fun reportComment(commentId: Int, entryId: Int) = commentStateManager.reportComment(commentId)
 
     fun updateEntry(entryId: Int, text: String) { viewModelScope.launch { entryRepository.updateEntry(entryId, UpdateEntryRequest(text)) } }
     fun deleteEntry(entryId: Int) {
@@ -159,26 +125,8 @@ class MyFeedViewModel(
     fun reportEntry(hashId: String) { viewModelScope.launch { entryRepository.reportEntry(hashId) } }
     fun muteUser(userId: Int) { viewModelScope.launch { userRepository.muteUser(userId) } }
 
-    fun updateComment(commentId: Int, text: String, entryId: Int) {
-        viewModelScope.launch { commentRepository.updateComment(commentId, net.kibotu.trail.shared.comment.UpdateCommentRequest(text)) }
-    }
-    fun deleteComment(commentId: Int, entryId: Int) {
-        viewModelScope.launch {
-            commentRepository.deleteComment(commentId).onSuccess {
-                val current = _commentsState.value[entryId] ?: return@onSuccess
-                _commentsState.value = _commentsState.value + (entryId to current.copy(
-                    comments = current.comments.filter { it.id != commentId }
-                ))
-            }
-        }
-    }
-    fun clapComment(commentId: Int, count: Int, entryId: Int) { viewModelScope.launch { commentRepository.addClap(commentId, count) } }
-    fun reportComment(commentId: Int, entryId: Int) { viewModelScope.launch { commentRepository.reportComment(commentId) } }
-
     fun shareEntry(context: Context, entry: Entry) {
-        val url = "https://trail.kibotu.net/status/${entry.hashId}"
-        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${entry.text}\n$url") }
-        context.startActivity(Intent.createChooser(intent, "Share entry"))
+        shareEntry(context, entry)
     }
 
     class Factory(

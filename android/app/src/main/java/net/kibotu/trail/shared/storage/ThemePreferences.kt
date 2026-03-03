@@ -1,51 +1,58 @@
 package net.kibotu.trail.shared.storage
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.runtime.compositionLocalOf
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-class ThemePreferences(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        PREFS_NAME,
-        Context.MODE_PRIVATE
-    )
+private val Context.themeDataStore: DataStore<Preferences> by preferencesDataStore(name = "theme_prefs")
 
-    private val _isDarkTheme = MutableStateFlow(getDarkTheme())
-    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+class ThemePreferences(private val context: Context) {
 
-    private val _showEntryTags = MutableStateFlow(getShowEntryTags())
-    val showEntryTags: StateFlow<Boolean> = _showEntryTags.asStateFlow()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun getDarkTheme(): Boolean {
-        return prefs.getBoolean(KEY_DARK_THEME, true)
+    val isDarkTheme: StateFlow<Boolean>
+        field = MutableStateFlow(true)
+
+    val showEntryTags: StateFlow<Boolean>
+        field = MutableStateFlow(true)
+
+    init {
+        scope.launch {
+            context.themeDataStore.data.map { it[KEY_DARK_THEME] ?: true }.collect { isDarkTheme.value = it }
+        }
+        scope.launch {
+            context.themeDataStore.data.map { it[KEY_SHOW_ENTRY_TAGS] ?: true }.collect { showEntryTags.value = it }
+        }
     }
 
     fun setDarkTheme(isDark: Boolean) {
-        prefs.edit().putBoolean(KEY_DARK_THEME, isDark).apply()
-        _isDarkTheme.value = isDark
+        isDarkTheme.value = isDark
+        scope.launch { context.themeDataStore.edit { it[KEY_DARK_THEME] = isDark } }
     }
 
     fun toggleTheme() {
-        val newTheme = !getDarkTheme()
-        setDarkTheme(newTheme)
-    }
-
-    fun getShowEntryTags(): Boolean {
-        return prefs.getBoolean(KEY_SHOW_ENTRY_TAGS, true)
+        setDarkTheme(!isDarkTheme.value)
     }
 
     fun setShowEntryTags(show: Boolean) {
-        prefs.edit().putBoolean(KEY_SHOW_ENTRY_TAGS, show).apply()
-        _showEntryTags.value = show
+        showEntryTags.value = show
+        scope.launch { context.themeDataStore.edit { it[KEY_SHOW_ENTRY_TAGS] = show } }
     }
 
     companion object {
-        private const val PREFS_NAME = "theme_prefs"
-        private const val KEY_DARK_THEME = "dark_theme"
-        private const val KEY_SHOW_ENTRY_TAGS = "show_entry_tags"
+        private val KEY_DARK_THEME = booleanPreferencesKey("dark_theme")
+        private val KEY_SHOW_ENTRY_TAGS = booleanPreferencesKey("show_entry_tags")
     }
 }
 

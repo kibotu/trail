@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import net.kibotu.splashscreen.splash
 import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
@@ -36,8 +35,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var inAppReviewManager: InAppReviewManager
     private lateinit var inAppUpdateManager: InAppUpdateManager
     private var splashScreenDecorator: net.kibotu.splashscreen.SplashScreenDecorator? = null
-    private val _pendingSharedText = MutableStateFlow<String?>(null)
-    private val pendingSharedText = _pendingSharedText.asStateFlow()
+    private val pendingSharedText = MutableStateFlow<String?>(null)
 
     private val updateResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -95,7 +93,7 @@ class MainActivity : ComponentActivity() {
                         TrailNavigation(
                             themePreferences = themePreferences,
                             pendingSharedText = pendingSharedText,
-                            onConsumeSharedText = { _pendingSharedText.value = null }
+                            onConsumeSharedText = { pendingSharedText.value = null }
                         )
                     }
                 }
@@ -120,7 +118,7 @@ class MainActivity : ComponentActivity() {
     private fun handleSharedContent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
-                _pendingSharedText.value = text
+                pendingSharedText.value = text
             }
             intent.action = null
         }

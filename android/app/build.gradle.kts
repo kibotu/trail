@@ -141,12 +141,25 @@ android {
 
     defaultConfig {
         buildConfigField("String", "API_BASE_URL", "\"https://trail.services.kibotu.net/\"")
+        buildConfigField("String", "WEB_BASE_URL", "\"https://trail.kibotu.net\"")
     }
 }
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+kotlin {
+    compilerOptions {
+        allWarningsAsErrors = false
+        verbose = true
+        freeCompilerArgs.addAll(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xannotation-default-target=param-property",
+            "-Xexplicit-backing-fields",
+        )
     }
 }
 
