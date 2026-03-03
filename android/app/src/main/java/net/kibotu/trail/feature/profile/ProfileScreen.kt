@@ -80,6 +80,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.R
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
@@ -839,6 +840,19 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Logout")
             }
+        }
+
+        // ── Version Footer ──────────────────────────────────────────────
+        item(key = "version_footer") {
+            Text(
+                text = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
         }
     }
 }
