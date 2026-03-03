@@ -25,6 +25,10 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-cleanup: always
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Generate debug keystore
         working-directory: android/app

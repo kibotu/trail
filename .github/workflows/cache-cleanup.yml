@@ -1,0 +1,44 @@
+name: Cache Cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cleanup stale caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching all caches..."
+          gh api repos/${{ github.repository }}/actions/caches --paginate -q '.actions_caches[]' \
+            | jq -s '.' > /tmp/all_caches.json
+
+          total=$(jq length /tmp/all_caches.json)
+          echo "Total caches: $total"
+
+          declare -A seen_prefixes
+
+          jq -r 'sort_by(.last_accessed_at) | reverse | .[] | "\(.id)\t\(.key)\t\(.size_in_bytes)\t\(.last_accessed_at)"' /tmp/all_caches.json \
+            | while IFS=$'\t' read -r id key size accessed; do
+              prefix=$(echo "$key" | sed -E 's/-[a-f0-9]{32,}$//' | sed -E 's/-[0-9]{11,}$//')
+
+              if [[ -n "${seen_prefixes[$prefix]+x}" ]]; then
+                size_mb=$(echo "scale=1; $size / 1048576" | bc)
+                echo "Deleting duplicate cache: $key (${size_mb} MB, last used: $accessed)"
+                gh api -X DELETE "repos/${{ github.repository }}/actions/caches/$id" || true
+              else
+                seen_prefixes[$prefix]=1
+                echo "Keeping latest: $key (prefix: $prefix)"
+              fi
+            done
+
+          echo "Cache cleanup complete."

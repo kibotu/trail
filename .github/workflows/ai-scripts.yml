@@ -27,7 +27,7 @@ jobs:
           path: |
             topic-generation/.tag_generation_cache.json
             entry-rewriter/.entry_rewrite_cache.json
-          key: ai-scripts-cache-${{ github.run_id }}
+          key: ai-scripts-cache-${{ hashFiles('topic-generation/.tag_generation_cache.json', 'entry-rewriter/.entry_rewrite_cache.json') }}
           restore-keys: ai-scripts-cache-
 
       - name: Generate tags
