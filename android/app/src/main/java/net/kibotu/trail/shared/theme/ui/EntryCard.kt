@@ -1,6 +1,20 @@
 package net.kibotu.trail.shared.theme.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,13 +39,17 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,16 +100,23 @@ fun EntryCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val canModify = isAdmin || entry.userId == currentUserId
     val isOwnContent = entry.userId == currentUserId
 
+    val cardInteractionSource = remember { MutableInteractionSource() }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCardClick() },
+            .pressScale(cardInteractionSource)
+            .clickable(
+                interactionSource = cardInteractionSource,
+                indication = LocalIndication.current
+            ) { onCardClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -278,6 +303,20 @@ fun EntryCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action bar: claps, comments, views, share
+            var clapTrigger by remember { mutableIntStateOf(0) }
+            val clapScale by animateFloatAsState(
+                targetValue = 1f,
+                animationSpec = keyframes {
+                    durationMillis = 400
+                    1.0f at 0
+                    1.3f at 100 using FastOutSlowInEasing
+                    0.9f at 200
+                    1.05f at 300
+                    1.0f at 400
+                },
+                label = "clapBounce_${clapTrigger}"
+            )
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -289,19 +328,30 @@ fun EntryCard(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .clickable(enabled = !isOwnContent) { onClap(1) }
+                        .clickable(enabled = !isOwnContent) {
+                            clapTrigger++
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onClap(1)
+                        }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    FaIcon(
-                        faIcon = if (entry.userClapCount > 0) FaIcons.Heart else FaIcons.HeartRegular,
-                        size = 18.dp,
-                        tint = if (entry.userClapCount > 0)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = clapScale
+                            scaleY = clapScale
+                        }
+                    ) {
+                        FaIcon(
+                            faIcon = if (entry.userClapCount > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                            size = 18.dp,
+                            tint = if (entry.userClapCount > 0)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                     if (entry.clapCount > 0) {
                         Text(
                             text = formatCount(entry.clapCount),
@@ -369,7 +419,11 @@ fun EntryCard(
             }
 
             // Comments section
-            if (commentsExpanded) {
+            AnimatedVisibility(
+                visible = commentsExpanded,
+                enter = expandVertically(tween(300, easing = FastOutSlowInEasing)) + fadeIn(tween(300)),
+                exit = shrinkVertically(tween(250, easing = FastOutLinearInEasing)) + fadeOut(tween(200))
+            ) {
                 CommentsSection(
                     entryId = entry.id,
                     commentCount = entry.commentCount,
@@ -408,6 +462,7 @@ fun EntryCard(
             entry = entry,
             onDismiss = { showDeleteDialog = false },
             onConfirm = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onDeleteEntry()
                 showDeleteDialog = false
             }
@@ -420,10 +475,16 @@ fun LinkPreviewCard(
     entry: Entry,
     onClick: () -> Unit = {}
 ) {
+    val linkInteractionSource = remember { MutableInteractionSource() }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .pressScale(linkInteractionSource)
+            .clickable(
+                interactionSource = linkInteractionSource,
+                indication = LocalIndication.current
+            ) { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)

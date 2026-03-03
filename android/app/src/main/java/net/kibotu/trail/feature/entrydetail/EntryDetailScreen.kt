@@ -1,5 +1,7 @@
 package net.kibotu.trail.feature.entrydetail
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +37,8 @@ import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
+import net.kibotu.trail.shared.theme.ui.ShimmerFeed
+import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
 @Composable
 fun EntryDetailScreen(
@@ -59,21 +63,33 @@ fun EntryDetailScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        when {
-            detailState.isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
+        val detailViewState = when {
+            detailState.isLoading -> "loading"
+            detailState.error != null -> "error"
+            detailState.entry != null -> "content"
+            else -> "loading"
+        }
 
-            detailState.error != null -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: ${detailState.error}", color = MaterialTheme.colorScheme.error)
+        Crossfade(
+            targetState = detailViewState,
+            animationSpec = tween(300),
+            label = "detailState"
+        ) { state ->
+            when (state) {
+                "loading" -> {
+                    Box(Modifier.fillMaxSize()) {
+                        ShimmerFeed(modifier = Modifier.padding(top = statusBarTop + 56.dp))
+                    }
                 }
-            }
 
-            detailState.entry != null -> {
-                val entry = detailState.entry!!
+                "error" -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Error: ${detailState.error}", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+
+                else -> {
+                val entry = detailState.entry ?: return@Crossfade
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
@@ -82,6 +98,9 @@ fun EntryDetailScreen(
                     item {
                         EntryCard(
                             entry = entry,
+                            modifier = Modifier
+                                .animateItem(fadeInSpec = tween(300), fadeOutSpec = tween(200))
+                                .staggeredFadeIn(0),
                             currentUserId = authState.user?.id,
                             isAdmin = authState.user?.isAdmin ?: false,
                             baseUrl = BuildConfig.API_BASE_URL,
@@ -109,6 +128,7 @@ fun EntryDetailScreen(
                             onMentionClick = { nick -> onNavigateToUser(nick) }
                         )
                     }
+                }
                 }
             }
         }

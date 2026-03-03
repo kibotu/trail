@@ -1,5 +1,9 @@
 package net.kibotu.trail.feature.userprofile
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +59,8 @@ import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
+import net.kibotu.trail.shared.theme.ui.ShimmerFeed
+import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 import net.kibotu.trail.shared.util.openInCustomTab
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -82,13 +88,16 @@ fun UserProfileScreen(
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(Modifier.fillMaxSize()) {
-        when {
-            profileState.isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        Crossfade(
+            targetState = profileState.isLoading,
+            animationSpec = tween(300),
+            label = "userProfileState"
+        ) { isLoading ->
+            if (isLoading) {
+                Box(Modifier.fillMaxSize()) {
+                    ShimmerFeed(modifier = Modifier.padding(top = statusBarTop + 56.dp))
                 }
-            }
-            else -> {
+            } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
@@ -288,6 +297,16 @@ fun UserProfileScreen(
                         val entry = entries[index] ?: return@items
                         EntryCard(
                             entry = entry,
+                            modifier = Modifier
+                                .animateItem(
+                                    fadeInSpec = tween(300),
+                                    fadeOutSpec = tween(200),
+                                    placementSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                )
+                                .staggeredFadeIn(index),
                             currentUserId = authState.user?.id,
                             isAdmin = authState.user?.isAdmin ?: false,
                             baseUrl = BuildConfig.API_BASE_URL,

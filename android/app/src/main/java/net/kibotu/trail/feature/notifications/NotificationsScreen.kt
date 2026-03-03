@@ -1,5 +1,9 @@
 package net.kibotu.trail.feature.notifications
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +56,8 @@ import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import net.kibotu.trail.shared.notification.Notification
+import net.kibotu.trail.shared.theme.ui.ShimmerFeed
+import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,18 +73,29 @@ fun NotificationsScreen(
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(Modifier.fillMaxSize()) {
-        when {
-            notifications.loadState.refresh is LoadState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        val notifState = when {
+            notifications.loadState.refresh is LoadState.Loading && notifications.itemCount == 0 -> "loading"
+            notifications.itemCount == 0 -> "empty"
+            else -> "content"
+        }
+
+        Crossfade(
+            targetState = notifState,
+            animationSpec = tween(300),
+            label = "notifState"
+        ) { state ->
+            when (state) {
+                "loading" -> {
+                    Box(Modifier.fillMaxSize()) {
+                        ShimmerFeed(modifier = Modifier.padding(top = statusBarTop + 56.dp))
+                    }
                 }
-            }
-            notifications.itemCount == 0 -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                "empty" -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
-            else -> {
+                else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
@@ -89,6 +106,18 @@ fun NotificationsScreen(
                         key = { index -> "notification_${notifications[index]?.id ?: index}_$index" }
                     ) { index ->
                         val notification = notifications[index] ?: return@items
+
+                        val itemModifier = Modifier
+                            .animateItem(
+                                fadeInSpec = tween(300),
+                                fadeOutSpec = tween(200),
+                                placementSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                            .staggeredFadeIn(index)
+
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
                                 if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -102,6 +131,7 @@ fun NotificationsScreen(
 
                         SwipeToDismissBox(
                             state = dismissState,
+                            modifier = itemModifier,
                             backgroundContent = {
                                 Box(
                                     modifier = Modifier
@@ -184,6 +214,7 @@ fun NotificationsScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }

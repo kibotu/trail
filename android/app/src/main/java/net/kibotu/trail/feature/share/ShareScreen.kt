@@ -50,8 +50,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
@@ -94,6 +96,7 @@ fun ShareScreen(
 
     val selectedUris = remember { mutableStateListOf<Uri>() }
     var uploadProgress by remember { mutableStateOf(0f) }
+    val haptic = LocalHapticFeedback.current
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxImages)
@@ -238,6 +241,7 @@ fun ShareScreen(
                         } else {
                             Button(
                                 onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     scope.launch {
                                         isPosting = true
                                         errorMessage = null

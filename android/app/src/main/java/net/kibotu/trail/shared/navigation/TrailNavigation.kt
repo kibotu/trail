@@ -1,5 +1,14 @@
 package net.kibotu.trail.shared.navigation
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -33,6 +43,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.StateFlow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
 import net.kibotu.trail.feature.auth.DeletionBlockerScreen
@@ -124,6 +136,7 @@ private fun TrailNavigationContent(
     val notificationRepository = remember { NotificationRepository(ApiClient.client) }
     var unreadCount by remember { mutableIntStateOf(0) }
 
+    val haptic = LocalHapticFeedback.current
     var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
     val pendingText by pendingSharedText.collectAsState()
 
@@ -149,6 +162,7 @@ private fun TrailNavigationContent(
     }
 
     fun navigateToTab(route: String) {
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
@@ -162,11 +176,19 @@ private fun TrailNavigationContent(
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
+            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
+            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } },
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState)
         ) {
-            composable(Routes.HOME) {
+            composable(
+                Routes.HOME,
+                enterTransition = { fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 HomeScreen(
                     onNavigateToEntry = { hashId ->
                         navController.navigate(Routes.entryDetail(hashId))
@@ -181,7 +203,11 @@ private fun TrailNavigationContent(
                 )
             }
 
-            composable(Routes.MY_FEED) {
+            composable(
+                Routes.MY_FEED,
+                enterTransition = { fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 MyFeedScreen(
                     onNavigateToEntry = { hashId ->
                         navController.navigate(Routes.entryDetail(hashId))
@@ -196,7 +222,11 @@ private fun TrailNavigationContent(
                 )
             }
 
-            composable(Routes.PROFILE) {
+            composable(
+                Routes.PROFILE,
+                enterTransition = { fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 ProfileScreen(
                     themePreferences = themePreferences,
                     onNavigateToEntry = { hashId ->
@@ -208,7 +238,9 @@ private fun TrailNavigationContent(
 
             composable(
                 route = Routes.SEARCH,
-                arguments = listOf(navArgument("query") { type = NavType.StringType; defaultValue = "" })
+                arguments = listOf(navArgument("query") { type = NavType.StringType; defaultValue = "" }),
+                enterTransition = { fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
             ) { backStackEntry ->
                 val initialQuery = backStackEntry.arguments?.getString("query") ?: ""
                 SearchScreen(
@@ -256,7 +288,11 @@ private fun TrailNavigationContent(
                 )
             }
 
-            composable(Routes.NOTIFICATIONS) {
+            composable(
+                Routes.NOTIFICATIONS,
+                enterTransition = { fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 NotificationsScreen(
                     hazeState = hazeState,
                     onNavigateToEntry = { hashId ->
@@ -315,14 +351,21 @@ private fun TrailNavigationContent(
                             )
                         },
                         icon = {
-                            FaIcon(
-                                faIcon = FaIcons.Home,
-                                size = 20.dp,
-                                tint = if (currentRoute == Routes.HOME)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            val tabBounce by animateDpAsState(
+                                targetValue = if (currentRoute == Routes.HOME) (-2).dp else 0.dp,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "homeBounce"
                             )
+                            Box(modifier = Modifier.offset(y = tabBounce)) {
+                                FaIcon(
+                                    faIcon = FaIcons.Home,
+                                    size = 20.dp,
+                                    tint = if (currentRoute == Routes.HOME)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         },
                         onClick = { navigateToTab(Routes.HOME) }
                     )
@@ -336,14 +379,21 @@ private fun TrailNavigationContent(
                             )
                         },
                         icon = {
-                            FaIcon(
-                                faIcon = FaIcons.User,
-                                size = 20.dp,
-                                tint = if (currentRoute == Routes.MY_FEED)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            val tabBounce by animateDpAsState(
+                                targetValue = if (currentRoute == Routes.MY_FEED) (-2).dp else 0.dp,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "feedBounce"
                             )
+                            Box(modifier = Modifier.offset(y = tabBounce)) {
+                                FaIcon(
+                                    faIcon = FaIcons.User,
+                                    size = 20.dp,
+                                    tint = if (currentRoute == Routes.MY_FEED)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         },
                         onClick = { navigateToTab(Routes.MY_FEED) }
                     )
@@ -357,14 +407,21 @@ private fun TrailNavigationContent(
                             )
                         },
                         icon = {
-                            FaIcon(
-                                faIcon = FaIcons.IdCard,
-                                size = 20.dp,
-                                tint = if (currentRoute == Routes.PROFILE)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            val tabBounce by animateDpAsState(
+                                targetValue = if (currentRoute == Routes.PROFILE) (-2).dp else 0.dp,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "profileBounce"
                             )
+                            Box(modifier = Modifier.offset(y = tabBounce)) {
+                                FaIcon(
+                                    faIcon = FaIcons.IdCard,
+                                    size = 20.dp,
+                                    tint = if (currentRoute == Routes.PROFILE)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         },
                         onClick = { navigateToTab(Routes.PROFILE) }
                     )
@@ -380,7 +437,12 @@ private fun TrailNavigationContent(
                             },
                             icon = {
                                 val isSelected = currentRoute == Routes.NOTIFICATIONS
-                                Box {
+                                val tabBounce by animateDpAsState(
+                                    targetValue = if (isSelected) (-2).dp else 0.dp,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "alertsBounce"
+                                )
+                                Box(modifier = Modifier.offset(y = tabBounce)) {
                                     FaIcon(
                                         faIcon = if (isSelected || unreadCount > 0) FaIcons.Bell else FaIcons.BellRegular,
                                         size = 20.dp,
@@ -390,10 +452,22 @@ private fun TrailNavigationContent(
                                             MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     if (unreadCount > 0) {
+                                        val badgeScale by animateFloatAsState(
+                                            targetValue = if (unreadCount > 0) 1f else 0f,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessMedium
+                                            ),
+                                            label = "badgeScale"
+                                        )
                                         Box(
                                             modifier = Modifier
                                                 .align(Alignment.TopEnd)
                                                 .offset(x = 4.dp, y = (-2).dp)
+                                                .graphicsLayer {
+                                                    scaleX = badgeScale
+                                                    scaleY = badgeScale
+                                                }
                                                 .size(8.dp)
                                                 .background(MaterialTheme.colorScheme.error, CircleShape)
                                         )
@@ -406,14 +480,22 @@ private fun TrailNavigationContent(
                     standaloneTab(
                         key = Routes.SEARCH,
                         icon = {
-                            FaIcon(
-                                faIcon = FaIcons.Search,
-                                size = 20.dp,
-                                tint = if (currentRoute?.startsWith("search") == true)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            val searchSelected = currentRoute?.startsWith("search") == true
+                            val tabBounce by animateDpAsState(
+                                targetValue = if (searchSelected) (-2).dp else 0.dp,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                label = "searchBounce"
                             )
+                            Box(modifier = Modifier.offset(y = tabBounce)) {
+                                FaIcon(
+                                    faIcon = FaIcons.Search,
+                                    size = 20.dp,
+                                    tint = if (searchSelected)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         },
                         onClick = { navigateToTab(Routes.search()) }
                     )

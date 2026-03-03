@@ -41,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -75,6 +77,7 @@ fun CommentsSection(
 ) {
     var commentText by remember { mutableStateOf("") }
     val maxCharacters = 280
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
@@ -140,6 +143,7 @@ fun CommentsSection(
                     Button(
                         onClick = {
                             if (commentText.isNotBlank() && commentText.length <= maxCharacters) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onCreateComment(commentText)
                                 commentText = ""
                             }

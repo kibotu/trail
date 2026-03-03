@@ -1,5 +1,13 @@
 package net.kibotu.trail.feature.myfeed
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +25,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -45,14 +55,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
@@ -67,6 +80,7 @@ import net.kibotu.trail.feature.home.CommentState
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.ui.EntryCard
+import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,15 +124,33 @@ fun MyFeedScreen(
     }
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var showPostSuccess by remember { mutableStateOf(false) }
+    val postHaptic = LocalHapticFeedback.current
 
-    PullToRefreshBox(
-        isRefreshing = entries.loadState.refresh is LoadState.Loading,
-        onRefresh = { entries.refresh() },
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
+    LaunchedEffect(Unit) {
+        viewModel.postSuccessEvent.collect {
+            showPostSuccess = true
+            postHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            coroutineScope.launch {
+                listState.animateScrollToItem(0)
+            }
+            delay(1200)
+            showPostSuccess = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = entries.loadState.refresh is LoadState.Loading,
+            onRefresh = { entries.refresh() },
             modifier = Modifier.fillMaxSize()
-                .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+                    .let { mod -> scrollConnection?.let { mod.nestedScroll(it) } ?: mod },
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -139,6 +171,16 @@ fun MyFeedScreen(
 
                 EntryCard(
                     entry = entry,
+                    modifier = Modifier
+                        .animateItem(
+                            fadeInSpec = tween(300),
+                            fadeOutSpec = tween(200),
+                            placementSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        )
+                        .staggeredFadeIn(index),
                     currentUserId = authState.user?.id,
                     isAdmin = authState.user?.isAdmin ?: false,
                     baseUrl = BuildConfig.API_BASE_URL,
@@ -177,6 +219,39 @@ fun MyFeedScreen(
                 }
             }
         }
+        }
+
+        AnimatedVisibility(
+            visible = showPostSuccess,
+            enter = scaleIn(tween(300)) + fadeIn(tween(300)),
+            exit = scaleOut(tween(200)) + fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FaIcon(
+                        FaIcons.CheckCircle,
+                        size = 20.dp,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Posted!",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -190,6 +265,7 @@ private fun ComposeCard(
     val maxCharacters = 280
     val maxImages = 3
     val selectedUris = remember { mutableStateListOf<Uri>() }
+    val haptic = LocalHapticFeedback.current
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxImages)
@@ -295,6 +371,7 @@ private fun ComposeCard(
                 } else {
                     Button(
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onPost(text, selectedUris.toList())
                             text = ""
                             selectedUris.clear()

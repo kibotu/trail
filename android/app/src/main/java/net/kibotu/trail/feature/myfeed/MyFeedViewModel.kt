@@ -62,6 +62,9 @@ class MyFeedViewModel(
     val reviewEvent: SharedFlow<Unit>
         field = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
+    val postSuccessEvent: SharedFlow<Unit>
+        field = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     fun onVideoPlay(id: String?) { currentlyPlayingVideoId.value = id }
 
     val uploadProgress: StateFlow<Float>
@@ -92,6 +95,7 @@ class MyFeedViewModel(
             entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
                     _pagingSource.value?.invalidate()
+                    postSuccessEvent.tryEmit(Unit)
                     reviewEvent.tryEmit(Unit)
                 },
                 onFailure = {}
