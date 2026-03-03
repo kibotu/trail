@@ -14,6 +14,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -39,11 +41,10 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +59,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -84,8 +89,9 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Displays a gallery of media items (images, GIFs, videos)
- * Uses horizontal scroll for multiple items, single item shows without scroll
+ * Displays a gallery of media items (images, GIFs, videos).
+ * Each item renders full-width stacked vertically, matching the web layout.
+ * Images use horizontal scroll only when there are multiple images and no videos.
  */
 @Composable
 fun MediaGallery(
@@ -97,34 +103,37 @@ fun MediaGallery(
 ) {
     if (media.isEmpty()) return
 
-    val aspectRatio = media.firstOrNull()?.let { item ->
-        if (item.width != null && item.height != null && item.height!! > 0) {
-            item.width!!.toFloat() / item.height!!.toFloat()
-        } else {
-            16f / 9f
-        }
-    } ?: (16f / 9f)
+    val hasVideos = media.any { it.isVideo }
 
-    if (media.size == 1) {
-        // Single item - show full width
-        val item = media.first()
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+    if (media.size == 1 || hasVideos) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            MediaItemView(
-                item = item,
-                baseUrl = baseUrl,
-                currentlyPlayingId = currentlyPlayingId,
-                onVideoPlay = onVideoPlay,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(aspectRatio.coerceIn(0.5f, 2f))
-            )
+            media.forEach { item ->
+                val itemAspectRatio = if (item.width != null && item.height != null && item.height!! > 0) {
+                    item.width!!.toFloat() / item.height!!.toFloat()
+                } else {
+                    16f / 9f
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                ) {
+                    MediaItemView(
+                        item = item,
+                        baseUrl = baseUrl,
+                        currentlyPlayingId = currentlyPlayingId,
+                        onVideoPlay = onVideoPlay,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(itemAspectRatio.coerceIn(0.5f, 2f))
+                    )
+                }
+            }
         }
     } else {
-        // Multiple items - horizontal scroll
         LazyRow(
             modifier = modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -274,6 +283,7 @@ fun VideoPlayer(
     var isFullscreen by remember { mutableStateOf(false) }
     var showControlOverlay by remember { mutableStateOf(false) }
     var controlOverlayTrigger by remember { mutableLongStateOf(0L) }
+    var hasEnded by remember { mutableStateOf(false) }
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -291,13 +301,36 @@ fun VideoPlayer(
         exoPlayer.prepare()
     }
 
+    // Listen for playback ended
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_ENDED) {
+                    hasEnded = true
+                    onPlayStateChange(false)
+                    showControlOverlay = false
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
+    }
+
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
+            if (hasEnded) {
+                exoPlayer.seekTo(0)
+                hasEnded = false
+            }
             exoPlayer.play()
             showControlOverlay = true
             controlOverlayTrigger = System.nanoTime()
         } else {
             exoPlayer.pause()
+            // On pause: keep controls visible (matches web behavior)
+            if (!hasEnded) {
+                showControlOverlay = true
+            }
         }
     }
 
@@ -310,15 +343,14 @@ fun VideoPlayer(
             }
             kotlinx.coroutines.delay(250)
         }
-        // Update once more after pause
         currentPositionMs = exoPlayer.currentPosition
         durationMs = exoPlayer.duration.coerceAtLeast(0L)
     }
 
-    // Auto-hide controls after 1.5s
+    // Auto-hide controls only while playing (paused keeps them visible, matching web)
     LaunchedEffect(controlOverlayTrigger) {
         if (showControlOverlay && isPlaying) {
-            kotlinx.coroutines.delay(1500)
+            kotlinx.coroutines.delay(2500)
             showControlOverlay = false
         }
     }
@@ -404,6 +436,7 @@ fun VideoPlayer(
                 VideoPlayerContent(
                     exoPlayer = exoPlayer,
                     isPlaying = isPlaying,
+                    hasEnded = hasEnded,
                     isMuted = isMuted,
                     showControlOverlay = showControlOverlay,
                     isFullscreen = true,
@@ -425,6 +458,7 @@ fun VideoPlayer(
     VideoPlayerContent(
         exoPlayer = exoPlayer,
         isPlaying = isPlaying,
+        hasEnded = hasEnded,
         isMuted = isMuted,
         showControlOverlay = showControlOverlay && !isFullscreen,
         isFullscreen = false,
@@ -443,9 +477,90 @@ fun VideoPlayer(
 
 private fun formatDuration(ms: Long): String {
     val totalSec = (ms / 1000).coerceAtLeast(0)
-    val min = totalSec / 60
+    val hrs = totalSec / 3600
+    val min = (totalSec % 3600) / 60
     val sec = totalSec % 60
-    return "%d:%02d".format(min, sec)
+    return if (hrs > 0) "%d:%02d:%02d".format(hrs, min, sec)
+    else "%d:%02d".format(min, sec)
+}
+
+/**
+ * Thin seek bar matching web styling: 4dp track, 12dp draggable handle.
+ */
+@Composable
+private fun VideoSeekBar(
+    currentMs: Long,
+    durationMs: Long,
+    onSeekStart: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onSeekEnd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val fraction = if (durationMs > 0) (currentMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    val trackHeight = 4.dp
+    val thumbRadius = 6.dp
+    val touchTargetHeight = 24.dp
+
+    Box(
+        modifier = modifier.height(touchTargetHeight),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(trackHeight)
+                .pointerInput(durationMs) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            onSeekStart()
+                            val pct = (offset.x / size.width).coerceIn(0f, 1f)
+                            onSeek((pct * durationMs).toLong())
+                        },
+                        onHorizontalDrag = { change, _ ->
+                            change.consume()
+                            val pct = (change.position.x / size.width).coerceIn(0f, 1f)
+                            onSeek((pct * durationMs).toLong())
+                        },
+                        onDragEnd = { onSeekEnd() },
+                        onDragCancel = { onSeekEnd() }
+                    )
+                }
+                .pointerInput(durationMs) {
+                    detectTapGestures { offset ->
+                        val pct = (offset.x / size.width).coerceIn(0f, 1f)
+                        onSeekStart()
+                        onSeek((pct * durationMs).toLong())
+                        onSeekEnd()
+                    }
+                }
+        ) {
+            val trackHeightPx = trackHeight.toPx()
+            val cornerPx = trackHeightPx / 2f
+            val thumbRadiusPx = thumbRadius.toPx()
+
+            // Inactive track
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.25f),
+                size = Size(size.width, trackHeightPx),
+                cornerRadius = CornerRadius(cornerPx, cornerPx)
+            )
+            // Active track
+            val filledWidth = size.width * fraction
+            if (filledWidth > 0f) {
+                drawRoundRect(
+                    color = Color.White,
+                    size = Size(filledWidth, trackHeightPx),
+                    cornerRadius = CornerRadius(cornerPx, cornerPx)
+                )
+            }
+            // Thumb
+            drawCircle(
+                color = Color.White,
+                radius = thumbRadiusPx,
+                center = Offset(filledWidth.coerceIn(thumbRadiusPx, size.width - thumbRadiusPx), trackHeightPx / 2f)
+            )
+        }
+    }
 }
 
 /**
@@ -457,6 +572,7 @@ private fun formatDuration(ms: Long): String {
 private fun VideoPlayerContent(
     exoPlayer: ExoPlayer,
     isPlaying: Boolean,
+    hasEnded: Boolean,
     isMuted: Boolean,
     showControlOverlay: Boolean,
     isFullscreen: Boolean,
@@ -498,7 +614,7 @@ private fun VideoPlayerContent(
                 }
         )
 
-        // Play button when paused -- instant appear/disappear via AnimatedVisibility
+        // Play/Replay button overlay when not playing
         AnimatedVisibility(
             visible = !isPlaying,
             enter = fadeIn(tween(150)),
@@ -518,8 +634,8 @@ private fun VideoPlayerContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = "Play video",
+                        imageVector = if (hasEnded) Icons.Filled.Replay else Icons.Filled.PlayArrow,
+                        contentDescription = if (hasEnded) "Replay video" else "Play video",
                         tint = Color.Black.copy(alpha = 0.85f),
                         modifier = Modifier.size(32.dp)
                     )
@@ -535,29 +651,29 @@ private fun VideoPlayerContent(
             modifier = Modifier.matchParentSize()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Bottom controls bar
+                // Bottom controls bar with gradient scrim (matches web)
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .padding(horizontal = if (isFullscreen) 16.dp else 4.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                            )
+                        )
+                        .padding(horizontal = if (isFullscreen) 16.dp else 8.dp)
                 ) {
-                    // Seek bar
+                    // Thin seek bar (matches web: 4px track, 12px handle)
                     if (durationMs > 0) {
-                        Slider(
-                            value = currentPositionMs.toFloat(),
-                            onValueChange = { onSeekStart(); onSeek(it.toLong()) },
-                            onValueChangeFinished = { onSeekEnd() },
-                            valueRange = 0f..durationMs.toFloat(),
+                        VideoSeekBar(
+                            currentMs = currentPositionMs,
+                            durationMs = durationMs,
+                            onSeekStart = onSeekStart,
+                            onSeek = onSeek,
+                            onSeekEnd = onSeekEnd,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(if (isFullscreen) 28.dp else 20.dp),
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
-                                activeTrackColor = Color.White,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                            )
+                                .padding(vertical = if (isFullscreen) 8.dp else 4.dp)
                         )
                     }
 
@@ -570,13 +686,13 @@ private fun VideoPlayerContent(
                         // Play/Pause
                         IconButton(
                             onClick = { onPlayStateChange(!isPlaying) },
-                            modifier = Modifier.size(if (isFullscreen) 40.dp else 32.dp)
+                            modifier = Modifier.size(if (isFullscreen) 40.dp else 28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
                                 tint = Color.White,
-                                modifier = Modifier.size(if (isFullscreen) 24.dp else 20.dp)
+                                modifier = Modifier.size(if (isFullscreen) 22.dp else 18.dp)
                             )
                         }
 
@@ -584,10 +700,10 @@ private fun VideoPlayerContent(
                         if (durationMs > 0) {
                             Text(
                                 text = "${formatDuration(currentPositionMs)} / ${formatDuration(durationMs)}",
-                                color = Color.White,
+                                color = Color.White.copy(alpha = 0.9f),
                                 fontSize = if (isFullscreen) 13.sp else 11.sp,
                                 fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(start = 4.dp)
+                                modifier = Modifier.padding(start = 2.dp)
                             )
                         }
 
@@ -596,26 +712,26 @@ private fun VideoPlayerContent(
                         // Mute
                         IconButton(
                             onClick = onMuteToggle,
-                            modifier = Modifier.size(if (isFullscreen) 40.dp else 32.dp)
+                            modifier = Modifier.size(if (isFullscreen) 40.dp else 28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = if (isMuted) "Unmute" else "Mute",
                                 tint = Color.White,
-                                modifier = Modifier.size(if (isFullscreen) 24.dp else 18.dp)
+                                modifier = Modifier.size(if (isFullscreen) 22.dp else 16.dp)
                             )
                         }
 
                         // Fullscreen
                         IconButton(
                             onClick = onFullscreenToggle,
-                            modifier = Modifier.size(if (isFullscreen) 40.dp else 32.dp)
+                            modifier = Modifier.size(if (isFullscreen) 40.dp else 28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                                 contentDescription = if (isFullscreen) "Exit fullscreen" else "Fullscreen",
                                 tint = Color.White,
-                                modifier = Modifier.size(if (isFullscreen) 24.dp else 18.dp)
+                                modifier = Modifier.size(if (isFullscreen) 22.dp else 16.dp)
                             )
                         }
                     }
