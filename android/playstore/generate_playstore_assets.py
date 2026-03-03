@@ -76,19 +76,35 @@ SCREEN_COPY = {
 
 
 def get_font(size: int) -> ImageFont.FreeTypeFont:
-    for name in ("DejaVuSans-Bold.ttf", "DejaVuSans.ttf"):
+    for name in (
+        "DejaVuSans-Bold.ttf",
+        "DejaVuSans.ttf",
+        "Arial.ttf",
+        "Helvetica.ttc",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial Unicode.ttf",
+    ):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    print(f"Warning: Could not load scalable font for size {size}, using default tiny font.")
+    return ImageFont.load_default()
+
+
+def get_font_regular(size: int) -> ImageFont.FreeTypeFont:
+    for name in (
+        "DejaVuSans.ttf",
+        "Arial.ttf",
+        "Helvetica.ttc",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial Unicode.ttf",
+    ):
         try:
             return ImageFont.truetype(name, size)
         except OSError:
             continue
     return ImageFont.load_default()
-
-
-def get_font_regular(size: int) -> ImageFont.FreeTypeFont:
-    try:
-        return ImageFont.truetype("DejaVuSans.ttf", size)
-    except OSError:
-        return ImageFont.load_default()
 
 
 # ─── Drawing helpers ─────────────────────────────────────────────────
@@ -230,28 +246,33 @@ def generate_feature_graphic():
         img.paste(logo, (80, (h - 300) // 2), logo)
 
     draw = ImageDraw.Draw(img)
-    # Huge font sizes for the feature graphic
-    font_title = get_font(120)
-    font_sub = get_font_regular(40)
+    # Feature graphic font sizes
+    font_title = get_font(130)
+    font_sub = get_font_regular(48)
 
-    text_x = 420
-    
-    # fallback for older PIL if textbbox is missing
+    # Calculate exact text dimensions to center it vertically
     if hasattr(draw, "textbbox"):
         bbox_t = draw.textbbox((0, 0), "Trail", font=font_title)
         bbox_s = draw.textbbox((0, 0), "Share. Discover. Connect.", font=font_sub)
         title_h = bbox_t[3] - bbox_t[1]
         sub_h = bbox_s[3] - bbox_s[1]
     else:
-        title_w, title_h = draw.textsize("Trail", font=font_title)
-        sub_w, sub_h = draw.textsize("Share. Discover. Connect.", font=font_sub)
+        _, title_h = draw.textsize("Trail", font=font_title)
+        _, sub_h = draw.textsize("Share. Discover. Connect.", font=font_sub)
 
-    total_h = title_h + 16 + sub_h
-    title_y = (h - total_h) // 2
-    sub_y = title_y + title_h + 16
+    gap = 5
+    total_h = title_h + gap + sub_h
+    # Shift title slightly down since uppercase letters create optical illusion
+    title_y = (h - total_h) // 2 + 10
+    sub_y = title_y + title_h + gap
+    
+    # Push text closer to the center, away from the logo
+    text_x = 480
 
-    draw.text((text_x + 3, title_y + 3), "Trail", font=font_title, fill=(0, 0, 0, 100))
+    # Stronger drop shadow for the main title to make it pop against the background
+    draw.text((text_x + 5, title_y + 5), "Trail", font=font_title, fill=(0, 0, 0, 150))
     draw.text((text_x, title_y), "Trail", font=font_title, fill=(255, 255, 255, 255))
+    
     draw.text((text_x, sub_y), "Share. Discover. Connect.", font=font_sub, fill=BRAND_LIGHT + (255,))
 
     filename = f"feature_{w}x{h}.png"
@@ -272,13 +293,13 @@ def composite_screenshot(raw_img: Image.Image, target_w: int, target_h: int, tit
     
     # Text
     draw = ImageDraw.Draw(img)
-    # responsive font sizes (drastically increased)
-    title_size = int(target_w * 0.1)
-    sub_size = int(target_w * 0.05)
+    # responsive font sizes
+    title_size = int(target_w * 0.08)
+    sub_size = int(target_w * 0.04)
     font_title = get_font(title_size)
     font_sub = get_font_regular(sub_size)
     
-    text_y_start = int(target_h * 0.05)
+    text_y_start = int(target_h * 0.06)
     
     if hasattr(draw, "textbbox"):
         bbox_t = draw.textbbox((0, 0), title, font=font_title)
@@ -294,10 +315,10 @@ def composite_screenshot(raw_img: Image.Image, target_w: int, target_h: int, tit
     draw.text(((target_w - s_w) // 2, text_y_start + title_h + int(target_h * 0.015)), subtitle, font=font_sub, fill=BRAND_LIGHT + (255,))
     
     # Screenshot Frame
-    screen_y_start = text_y_start + title_h + sub_size + int(target_h * 0.02)
-    screen_margin_x = int(target_w * 0.05)
+    screen_y_start = text_y_start + title_h + sub_size + int(target_h * 0.04)
+    screen_margin_x = int(target_w * 0.1)
     avail_w = target_w - (screen_margin_x * 2)
-    avail_h = target_h - screen_y_start - int(target_h * 0.02)
+    avail_h = target_h - screen_y_start - int(target_h * 0.05)
     
     rw, rh = raw_img.size
     
