@@ -2,7 +2,6 @@ package net.kibotu.trail.feature.auth
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -31,6 +30,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.kibotu.trail.R
+import timber.log.Timber
 import java.security.SecureRandom
 import java.util.Base64
 
@@ -101,30 +101,30 @@ private suspend fun performGoogleSignIn(context: Context, webClientId: String): 
         )
 
         val credential = GoogleIdTokenCredential.createFrom(result.credential.data)
-        Log.i("LoginScreen", "Sign in successful!")
+        Timber.i("Sign in successful!")
         Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
 
         credential.idToken
     } catch (e: Exception) {
         when (e) {
             is GetCredentialCancellationException -> {
-                Log.e("LoginScreen", "Sign-in was cancelled", e)
+                Timber.e(e, "Sign-in was cancelled")
                 Toast.makeText(context, "Sign-in cancelled", Toast.LENGTH_SHORT).show()
             }
             is NoCredentialException -> {
-                Log.e("LoginScreen", "No credentials found", e)
+                Timber.e(e, "No credentials found")
                 Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
             }
             is GetCredentialCustomException -> {
-                Log.e("LoginScreen", "Custom credential request issue", e)
+                Timber.e(e, "Custom credential request issue")
                 Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
             }
             is GoogleIdTokenParsingException -> {
-                Log.e("LoginScreen", "Issue with parsing GoogleIdToken", e)
+                Timber.e(e, "Issue with parsing GoogleIdToken")
                 Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
             }
             else -> {
-                Log.e("LoginScreen", "Failure getting credentials", e)
+                Timber.e(e, "Failure getting credentials")
                 Toast.makeText(context, failureMessage, Toast.LENGTH_SHORT).show()
             }
         }

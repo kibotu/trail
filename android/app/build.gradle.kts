@@ -254,6 +254,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.font.awesome.compose)
     implementation(libs.haze)
+    implementation(libs.timber)
+    implementation(libs.plumber.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

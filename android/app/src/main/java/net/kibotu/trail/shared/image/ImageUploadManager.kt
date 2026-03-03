@@ -3,13 +3,9 @@ package net.kibotu.trail.shared.image
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
+import timber.log.Timber
 
 class ImageUploadManager(private val repository: ImageUploadRepository) {
-
-    companion object {
-        private const val TAG = "ImageUploadManager"
-    }
 
     suspend fun uploadImage(
         context: Context,
@@ -19,15 +15,15 @@ class ImageUploadManager(private val repository: ImageUploadRepository) {
     ): Result<Int> = runCatching {
         val contentResolver = context.contentResolver
         val mimeType = contentResolver.getType(uri)
-        Log.d(TAG, "uploadImage: uri=$uri mimeType=$mimeType")
+        Timber.d("uploadImage: uri=$uri mimeType=$mimeType")
 
         val (bytes, filename) = if (shouldCompress(mimeType)) {
-            Log.d(TAG, "Compressing image...")
+            Timber.d("Compressing image...")
             val compressed = ImageCompressor.compress(context, uri)
-            Log.d(TAG, "Compressed: ${compressed.width}x${compressed.height} ${compressed.mimeType} ${compressed.bytes.size} bytes")
+            Timber.d("Compressed: ${compressed.width}x${compressed.height} ${compressed.mimeType} ${compressed.bytes.size} bytes")
             compressed.bytes to buildFilename(uri, compressed.mimeType)
         } else {
-            Log.d(TAG, "Skipping compression for mimeType=$mimeType")
+            Timber.d("Skipping compression for mimeType=$mimeType")
             val stream = contentResolver.openInputStream(uri)
                 ?: throw IllegalStateException("Cannot open file")
             val raw = stream.use { it.readBytes() }
@@ -55,10 +51,10 @@ class ImageUploadManager(private val repository: ImageUploadRepository) {
         }
 
         val completeResponse = repository.completeUpload(initResponse.uploadId).getOrThrow()
-        Log.d(TAG, "Upload complete: imageId=${completeResponse.imageId}")
+        Timber.d("Upload complete: imageId=${completeResponse.imageId}")
         completeResponse.imageId
     }.also { result ->
-        result.onFailure { e -> Log.e(TAG, "uploadImage failed", e) }
+        result.onFailure { e -> Timber.e(e, "uploadImage failed") }
     }
 
     private fun shouldCompress(mimeType: String?): Boolean {
