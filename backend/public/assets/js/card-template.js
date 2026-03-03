@@ -634,6 +634,25 @@ function createLinkPreviewCard(entry, options = {}) {
 }
 
 /**
+ * Create entry tags HTML
+ * @param {Object} entry - Entry object with tags array
+ * @returns {string} HTML string for the tags row, or empty string if no tags
+ */
+function createEntryTagsHtml(entry) {
+    if (!entry.tags || !Array.isArray(entry.tags) || entry.tags.length === 0) {
+        return '';
+    }
+
+    const tagLinks = entry.tags.map(tag => {
+        const name = escapeHtml(tag.name);
+        const slug = encodeURIComponent(tag.slug);
+        return `<a href="/?q=%23${slug}" class="entry-tag" data-tag-slug="${escapeHtml(tag.slug)}" data-no-navigate>#${name}</a>`;
+    }).join('');
+
+    return `<div class="entry-tags" data-no-navigate>${tagLinks}</div>`;
+}
+
+/**
  * Create entry card HTML
  * @param {Object} entry - Entry object
  * @param {Object} options - Options for rendering
@@ -652,7 +671,8 @@ function createEntryCard(entry, options = {}) {
         isAdmin = false,
         enablePermalink = true,
         isLoggedIn = false,
-        currentUserId = null
+        currentUserId = null,
+        onTagClick = null
     } = options;
     
     // Ensure entry has a valid numeric ID
@@ -682,6 +702,7 @@ function createEntryCard(entry, options = {}) {
     const mentionedText = linkifyMentions(escapedText);
     const linkedText = linkifyText(mentionedText);
     const previewCard = createLinkPreviewCard(entry, { showSourceBadge });
+    const tagsHtml = createEntryTagsHtml(entry);
     
     // Get hash ID once for all event handlers
     const hashId = entry.hash_id || entry.id; // Fallback to numeric ID if hash_id not available
@@ -753,6 +774,7 @@ function createEntryCard(entry, options = {}) {
             <div class="entry-content" ${isAdmin ? `id="content-${entry.id}"` : ''}>
                 <div class="entry-text">${linkedText}</div>
                 ${createEntryImagesHtml(entry)}
+                ${tagsHtml}
                 ${previewCard}
             </div>
             <div class="entry-footer">
@@ -834,6 +856,17 @@ function createEntryCard(entry, options = {}) {
         
         // Store hash_id in dataset for share functionality
         shareButton.dataset.hashId = hashId;
+    }
+    
+    // Add tag click handlers
+    if (onTagClick) {
+        card.querySelectorAll('.entry-tag').forEach(tagEl => {
+            tagEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onTagClick(tagEl.dataset.tagSlug);
+            });
+        });
     }
     
     // Add clap button click handler
@@ -1371,6 +1404,7 @@ if (typeof module !== 'undefined' && module.exports) {
         formatViewCount,
         isVideoUrl,
         createEntryImagesHtml,
+        createEntryTagsHtml,
         createLinkPreviewCard,
         createEntryCard,
         initializeVideoPlayers,

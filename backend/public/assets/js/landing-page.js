@@ -150,7 +150,13 @@
                     showSourceBadge: false,
                     canModify: (entry) => canModifyEntry(entry),
                     isLoggedIn: sessionState.isLoggedIn,
-                    currentUserId: sessionState.userId
+                    currentUserId: sessionState.userId,
+                    onTagClick: (slug) => {
+                        if (searchManager) {
+                            searchManager.setQuery('#' + slug);
+                            document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }
                 }
             });
 

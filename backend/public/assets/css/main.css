@@ -577,6 +577,28 @@ main {
     text-decoration: underline;
 }
 
+.entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    margin-top: 0.5rem;
+}
+
+.entry-tag {
+    color: var(--accent);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: opacity 0.15s;
+}
+
+.entry-tag:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+}
+
 .entry-images {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

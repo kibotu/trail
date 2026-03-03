@@ -176,6 +176,26 @@ class SearchManager {
     }
 
     /**
+     * Programmatically set the search query, update the input, and trigger a search.
+     * @param {string} query - Search query to set
+     */
+    setQuery(query) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = query;
+        }
+
+        const clearButton = document.getElementById('searchClearButton');
+        if (clearButton) {
+            clearButton.style.display = query ? 'flex' : 'none';
+        }
+
+        // Force search even if the query hasn't changed (re-clicking the same tag)
+        this.currentQuery = '';
+        this.performSearch(query);
+    }
+
+    /**
      * Update the URL with search query (for sharing)
      * @param {string} query - Search query
      */

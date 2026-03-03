@@ -84,7 +84,15 @@
                     showSourceBadge: false,
                     canModify: () => false,
                     isLoggedIn: false,
-                    currentUserId: null
+                    currentUserId: null,
+                    onTagClick: (slug) => {
+                        if (searchManager) {
+                            searchManager.setQuery('#' + slug);
+                            document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        } else {
+                            window.open(`${baseUrl}/?q=${encodeURIComponent('#' + slug)}`, '_blank', 'noopener');
+                        }
+                    }
                 }
             }
         );
@@ -160,6 +168,11 @@
         if (!card) return;
         const hashId = getHashId(card);
         if (!hashId) return;
+
+        // Tag links -> let the card-level onTagClick handler process them
+        if (e.target.closest('.entry-tag')) {
+            return;
+        }
 
         // Any internal link (user profile, mention, avatar) -> new tab
         const internalLink = e.target.closest('a[href^="/@"], a.mention-link, .user-name-link');

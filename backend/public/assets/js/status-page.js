@@ -48,7 +48,10 @@
                 canModify: entry.can_edit === true,
                 enablePermalink: false,
                 isLoggedIn: sessionState.isLoggedIn,
-                currentUserId: sessionState.userId
+                currentUserId: sessionState.userId,
+                onTagClick: (slug) => {
+                    window.location.href = '/?q=' + encodeURIComponent('#' + slug);
+                }
             });
             
             // Store entry data in card for edit functionality
