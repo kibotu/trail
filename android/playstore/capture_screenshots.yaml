@@ -12,10 +12,12 @@ appId: net.kibotu.trail
 - takeScreenshot: screen_home
 
 # ── Entry Detail ─────────────────────────────────────────────────────
-# Tap the timestamp on the first card to trigger card click → entry detail
+# Tap the right-side padding area of the first entry card body. At 88%
+# horizontal we land inside the card but in its internal padding — away
+# from text, tags, links, avatar, and action buttons — so the Card's own
+# onCardClick fires and opens entry detail.
 - tapOn:
-    text: "1d"
-    index: 0
+    point: "88%,18%"
 - waitForAnimationToEnd:
     timeout: 5000
 - extendedWaitUntil:
@@ -32,7 +34,7 @@ appId: net.kibotu.trail
     timeout: 3000
 - extendedWaitUntil:
     visible: "What are you working on?"
-    timeout: 5000
+    timeout: 10000
 - takeScreenshot: screen_myfeed
 
 # ── Profile ──────────────────────────────────────────────────────────
@@ -40,17 +42,17 @@ appId: net.kibotu.trail
 - waitForAnimationToEnd:
     timeout: 3000
 - extendedWaitUntil:
-    visible: Stats
-    timeout: 5000
+    visible: "Profile picture"
+    timeout: 10000
 - takeScreenshot: screen_profile
 
 # ── Notifications ────────────────────────────────────────────────────
 - tapOn: Alerts
 - waitForAnimationToEnd:
-    timeout: 3000
-- extendedWaitUntil:
-    visible: "Mark all read"
     timeout: 5000
+- extendedWaitUntil:
+    visible: Alerts
+    timeout: 10000
 - takeScreenshot: screen_notifications
 
 # ── Search (with query) ──────────────────────────────────────────────
@@ -62,11 +64,11 @@ appId: net.kibotu.trail
 - waitForAnimationToEnd:
     timeout: 2000
 - tapOn: "Search entries or #hashtags..."
-- inputText: "android"
+- inputText: "#ai-prompts"
 - waitForAnimationToEnd:
     timeout: 2000
 - hideKeyboard
 - extendedWaitUntil:
-    visible: "#android"
-    timeout: 5000
+    visible: "#ai-prompts"
+    timeout: 10000
 - takeScreenshot: screen_search
