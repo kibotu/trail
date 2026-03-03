@@ -13,6 +13,7 @@ credentials = "1.5.0"
 datastore = "1.1.1" #other versions don't have 16kb page size support apparently
 desugar_jdk_libs = "2.1.5"
 espressoCore = "3.7.0"
+exifinterface = "1.4.2"
 firebaseBom = "34.10.0"
 firebaseCrashlyticsPlugin = "3.0.6"
 fontAwesomeCompose = "1.0.0"
@@ -57,6 +58,7 @@ androidx-credentials = { module = "androidx.credentials:credentials", version.re
 androidx-credentials-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
