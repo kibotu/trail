@@ -118,7 +118,8 @@ fun MediaGallery(
             modifier = modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(media, key = { it.id }) { item ->
+            items(media.size, key = { index -> "media_${media[index].id}_$index" }) { index ->
+                val item = media[index]
                 val itemAspectRatio = if (item.width != null && item.height != null && item.height!! > 0) {
                     item.width!!.toFloat() / item.height!!.toFloat()
                 } else {

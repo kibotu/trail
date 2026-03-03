@@ -225,6 +225,9 @@ class CommentController
                     $salt
                 );
             }
+
+            unset($comment['user_email']);
+            unset($comment['google_id']);
         }
 
         // Get the cursor for the next page (created_at of the last comment)

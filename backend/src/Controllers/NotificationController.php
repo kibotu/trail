@@ -382,7 +382,7 @@ class NotificationController
             return $notification['actor_photo_url'];
         }
         
-        $hash = $notification['actor_gravatar_hash'] ?? md5(strtolower(trim($notification['actor_email'] ?? '')));
+        $hash = $notification['actor_gravatar_hash'] ?? '00000000000000000000000000000000';
         return "https://www.gravatar.com/avatar/{$hash}?d=identicon&s=200";
     }
 

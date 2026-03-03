@@ -38,7 +38,6 @@ class Notification
         $sql = "SELECT n.*, 
                 u.name as actor_name, 
                 u.nickname as actor_nickname, 
-                u.email as actor_email,
                 u.gravatar_hash as actor_gravatar_hash,
                 u.photo_url as actor_photo_url,
                 e.text as entry_text,
@@ -145,7 +144,6 @@ class Notification
             "SELECT n.*, 
             u.name as actor_name, 
             u.nickname as actor_nickname, 
-            u.email as actor_email,
             u.gravatar_hash as actor_gravatar_hash,
             u.photo_url as actor_photo_url,
             e.text as entry_text,
@@ -221,7 +219,6 @@ class Notification
                 $clapGroups[$key]['actors'][] = [
                     'id' => $notif['actor_user_id'],
                     'name' => $notif['actor_nickname'] ?? $notif['actor_name'],
-                    'email' => $notif['actor_email'],
                     'gravatar_hash' => $notif['actor_gravatar_hash'],
                     'photo_url' => $notif['actor_photo_url'],
                     'avatar_url' => $this->getAvatarUrl($notif)
@@ -258,7 +255,7 @@ class Notification
             return $notification['actor_photo_url'];
         }
         
-        $hash = $notification['actor_gravatar_hash'] ?? md5(strtolower(trim($notification['actor_email'] ?? '')));
+        $hash = $notification['actor_gravatar_hash'] ?? '00000000000000000000000000000000';
         return "https://www.gravatar.com/avatar/{$hash}?d=identicon&s=200";
     }
 }

@@ -85,7 +85,7 @@ fun NotificationsScreen(
                 ) {
                     items(
                         count = notifications.itemCount,
-                        key = { index -> notifications[index]?.id ?: "notification_$index" }
+                        key = { index -> "notification_${notifications[index]?.id ?: index}_$index" }
                     ) { index ->
                         val notification = notifications[index] ?: return@items
                         val dismissState = rememberSwipeToDismissBoxState(
