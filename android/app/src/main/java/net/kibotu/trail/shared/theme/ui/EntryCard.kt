@@ -1,6 +1,7 @@
 package net.kibotu.trail.shared.theme.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -12,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,9 +49,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +73,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -327,41 +338,51 @@ fun EntryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Clap button
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable(enabled = !isOwnContent && localUserClaps < maxClaps) {
-                            clapTrigger++
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            localUserClaps++
-                            localTotalClaps++
-                            onClap(localUserClaps)
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = clapScale
-                            scaleY = clapScale
-                        }
+                // Clap button with particle overlay
+                val particleColor = MaterialTheme.colorScheme.error
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable(enabled = !isOwnContent && localUserClaps < maxClaps) {
+                                clapTrigger++
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                localUserClaps++
+                                localTotalClaps++
+                                onClap(localUserClaps)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        FaIcon(
-                            faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
-                            size = 18.dp,
-                            tint = if (localUserClaps > 0)
-                                MaterialTheme.colorScheme.error
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                        Box(
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = clapScale
+                                scaleY = clapScale
+                            }
+                        ) {
+                            FaIcon(
+                                faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                                size = 18.dp,
+                                tint = if (localUserClaps > 0)
+                                    particleColor
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        if (localTotalClaps > 0) {
+                            Text(
+                                text = formatCount(localTotalClaps),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
-                    if (localTotalClaps > 0) {
-                        Text(
-                            text = formatCount(localTotalClaps),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    if (clapTrigger > 0) {
+                        ClapParticleEffect(
+                            trigger = clapTrigger,
+                            color = particleColor,
+                            modifier = Modifier.matchParentSize()
                         )
                     }
                 }
@@ -631,6 +652,78 @@ fun DeleteConfirmationDialog(
             androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+internal data class ClapParticle(
+    val angle: Float,
+    val distance: Float,
+    val size: Float,
+    val rotationSpeed: Float
+)
+
+@Composable
+internal fun ClapParticleEffect(
+    trigger: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    if (trigger == 0) return
+
+    val particles = remember(trigger) {
+        val count = Random.nextInt(8, 13)
+        List(count) {
+            val baseAngle = -90f
+            val spread = 90f
+            ClapParticle(
+                angle = baseAngle + (Random.nextFloat() - 0.5f) * spread,
+                distance = 30f + Random.nextFloat() * 35f,
+                size = 4f + Random.nextFloat() * 4f,
+                rotationSpeed = (Random.nextFloat() - 0.5f) * 360f
+            )
+        }
+    }
+
+    val progress = remember(trigger) { Animatable(0f) }
+
+    LaunchedEffect(trigger) {
+        progress.snapTo(0f)
+        progress.animateTo(1f, animationSpec = tween(600))
+    }
+
+    val density = LocalDensity.current
+    Canvas(modifier = modifier) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val t = progress.value
+        val alpha = (1f - t).coerceIn(0f, 1f)
+
+        if (alpha <= 0f) return@Canvas
+
+        particles.forEach { p ->
+            val radians = Math.toRadians(p.angle.toDouble()).toFloat()
+            val dist = p.distance * t * density.density
+            val px = cx + cos(radians) * dist
+            val py = cy + sin(radians) * dist
+            val s = p.size * density.density * (1f - t * 0.5f)
+            val rotation = p.rotationSpeed * t
+            drawHeart(Offset(px, py), s, color.copy(alpha = alpha), rotation)
+        }
+    }
+}
+
+internal fun DrawScope.drawHeart(center: Offset, size: Float, color: Color, rotationDeg: Float) {
+    val path = Path().apply {
+        val s = size
+        moveTo(0f, -s * 0.3f)
+        cubicTo(-s, -s * 1.2f, -s * 1.3f, s * 0.1f, 0f, s)
+        cubicTo(s * 1.3f, s * 0.1f, s, -s * 1.2f, 0f, -s * 0.3f)
+        close()
+    }
+    drawContext.canvas.save()
+    drawContext.canvas.translate(center.x, center.y)
+    drawContext.canvas.rotate(rotationDeg)
+    drawPath(path, color)
+    drawContext.canvas.restore()
 }
 
 private fun hasValidPreviewData(entry: Entry): Boolean {

@@ -391,41 +391,55 @@ fun CommentItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Clap button - more compact
+            var clapTrigger by remember { mutableIntStateOf(0) }
             var localUserClaps by remember(comment.id) { mutableIntStateOf(comment.userClapCount) }
             var localTotalClaps by remember(comment.id) { mutableIntStateOf(comment.clapCount) }
             val maxClaps = 50
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .padding(vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                IconButton(
-                    onClick = {
-                        if (localUserClaps < maxClaps) {
-                            localUserClaps++
-                            localTotalClaps++
-                            onClap(localUserClaps)
-                        }
-                    },
-                    modifier = Modifier.size(28.dp)
+            val particleColor = MaterialTheme.colorScheme.error
+            val haptic = LocalHapticFeedback.current
+            Box {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    FaIcon(
-                        faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
-                        size = 16.dp,
-                        tint = if (localUserClaps > 0)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
+                    IconButton(
+                        onClick = {
+                            if (localUserClaps < maxClaps) {
+                                clapTrigger++
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                localUserClaps++
+                                localTotalClaps++
+                                onClap(localUserClaps)
+                            }
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        FaIcon(
+                            faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                            size = 16.dp,
+                            tint = if (localUserClaps > 0)
+                                particleColor
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
 
-                if (localTotalClaps > 0) {
-                    Text(
-                        text = localTotalClaps.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    if (localTotalClaps > 0) {
+                        Text(
+                            text = localTotalClaps.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                if (clapTrigger > 0) {
+                    ClapParticleEffect(
+                        trigger = clapTrigger,
+                        color = particleColor,
+                        modifier = Modifier.matchParentSize()
                     )
                 }
             }
