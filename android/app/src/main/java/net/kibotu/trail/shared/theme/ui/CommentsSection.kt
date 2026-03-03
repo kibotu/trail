@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -390,6 +391,9 @@ fun CommentItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Clap button - more compact
+            var localUserClaps by remember(comment.id) { mutableIntStateOf(comment.userClapCount) }
+            var localTotalClaps by remember(comment.id) { mutableIntStateOf(comment.clapCount) }
+            val maxClaps = 50
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
@@ -399,24 +403,27 @@ fun CommentItem(
             ) {
                 IconButton(
                     onClick = {
-                        val newCount = if (comment.userClapCount > 0) 0 else 1
-                        onClap(newCount)
+                        if (localUserClaps < maxClaps) {
+                            localUserClaps++
+                            localTotalClaps++
+                            onClap(localUserClaps)
+                        }
                     },
                     modifier = Modifier.size(28.dp)
                 ) {
                     FaIcon(
-                        faIcon = if (comment.userClapCount > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                        faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
                         size = 16.dp,
-                        tint = if (comment.userClapCount > 0)
+                        tint = if (localUserClaps > 0)
                             MaterialTheme.colorScheme.error
                         else
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 }
 
-                if (comment.clapCount > 0) {
+                if (localTotalClaps > 0) {
                     Text(
-                        text = comment.clapCount.toString(),
+                        text = localTotalClaps.toString(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )

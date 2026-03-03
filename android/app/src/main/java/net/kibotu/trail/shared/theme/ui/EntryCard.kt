@@ -304,6 +304,9 @@ fun EntryCard(
 
             // Action bar: claps, comments, views, share
             var clapTrigger by remember { mutableIntStateOf(0) }
+            var localUserClaps by remember(entry.id) { mutableIntStateOf(entry.userClapCount) }
+            var localTotalClaps by remember(entry.id) { mutableIntStateOf(entry.clapCount) }
+            val maxClaps = 50
             val clapScale by animateFloatAsState(
                 targetValue = 1f,
                 animationSpec = keyframes {
@@ -328,10 +331,12 @@ fun EntryCard(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .clickable(enabled = !isOwnContent) {
+                        .clickable(enabled = !isOwnContent && localUserClaps < maxClaps) {
                             clapTrigger++
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onClap(1)
+                            localUserClaps++
+                            localTotalClaps++
+                            onClap(localUserClaps)
                         }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -344,17 +349,17 @@ fun EntryCard(
                         }
                     ) {
                         FaIcon(
-                            faIcon = if (entry.userClapCount > 0) FaIcons.Heart else FaIcons.HeartRegular,
+                            faIcon = if (localUserClaps > 0) FaIcons.Heart else FaIcons.HeartRegular,
                             size = 18.dp,
-                            tint = if (entry.userClapCount > 0)
+                            tint = if (localUserClaps > 0)
                                 MaterialTheme.colorScheme.error
                             else
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
-                    if (entry.clapCount > 0) {
+                    if (localTotalClaps > 0) {
                         Text(
-                            text = formatCount(entry.clapCount),
+                            text = formatCount(localTotalClaps),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
