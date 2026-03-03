@@ -27,7 +27,7 @@ import time
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter
 except ImportError:
     print("Error: Pillow is required. Install with: pip install Pillow")
     sys.exit(1)
@@ -63,6 +63,15 @@ SCREENS = [
     "screen_detail",
 ]
 
+SCREEN_COPY = {
+    "screen_home": ("Welcome to Trail", "Your Micro Link Journal"),
+    "screen_myfeed": ("Your Personal Feed", "Curate Your Interests"),
+    "screen_profile": ("Your Digital Identity", "Express Yourself"),
+    "screen_notifications": ("Stay in the Loop", "Never Miss an Update"),
+    "screen_search": ("Discover Content", "Find What Matters"),
+    "screen_detail": ("Dive Deeper", "Read and Share Links"),
+}
+
 # ─── Font helpers ────────────────────────────────────────────────────
 
 
@@ -72,14 +81,14 @@ def get_font(size: int) -> ImageFont.FreeTypeFont:
             return ImageFont.truetype(name, size)
         except OSError:
             continue
-    return ImageFont.load_default(size)
+    return ImageFont.load_default()
 
 
 def get_font_regular(size: int) -> ImageFont.FreeTypeFont:
     try:
         return ImageFont.truetype("DejaVuSans.ttf", size)
     except OSError:
-        return ImageFont.load_default(size)
+        return ImageFont.load_default()
 
 
 # ─── Drawing helpers ─────────────────────────────────────────────────
@@ -221,14 +230,22 @@ def generate_feature_graphic():
         img.paste(logo, (80, (h - 300) // 2), logo)
 
     draw = ImageDraw.Draw(img)
-    font_title = get_font(80)
-    font_sub = get_font_regular(28)
+    # Huge font sizes for the feature graphic
+    font_title = get_font(120)
+    font_sub = get_font_regular(40)
 
-    text_x = 460
-    bbox_t = draw.textbbox((0, 0), "Trail", font=font_title)
-    bbox_s = draw.textbbox((0, 0), "Share. Discover. Connect.", font=font_sub)
-    title_h = bbox_t[3] - bbox_t[1]
-    sub_h = bbox_s[3] - bbox_s[1]
+    text_x = 420
+    
+    # fallback for older PIL if textbbox is missing
+    if hasattr(draw, "textbbox"):
+        bbox_t = draw.textbbox((0, 0), "Trail", font=font_title)
+        bbox_s = draw.textbbox((0, 0), "Share. Discover. Connect.", font=font_sub)
+        title_h = bbox_t[3] - bbox_t[1]
+        sub_h = bbox_s[3] - bbox_s[1]
+    else:
+        title_w, title_h = draw.textsize("Trail", font=font_title)
+        sub_w, sub_h = draw.textsize("Share. Discover. Connect.", font=font_sub)
+
     total_h = title_h + 16 + sub_h
     title_y = (h - total_h) // 2
     sub_y = title_y + title_h + 16
@@ -244,61 +261,129 @@ def generate_feature_graphic():
     print(f"  {filename} ({size_kb:.0f}KB)")
 
 
-def generate_phone_screenshots():
-    PHONE_DIR.mkdir(parents=True, exist_ok=True)
-    target_w, target_h = PHONE_SIZE
+def composite_screenshot(raw_img: Image.Image, target_w: int, target_h: int, title: str, subtitle: str) -> Image.Image:
+    # Background
+    img = Image.new("RGBA", (target_w, target_h))
+    draw_gradient(img, BRAND_DARK, BRAND_BLUE, horizontal=False)
+    
+    overlay = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    draw_sparkles(ImageDraw.Draw(overlay), target_w, target_h)
+    img = Image.alpha_composite(img, overlay)
+    
+    # Text
+    draw = ImageDraw.Draw(img)
+    # responsive font sizes (drastically increased)
+    title_size = int(target_w * 0.1)
+    sub_size = int(target_w * 0.05)
+    font_title = get_font(title_size)
+    font_sub = get_font_regular(sub_size)
+    
+    text_y_start = int(target_h * 0.05)
+    
+    if hasattr(draw, "textbbox"):
+        bbox_t = draw.textbbox((0, 0), title, font=font_title)
+        bbox_s = draw.textbbox((0, 0), subtitle, font=font_sub)
+        t_w = bbox_t[2] - bbox_t[0]
+        s_w = bbox_s[2] - bbox_s[0]
+        title_h = bbox_t[3] - bbox_t[1]
+    else:
+        t_w, title_h = draw.textsize(title, font=font_title)
+        s_w, _ = draw.textsize(subtitle, font=font_sub)
+    
+    draw.text(((target_w - t_w) // 2, text_y_start), title, font=font_title, fill=(255, 255, 255, 255))
+    draw.text(((target_w - s_w) // 2, text_y_start + title_h + int(target_h * 0.015)), subtitle, font=font_sub, fill=BRAND_LIGHT + (255,))
+    
+    # Screenshot Frame
+    screen_y_start = text_y_start + title_h + sub_size + int(target_h * 0.02)
+    screen_margin_x = int(target_w * 0.05)
+    avail_w = target_w - (screen_margin_x * 2)
+    avail_h = target_h - screen_y_start - int(target_h * 0.02)
+    
+    rw, rh = raw_img.size
+    
+    # Scale screenshot to fit inside
+    scale = min(avail_w / rw, avail_h / rh)
+    new_w, new_h = int(rw * scale), int(rh * scale)
+    
+    screen_x = (target_w - new_w) // 2
+    screen_y = screen_y_start
+    
+    screen_resized = raw_img.resize((new_w, new_h), Image.LANCZOS)
+    
+    # Create mask for rounded corners
+    radius = int(target_w * 0.03)
+    mask = Image.new("L", (new_w, new_h), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    if hasattr(mask_draw, "rounded_rectangle"):
+        mask_draw.rounded_rectangle((0, 0, new_w, new_h), radius=radius, fill=255)
+    else:
+        # Fallback to simple rectangle for very old PIL
+        mask_draw.rectangle((0, 0, new_w, new_h), fill=255)
+    
+    # Paste screenshot into a transparent layer using mask
+    screen_layer = Image.new("RGBA", (new_w, new_h), (0, 0, 0, 0))
+    screen_layer.paste(screen_resized, (0, 0))
+    
+    # Drop shadow
+    shadow_offset = int(target_w * 0.015)
+    shadow_radius = int(target_w * 0.02)
+    shadow_img = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    s_draw = ImageDraw.Draw(shadow_img)
+    if hasattr(s_draw, "rounded_rectangle"):
+        s_draw.rounded_rectangle(
+            (screen_x + shadow_offset, screen_y + shadow_offset, screen_x + new_w + shadow_offset, screen_y + new_h + shadow_offset),
+            radius=radius,
+            fill=(0, 0, 0, 80)
+        )
+    else:
+        s_draw.rectangle(
+            (screen_x + shadow_offset, screen_y + shadow_offset, screen_x + new_w + shadow_offset, screen_y + new_h + shadow_offset),
+            fill=(0, 0, 0, 80)
+        )
+    shadow_img = shadow_img.filter(ImageFilter.GaussianBlur(shadow_radius))
+    
+    # Composite shadow
+    img = Image.alpha_composite(img, shadow_img)
+    
+    # Composite screenshot
+    final_layer = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    final_layer.paste(screen_layer, (screen_x, screen_y), mask)
+    img = Image.alpha_composite(img, final_layer)
+    
+    return img.convert("RGB")
 
+
+def _generate_device_screenshots(out_dir: Path, target_w: int, target_h: int, label: str):
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
     for name in SCREENS:
         src = RAW_DIR / f"{name}.png"
         if not src.exists():
             print(f"  Skip {name} (not found)")
             continue
-        img = Image.open(src)
-        w, h = img.size
-
-        if h > target_h:
-            crop_top = (h - target_h) // 2
-            img = img.crop((0, crop_top, w, crop_top + target_h))
-        if img.size[0] != target_w or img.size[1] != target_h:
-            img = img.resize((target_w, target_h), Image.LANCZOS)
-
-        filename = f"phone_{target_w}x{target_h}_{_screen_label(name)}.png"
-        out_path = PHONE_DIR / filename
-        img.save(out_path, "PNG")
-        size_kb = out_path.stat().st_size / 1024
-        print(f"  {filename} ({size_kb:.0f}KB)")
-
-
-def _generate_tablet(out_dir: Path, target_w: int, target_h: int, label: str):
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    for name in SCREENS:
-        src = PHONE_DIR / f"phone_{PHONE_SIZE[0]}x{PHONE_SIZE[1]}_{_screen_label(name)}.png"
-        if not src.exists():
-            print(f"  Skip {name} (not found)")
-            continue
-        phone = Image.open(src)
-        pw, ph = phone.size
-
-        tablet = Image.new("RGB", (target_w, target_h), BRAND_DARK)
-        scale = target_h / ph
-        scaled_w = int(pw * scale)
-        phone_scaled = phone.resize((scaled_w, target_h), Image.LANCZOS)
-        tablet.paste(phone_scaled, ((target_w - scaled_w) // 2, 0))
-
+        
+        raw_img = Image.open(src)
+        title, subtitle = SCREEN_COPY.get(name, ("Trail App", "Discover More"))
+        
+        final_img = composite_screenshot(raw_img, target_w, target_h, title, subtitle)
+        
         filename = f"{label}_{target_w}x{target_h}_{_screen_label(name)}.png"
         out_path = out_dir / filename
-        tablet.save(out_path, "PNG")
+        final_img.save(out_path, "PNG")
         size_kb = out_path.stat().st_size / 1024
         print(f"  {filename} ({size_kb:.0f}KB)")
+
+
+def generate_phone_screenshots():
+    _generate_device_screenshots(PHONE_DIR, *PHONE_SIZE, label="phone")
 
 
 def generate_tablet_7_screenshots():
-    _generate_tablet(TABLET_7_DIR, *TABLET_7_SIZE, label="tablet-7")
+    _generate_device_screenshots(TABLET_7_DIR, *TABLET_7_SIZE, label="tablet-7")
 
 
 def generate_tablet_10_screenshots():
-    _generate_tablet(TABLET_10_DIR, *TABLET_10_SIZE, label="tablet-10")
+    _generate_device_screenshots(TABLET_10_DIR, *TABLET_10_SIZE, label="tablet-10")
 
 
 # ─── Main ────────────────────────────────────────────────────────────
@@ -319,10 +404,9 @@ def main():
     )
     args = parser.parse_args()
 
-    device_id = args.device_id or detect_device()
-    print(f"Device: {device_id}\n")
-
     if not args.skip_capture:
+        device_id = args.device_id or detect_device()
+        print(f"Device: {device_id}\n")
         print("=== Capturing Screenshots ===")
         run_maestro(device_id)
     else:

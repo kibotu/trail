@@ -12,10 +12,12 @@ appId: net.kibotu.trail
 - assertVisible: Home
 
 # ── Entry Detail ─────────────────────────────────────────────────────
-# Tap right-side padding of the first entry card (88% horizontal, 18%
-# vertical) to trigger onCardClick without hitting action buttons.
+# Tap the right-side padding of the first entry card at header height.
+# 75% horizontal lands between the timestamp and the 3-dots menu,
+# 12% vertical sits in the card header row — safely away from text,
+# links, tags, and action buttons.
 - tapOn:
-    point: "88%,18%"
+    point: "75%,12%"
 - waitForAnimationToEnd:
     timeout: 5000
 - extendedWaitUntil:
@@ -29,14 +31,92 @@ appId: net.kibotu.trail
     timeout: 3000
 - assertVisible: Home
 
+# ── Scroll Home feed ─────────────────────────────────────────────────
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
+
 # ── My Feed ──────────────────────────────────────────────────────────
 - tapOn: My Feed
 - waitForAnimationToEnd:
     timeout: 3000
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
 - extendedWaitUntil:
     visible: "What are you working on?"
     timeout: 10000
 - assertVisible: "What are you working on?"
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# ── Post a dad joke ─────────────────────────────────────────────────
+- tapOn: "What are you working on?"
+- inputText: "Why did Twitter change its name? Because it couldn't handle the pressure of 280 characters... oh wait, that's still a thing here."
+- waitForAnimationToEnd:
+    timeout: 1000
+- hideKeyboard
+- tapOn: Post
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# ── Delete the posted entry ─────────────────────────────────────────
+# Scroll to top so the new post is visible, then tap its 3-dots menu.
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    point: "93%,35%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: Delete
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Delete Entry?"
+- tapOn: Delete
+- waitForAnimationToEnd:
+    timeout: 3000
 
 # ── Profile ──────────────────────────────────────────────────────────
 - tapOn: Profile
@@ -46,6 +126,22 @@ appId: net.kibotu.trail
     visible: "Profile picture"
     timeout: 10000
 - assertVisible: "Profile picture"
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 2000
 
 # ── Alerts ───────────────────────────────────────────────────────────
 - tapOn: Alerts
