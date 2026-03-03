@@ -1,8 +1,31 @@
-# Trail for Android
+<p align="center">
+  <img src="app/src/main/ic_launcher-playstore.png" width="128" alt="Trail app icon" />
+</p>
 
-Native Android client for [Trail](https://github.com/kibotu/trail) — the self-hosted micro link journal for people who miss chronological feeds.
+<h1 align="center">Trail for Android</h1>
 
-Kotlin, Jetpack Compose, Material 3. One activity, no fragments, no DI framework. Refreshingly simple for what it does.
+<p align="center">
+  Native Android client for <a href="https://github.com/kibotu/trail">Trail</a> — the self-hosted micro link journal for people who miss chronological feeds.
+  <br /><br />
+  Kotlin, Jetpack Compose, Material 3. One activity, no fragments, no DI framework. Refreshingly simple for what it does.
+</p>
+
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=net.kibotu.trail">
+    <img src="https://www.blog.kibotu.net/wp-content/themes/adventure-journal/googe%20play.jpg" height="60" alt="Get it on Google Play" />
+  </a>
+</p>
+
+## Screenshots
+
+<p align="center">
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/695/phone-1080x1920-home,large.1772551345.png" width="160" alt="Home feed" />
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/699/phone-1080x1920-search,large.1772551347.png" width="160" alt="Search" />
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/698/phone-1080x1920-profile,large.1772551346.png" width="160" alt="Profile" />
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/696/phone-1080x1920-myfeed,large.1772551345.png" width="160" alt="My feed" />
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/700/phone-1080x1920-detail,large.1772551366.png" width="160" alt="Entry detail" />
+  <img src="https://portfolio.kibotu.net/storage/cache/images/000/697/phone-1080x1920-notifications,large.1772551346.png" width="160" alt="Notifications" />
+</p>
 
 ## Features
 

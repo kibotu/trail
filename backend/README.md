@@ -1,8 +1,14 @@
-# Trail Backend
+<p align="center">
+  <img src="../android/app/src/main/ic_launcher-playstore.png" width="128" alt="Trail app icon" />
+</p>
 
-The server-side half of [Trail](https://github.com/kibotu/trail) — a self-hosted micro link journal for people who miss chronological feeds and own servers.
+<h1 align="center">Trail Backend</h1>
 
-PHP, Slim 4, MariaDB. No Docker, no Kubernetes, no 47-service architecture. Just a backend that does its job and gets out of the way.
+<p align="center">
+  The server-side half of <a href="https://github.com/kibotu/trail">Trail</a> — a self-hosted micro link journal for people who miss chronological feeds and own servers.
+  <br /><br />
+  PHP, Slim 4, MariaDB. No Docker, no Kubernetes, no 47-service architecture. Just a backend that does its job and gets out of the way.
+</p>
 
 ## Features
 
