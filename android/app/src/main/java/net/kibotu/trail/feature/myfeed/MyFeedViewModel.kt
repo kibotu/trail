@@ -70,9 +70,28 @@ class MyFeedViewModel(
     private val _uploadProgress = MutableStateFlow(0f)
     val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
 
-    fun createEntry(text: String, imageIds: List<Int> = emptyList()) {
+    fun createEntry(context: Context, text: String, imageUris: List<Uri> = emptyList()) {
         viewModelScope.launch {
             _isPosting.value = true
+            _uploadProgress.value = 0f
+
+            val imageIds = mutableListOf<Int>()
+            for ((index, uri) in imageUris.withIndex()) {
+                imageUploadManager.uploadImage(context, uri) { progress ->
+                    val base = index.toFloat() / imageUris.size
+                    val portion = 1f / imageUris.size
+                    _uploadProgress.value = base + progress * portion
+                }.fold(
+                    onSuccess = { imageId -> imageIds.add(imageId) },
+                    onFailure = {
+                        _isPosting.value = false
+                        _uploadProgress.value = 0f
+                        return@launch
+                    }
+                )
+            }
+
+            _uploadProgress.value = 0f
             entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
                     _pagingSource.value?.invalidate()
@@ -83,22 +102,6 @@ class MyFeedViewModel(
                 onFailure = {}
             )
             _isPosting.value = false
-        }
-    }
-
-    fun uploadImage(context: Context, uri: Uri, onComplete: (Int) -> Unit) {
-        viewModelScope.launch {
-            imageUploadManager.uploadImage(context, uri) { progress ->
-                _uploadProgress.value = progress
-            }.fold(
-                onSuccess = { imageId ->
-                    _uploadProgress.value = 0f
-                    onComplete(imageId)
-                },
-                onFailure = {
-                    _uploadProgress.value = 0f
-                }
-            )
         }
     }
 
@@ -144,7 +147,13 @@ class MyFeedViewModel(
     }
 
     fun updateEntry(entryId: Int, text: String) { viewModelScope.launch { entryRepository.updateEntry(entryId, UpdateEntryRequest(text)) } }
-    fun deleteEntry(entryId: Int) { viewModelScope.launch { entryRepository.deleteEntry(entryId) } }
+    fun deleteEntry(entryId: Int) {
+        viewModelScope.launch {
+            entryRepository.deleteEntry(entryId).onSuccess {
+                _pagingSource.value?.invalidate()
+            }
+        }
+    }
     fun addClaps(hashId: String, count: Int) { viewModelScope.launch { entryRepository.addClaps(hashId, count) } }
     fun recordView(hashId: String) { viewModelScope.launch { entryRepository.recordView(hashId) } }
     fun reportEntry(hashId: String) { viewModelScope.launch { entryRepository.reportEntry(hashId) } }
@@ -153,7 +162,16 @@ class MyFeedViewModel(
     fun updateComment(commentId: Int, text: String, entryId: Int) {
         viewModelScope.launch { commentRepository.updateComment(commentId, net.kibotu.trail.shared.comment.UpdateCommentRequest(text)) }
     }
-    fun deleteComment(commentId: Int, entryId: Int) { viewModelScope.launch { commentRepository.deleteComment(commentId) } }
+    fun deleteComment(commentId: Int, entryId: Int) {
+        viewModelScope.launch {
+            commentRepository.deleteComment(commentId).onSuccess {
+                val current = _commentsState.value[entryId] ?: return@onSuccess
+                _commentsState.value = _commentsState.value + (entryId to current.copy(
+                    comments = current.comments.filter { it.id != commentId }
+                ))
+            }
+        }
+    }
     fun clapComment(commentId: Int, count: Int, entryId: Int) { viewModelScope.launch { commentRepository.addClap(commentId, count) } }
     fun reportComment(commentId: Int, entryId: Int) { viewModelScope.launch { commentRepository.reportComment(commentId) } }
 

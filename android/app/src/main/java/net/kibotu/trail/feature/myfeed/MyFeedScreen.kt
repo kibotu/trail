@@ -126,8 +126,7 @@ fun MyFeedScreen(
                 ComposeCard(
                     isPosting = isPosting,
                     uploadProgress = uploadProgress,
-                    onUploadImage = { uri, onComplete -> viewModel.uploadImage(context, uri, onComplete) },
-                    onPost = { text, imageIds -> viewModel.createEntry(text, imageIds) }
+                    onPost = { text, imageUris -> viewModel.createEntry(context, text, imageUris) }
                 )
             }
 
@@ -185,30 +184,18 @@ fun MyFeedScreen(
 private fun ComposeCard(
     isPosting: Boolean,
     uploadProgress: Float = 0f,
-    onUploadImage: (Uri, (Int) -> Unit) -> Unit = { _, _ -> },
-    onPost: (String, List<Int>) -> Unit
+    onPost: (String, List<Uri>) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     val maxCharacters = 280
     val maxImages = 3
     val selectedUris = remember { mutableStateListOf<Uri>() }
-    val uploadedImageIds = remember { mutableStateListOf<Int>() }
-    var isUploading by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxImages)
     ) { uris ->
         val remaining = maxImages - selectedUris.size
-        uris.take(remaining).forEach { uri ->
-            selectedUris.add(uri)
-            isUploading = true
-            onUploadImage(uri) { imageId ->
-                uploadedImageIds.add(imageId)
-                if (uploadedImageIds.size == selectedUris.size) {
-                    isUploading = false
-                }
-            }
-        }
+        uris.take(remaining).forEach { uri -> selectedUris.add(uri) }
     }
 
     Card(
@@ -252,12 +239,7 @@ private fun ComposeCard(
                                 contentScale = ContentScale.Crop
                             )
                             IconButton(
-                                onClick = {
-                                    selectedUris.removeAt(index)
-                                    if (index < uploadedImageIds.size) {
-                                        uploadedImageIds.removeAt(index)
-                                    }
-                                },
+                                onClick = { selectedUris.removeAt(index) },
                                 modifier = Modifier
                                     .size(20.dp)
                                     .align(Alignment.TopEnd)
@@ -275,7 +257,7 @@ private fun ComposeCard(
                 }
             }
 
-            if (isUploading && uploadProgress > 0f) {
+            if (isPosting && uploadProgress > 0f) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { uploadProgress },
@@ -297,7 +279,7 @@ private fun ComposeCard(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                             )
                         },
-                        enabled = !isPosting && !isUploading,
+                        enabled = !isPosting,
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         FaIcon(FaIcons.Image, size = 16.dp, tint = MaterialTheme.colorScheme.primary)
@@ -313,12 +295,11 @@ private fun ComposeCard(
                 } else {
                     Button(
                         onClick = {
-                            onPost(text, uploadedImageIds.toList())
+                            onPost(text, selectedUris.toList())
                             text = ""
                             selectedUris.clear()
-                            uploadedImageIds.clear()
                         },
-                        enabled = text.isNotBlank() && text.length <= maxCharacters && !isUploading,
+                        enabled = (text.isNotBlank() || selectedUris.isNotEmpty()) && text.length <= maxCharacters,
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("Post")

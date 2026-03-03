@@ -36,9 +36,15 @@ class HomeViewModel(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
+    private val _pagingSource = MutableStateFlow<EntriesPagingSource?>(null)
+
     val entries: Flow<PagingData<Entry>> = Pager(
         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-        pagingSourceFactory = { EntriesPagingSource(entryRepository) }
+        pagingSourceFactory = {
+            EntriesPagingSource(entryRepository).also {
+                _pagingSource.value = it
+            }
+        }
     ).flow.cachedIn(viewModelScope)
 
     private val _commentsState = MutableStateFlow<Map<Int, CommentState>>(emptyMap())
@@ -105,7 +111,12 @@ class HomeViewModel(
 
     fun deleteComment(commentId: Int, entryId: Int) {
         viewModelScope.launch {
-            commentRepository.deleteComment(commentId)
+            commentRepository.deleteComment(commentId).onSuccess {
+                val current = _commentsState.value[entryId] ?: return@onSuccess
+                _commentsState.value = _commentsState.value + (entryId to current.copy(
+                    comments = current.comments.filter { it.id != commentId }
+                ))
+            }
         }
     }
 
@@ -129,7 +140,9 @@ class HomeViewModel(
 
     fun deleteEntry(entryId: Int) {
         viewModelScope.launch {
-            entryRepository.deleteEntry(entryId)
+            entryRepository.deleteEntry(entryId).onSuccess {
+                _pagingSource.value?.invalidate()
+            }
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -52,6 +53,10 @@ fun EntryDetailScreen(
     val currentlyPlayingVideoId by viewModel.currentlyPlayingVideoId.collectAsState()
     val context = LocalContext.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    LaunchedEffect(Unit) {
+        viewModel.entryDeleted.collect { onNavigateBack() }
+    }
 
     Box(Modifier.fillMaxSize()) {
         when {

@@ -9,10 +9,10 @@ class ImageUploadManager(private val repository: ImageUploadRepository) {
     suspend fun uploadImage(
         context: Context,
         uri: Uri,
+        imageType: String = "post",
         onProgress: (Float) -> Unit = {}
     ): Result<Int> = runCatching {
         val contentResolver = context.contentResolver
-        val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
         val filename = uri.lastPathSegment ?: "image.jpg"
         val inputStream = contentResolver.openInputStream(uri)
             ?: throw IllegalStateException("Cannot open file")
@@ -23,7 +23,7 @@ class ImageUploadManager(private val repository: ImageUploadRepository) {
         val totalChunks = (bytes.size + chunkSize - 1) / chunkSize
 
         val initResponse = repository.initUpload(
-            imageType = mimeType,
+            imageType = imageType,
             filename = filename,
             fileSize = bytes.size.toLong(),
             totalChunks = totalChunks

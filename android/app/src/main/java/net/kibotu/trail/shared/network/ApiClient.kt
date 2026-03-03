@@ -3,6 +3,7 @@ package net.kibotu.trail.shared.network
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.ANDROID
@@ -29,6 +30,11 @@ object ApiClient {
                 encodeDefaults = true
                 prettyPrint = true
             })
+        }
+
+        install(ContentEncoding) {
+            gzip()
+            deflate()
         }
 
         install(Logging) {

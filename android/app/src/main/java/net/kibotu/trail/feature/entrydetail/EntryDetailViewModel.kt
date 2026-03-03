@@ -5,8 +5,11 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.comment.Comment
@@ -36,6 +39,9 @@ class EntryDetailViewModel(
 
     private val _state = MutableStateFlow(EntryDetailState())
     val state: StateFlow<EntryDetailState> = _state.asStateFlow()
+
+    private val _entryDeleted = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val entryDeleted: SharedFlow<Unit> = _entryDeleted.asSharedFlow()
 
     private val _currentlyPlayingVideoId = MutableStateFlow<String?>(null)
     val currentlyPlayingVideoId: StateFlow<String?> = _currentlyPlayingVideoId.asStateFlow()
@@ -82,7 +88,13 @@ class EntryDetailViewModel(
     fun reportEntry() { viewModelScope.launch { entryRepository.reportEntry(hashId) } }
     fun muteUser(userId: Int) { viewModelScope.launch { userRepository.muteUser(userId) } }
     fun updateEntry(entryId: Int, text: String) { viewModelScope.launch { entryRepository.updateEntry(entryId, UpdateEntryRequest(text)) } }
-    fun deleteEntry(entryId: Int) { viewModelScope.launch { entryRepository.deleteEntry(entryId) } }
+    fun deleteEntry(entryId: Int) {
+        viewModelScope.launch {
+            entryRepository.deleteEntry(entryId).onSuccess {
+                _entryDeleted.tryEmit(Unit)
+            }
+        }
+    }
     fun onVideoPlay(id: String?) { _currentlyPlayingVideoId.value = id }
 
     fun createComment(text: String) {

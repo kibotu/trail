@@ -93,36 +93,13 @@ fun ShareScreen(
     val scope = rememberCoroutineScope()
 
     val selectedUris = remember { mutableStateListOf<Uri>() }
-    val uploadedImageIds = remember { mutableStateListOf<Int>() }
-    var isUploading by remember { mutableStateOf(false) }
     var uploadProgress by remember { mutableStateOf(0f) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxImages)
     ) { uris ->
         val remaining = maxImages - selectedUris.size
-        uris.take(remaining).forEach { uri ->
-            selectedUris.add(uri)
-            isUploading = true
-            scope.launch {
-                imageUploadManager.uploadImage(context, uri) { progress ->
-                    uploadProgress = progress
-                }.fold(
-                    onSuccess = { imageId ->
-                        uploadedImageIds.add(imageId)
-                        if (uploadedImageIds.size == selectedUris.size) {
-                            isUploading = false
-                            uploadProgress = 0f
-                        }
-                    },
-                    onFailure = { e ->
-                        isUploading = false
-                        uploadProgress = 0f
-                        errorMessage = e.message ?: "Image upload failed"
-                    }
-                )
-            }
-        }
+        uris.take(remaining).forEach { uri -> selectedUris.add(uri) }
     }
 
     Scaffold(
@@ -193,12 +170,7 @@ fun ShareScreen(
                                         contentScale = ContentScale.Crop
                                     )
                                     IconButton(
-                                        onClick = {
-                                            selectedUris.removeAt(index)
-                                            if (index < uploadedImageIds.size) {
-                                                uploadedImageIds.removeAt(index)
-                                            }
-                                        },
+                                        onClick = { selectedUris.removeAt(index) },
                                         modifier = Modifier
                                             .size(20.dp)
                                             .align(Alignment.TopEnd)
@@ -216,7 +188,7 @@ fun ShareScreen(
                         }
                     }
 
-                    if (isUploading && uploadProgress > 0f) {
+                    if (isPosting && uploadProgress > 0f) {
                         Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { uploadProgress },
@@ -247,7 +219,7 @@ fun ShareScreen(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                                     )
                                 },
-                                enabled = !isPosting && !isUploading,
+                                enabled = !isPosting,
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 FaIcon(FaIcons.Image, size = 16.dp, tint = MaterialTheme.colorScheme.primary)
@@ -269,8 +241,34 @@ fun ShareScreen(
                                     scope.launch {
                                         isPosting = true
                                         errorMessage = null
+                                        uploadProgress = 0f
+
+                                        val imageIds = mutableListOf<Int>()
+                                        val uris = selectedUris.toList()
+                                        var uploadFailed = false
+                                        for ((index, uri) in uris.withIndex()) {
+                                            imageUploadManager.uploadImage(context, uri) { progress ->
+                                                val base = index.toFloat() / uris.size
+                                                val portion = 1f / uris.size
+                                                uploadProgress = base + progress * portion
+                                            }.fold(
+                                                onSuccess = { imageId -> imageIds.add(imageId) },
+                                                onFailure = { e ->
+                                                    errorMessage = e.message ?: "Image upload failed"
+                                                    uploadFailed = true
+                                                }
+                                            )
+                                            if (uploadFailed) break
+                                        }
+
+                                        uploadProgress = 0f
+                                        if (uploadFailed) {
+                                            isPosting = false
+                                            return@launch
+                                        }
+
                                         entryRepository.createEntry(
-                                            CreateEntryRequest(text, uploadedImageIds.toList().ifEmpty { null })
+                                            CreateEntryRequest(text, imageIds.ifEmpty { null })
                                         ).fold(
                                             onSuccess = {
                                                 (context as? Activity)?.let { activity ->
@@ -285,7 +283,7 @@ fun ShareScreen(
                                         )
                                     }
                                 },
-                                enabled = text.isNotBlank() && text.length <= maxCharacters && !isUploading,
+                                enabled = (text.isNotBlank() || selectedUris.isNotEmpty()) && text.length <= maxCharacters && !isPosting,
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text("Share")
