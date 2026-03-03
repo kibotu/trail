@@ -1,5 +1,6 @@
 package net.kibotu.trail.feature.notifications
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,13 +23,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +52,7 @@ import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
     hazeState: HazeState? = null,
@@ -78,60 +85,92 @@ fun NotificationsScreen(
                 ) {
                     items(
                         count = notifications.itemCount,
-                        key = { index -> "notification_$index" }
+                        key = { index -> notifications[index]?.id ?: "notification_$index" }
                     ) { index ->
                         val notification = notifications[index] ?: return@items
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.markRead(notification.id)
-                                    when {
-                                        notification.entryHashId != null -> onNavigateToEntry(notification.entryHashId)
-                                        notification.actorNickname != null -> onNavigateToUser(notification.actorNickname)
-                                    }
-                                },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (notification.isRead)
-                                    MaterialTheme.colorScheme.surface
-                                else
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                notification.actorAvatarUrl?.let {
-                                    AsyncImage(
-                                        model = it,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp).clip(CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteNotification(notification.id)
+                                    true
+                                } else {
+                                    false
                                 }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = buildNotificationText(notification),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (!notification.isRead) FontWeight.SemiBold else FontWeight.Normal
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.error)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.onError
                                     )
-                                    notification.entryText?.let {
+                                }
+                            },
+                            enableDismissFromStartToEnd = false
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.markRead(notification.id)
+                                        when {
+                                            notification.entryHashId != null -> onNavigateToEntry(notification.entryHashId)
+                                            notification.actorNickname != null -> onNavigateToUser(notification.actorNickname)
+                                        }
+                                    },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (notification.isRead)
+                                        MaterialTheme.colorScheme.surface
+                                    else
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    notification.actorAvatarUrl?.let {
+                                        AsyncImage(
+                                            model = it,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(40.dp).clip(CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = buildNotificationText(notification),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (!notification.isRead) FontWeight.SemiBold else FontWeight.Normal
+                                        )
+                                        notification.entryText?.let {
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = it,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2
+                                            )
+                                        }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = it,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2
+                                            text = notification.createdAt.take(10),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = notification.createdAt.take(10),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
                                 }
                             }
                         }

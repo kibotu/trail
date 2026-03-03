@@ -22,9 +22,13 @@ class NotificationsViewModel(
     private val repository: NotificationRepository
 ) : ViewModel() {
 
+    private var currentPagingSource: NotificationsPagingSource? = null
+
     val notifications: Flow<PagingData<Notification>> = Pager(
         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-        pagingSourceFactory = { NotificationsPagingSource(repository) }
+        pagingSourceFactory = {
+            NotificationsPagingSource(repository).also { currentPagingSource = it }
+        }
     ).flow.cachedIn(viewModelScope)
 
     private val _unreadCount = MutableStateFlow(0)
@@ -50,13 +54,19 @@ class NotificationsViewModel(
 
     fun markAllRead() {
         viewModelScope.launch {
-            repository.markAllRead().onSuccess { refreshUnreadCount() }
+            repository.markAllRead().onSuccess {
+                refreshUnreadCount()
+                currentPagingSource?.invalidate()
+            }
         }
     }
 
     fun deleteNotification(notificationId: Int) {
         viewModelScope.launch {
-            repository.deleteNotification(notificationId)
+            repository.deleteNotification(notificationId).onSuccess {
+                currentPagingSource?.invalidate()
+                refreshUnreadCount()
+            }
         }
     }
 

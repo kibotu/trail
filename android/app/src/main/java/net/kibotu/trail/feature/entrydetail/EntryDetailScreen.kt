@@ -100,7 +100,8 @@ fun EntryDetailScreen(
                             onUpdateComment = { commentId, text -> viewModel.updateComment(commentId, text) },
                             onDeleteComment = { commentId -> viewModel.deleteComment(commentId) },
                             onClapComment = { commentId, count -> viewModel.clapComment(commentId, count) },
-                            onReportComment = { commentId -> viewModel.reportComment(commentId) }
+                            onReportComment = { commentId -> viewModel.reportComment(commentId) },
+                            onMentionClick = { nick -> onNavigateToUser(nick) }
                         )
                     }
                 }

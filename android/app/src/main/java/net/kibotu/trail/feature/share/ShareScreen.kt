@@ -1,8 +1,14 @@
 package net.kibotu.trail.feature.share
 
+import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -10,10 +16,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -21,7 +31,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,20 +42,27 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import android.app.Activity
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
 import kotlinx.coroutines.launch
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.entry.CreateEntryRequest
 import net.kibotu.trail.shared.entry.EntryRepository
+import net.kibotu.trail.shared.image.ImageUploadManager
+import net.kibotu.trail.shared.image.ImageUploadRepository
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
 
@@ -65,11 +84,46 @@ fun ShareScreen(
     val context = LocalContext.current
     val inAppReviewManager = LocalInAppReviewManager.current
     val entryRepository = remember { EntryRepository(ApiClient.client) }
+    val imageUploadManager = remember { ImageUploadManager(ImageUploadRepository(ApiClient.client)) }
     var text by remember { mutableStateOf(initialText) }
     var isPosting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val maxCharacters = 140
+    val maxCharacters = 280
+    val maxImages = 3
     val scope = rememberCoroutineScope()
+
+    val selectedUris = remember { mutableStateListOf<Uri>() }
+    val uploadedImageIds = remember { mutableStateListOf<Int>() }
+    var isUploading by remember { mutableStateOf(false) }
+    var uploadProgress by remember { mutableStateOf(0f) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxImages)
+    ) { uris ->
+        val remaining = maxImages - selectedUris.size
+        uris.take(remaining).forEach { uri ->
+            selectedUris.add(uri)
+            isUploading = true
+            scope.launch {
+                imageUploadManager.uploadImage(context, uri) { progress ->
+                    uploadProgress = progress
+                }.fold(
+                    onSuccess = { imageId ->
+                        uploadedImageIds.add(imageId)
+                        if (uploadedImageIds.size == selectedUris.size) {
+                            isUploading = false
+                            uploadProgress = 0f
+                        }
+                    },
+                    onFailure = { e ->
+                        isUploading = false
+                        uploadProgress = 0f
+                        errorMessage = e.message ?: "Image upload failed"
+                    }
+                )
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -100,9 +154,7 @@ fun ShareScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -127,6 +179,51 @@ fun ShareScreen(
                         modifier = Modifier.align(Alignment.End)
                     )
 
+                    if (selectedUris.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            selectedUris.forEachIndexed { index, uri ->
+                                Box {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = "Selected image",
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            selectedUris.removeAt(index)
+                                            if (index < uploadedImageIds.size) {
+                                                uploadedImageIds.removeAt(index)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .align(Alignment.TopEnd)
+                                            .clip(CircleShape)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onError
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (isUploading && uploadProgress > 0f) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { uploadProgress },
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
+                        )
+                    }
+
                     if (errorMessage != null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -138,35 +235,57 @@ fun ShareScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Box(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.CenterEnd
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (selectedUris.size < maxImages) {
+                            OutlinedButton(
+                                onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                                    )
+                                },
+                                enabled = !isPosting && !isUploading,
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                FaIcon(FaIcons.Image, size = 16.dp, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Add Image")
+                            }
+                        } else {
+                            Spacer(Modifier.width(1.dp))
+                        }
+
                         if (isPosting) {
-                            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(8.dp).size(24.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Button(
                                 onClick = {
                                     scope.launch {
                                         isPosting = true
                                         errorMessage = null
-                                        entryRepository.createEntry(CreateEntryRequest(text))
-                                            .fold(
-                                                onSuccess = {
-                                                    (context as? Activity)?.let { activity ->
-                                                        inAppReviewManager.promptIfEligible(activity)
-                                                    }
-                                                    onShareSuccess()
-                                                },
-                                                onFailure = { e ->
-                                                    errorMessage =
-                                                        e.message ?: "Failed to share"
-                                                    isPosting = false
+                                        entryRepository.createEntry(
+                                            CreateEntryRequest(text, uploadedImageIds.toList().ifEmpty { null })
+                                        ).fold(
+                                            onSuccess = {
+                                                (context as? Activity)?.let { activity ->
+                                                    inAppReviewManager.promptIfEligible(activity)
                                                 }
-                                            )
+                                                onShareSuccess()
+                                            },
+                                            onFailure = { e ->
+                                                errorMessage = e.message ?: "Failed to share"
+                                                isPosting = false
+                                            }
+                                        )
                                     }
                                 },
-                                enabled = text.isNotBlank() && text.length <= maxCharacters,
+                                enabled = text.isNotBlank() && text.length <= maxCharacters && !isUploading,
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text("Share")

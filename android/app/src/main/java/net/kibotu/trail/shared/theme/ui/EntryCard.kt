@@ -77,6 +77,7 @@ fun EntryCard(
     onDeleteComment: (Int) -> Unit = {},
     onClapComment: (Int, Int) -> Unit = { _, _ -> },
     onReportComment: (Int) -> Unit = {},
+    onMentionClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -218,13 +219,14 @@ fun EntryCard(
                 }
             }
 
-            // Text
-            Text(
+            // Text with @mention linking
+            MentionText(
                 text = entry.text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 22.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
+                onMentionClick = onMentionClick,
+                onClick = onCardClick
             )
 
             // Tags
@@ -492,7 +494,7 @@ fun EditEntryDialog(
     onConfirm: (String) -> Unit
 ) {
     var editedText by remember { mutableStateOf(entry.text) }
-    val maxCharacters = 140
+    val maxCharacters = 280
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,

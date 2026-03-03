@@ -60,6 +60,8 @@ class HomeViewModel(
         }
     }
 
+    private val viewedCommentIds = mutableSetOf<Int>()
+
     fun loadComments(entryId: Int, hashId: String?) {
         if (hashId == null) return
         val current = _commentsState.value[entryId] ?: CommentState()
@@ -72,6 +74,11 @@ class HomeViewModel(
                         comments = response.comments,
                         isLoading = false
                     ))
+                    response.comments.forEach { comment ->
+                        if (viewedCommentIds.add(comment.id)) {
+                            launch { commentRepository.recordView(comment.id) }
+                        }
+                    }
                 },
                 onFailure = {
                     val updated = _commentsState.value[entryId] ?: CommentState()

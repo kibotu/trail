@@ -17,6 +17,7 @@ data class ProfileResponse(
     @SerialName("is_admin") val isAdmin: Boolean? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("deletion_requested_at") val deletionRequestedAt: String? = null,
     val stats: ProfileStats
 ) {
     val avatarUrl: String
@@ -36,6 +37,7 @@ data class ProfileStats(
     @SerialName("total_entry_claps") val totalEntryClaps: Int = 0,
     @SerialName("total_comment_claps") val totalCommentClaps: Int = 0,
     @SerialName("last_entry_at") val lastEntryAt: String? = null,
+    @SerialName("previous_login_at") val previousLoginAt: String? = null,
     @SerialName("top_entries_by_claps") val topEntriesByClaps: List<ProfileEntry> = emptyList(),
     @SerialName("top_entries_by_views") val topEntriesByViews: List<ProfileEntry> = emptyList()
 )
@@ -60,3 +62,15 @@ data class UpdateProfileRequest(
 
 @Serializable
 data class UpdateProfileResponse(val success: Boolean)
+
+@Serializable
+data class DeletionResponse(
+    val success: Boolean,
+    val message: String? = null
+)
+
+@Serializable
+data class RevertDeletionResponse(
+    val success: Boolean,
+    val message: String? = null
+)

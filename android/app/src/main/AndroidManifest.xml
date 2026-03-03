@@ -4,9 +4,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Declare queries for Google Play Services visibility (Android 11+) -->
     <queries>
         <package android:name="com.google.android.gms" />
+
+        <!-- Required for Custom Tabs provider discovery (Android 11+) -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
     </queries>
 
     <application
@@ -22,6 +26,16 @@
         android:usesCleartextTraffic="false"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="24">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"

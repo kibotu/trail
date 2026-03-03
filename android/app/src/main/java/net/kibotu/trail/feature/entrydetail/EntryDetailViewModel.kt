@@ -55,11 +55,20 @@ class EntryDetailViewModel(
         }
     }
 
+    private val viewedCommentIds = mutableSetOf<Int>()
+
     fun loadComments() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isCommentsLoading = true)
             commentRepository.getComments(hashId).fold(
-                onSuccess = { _state.value = _state.value.copy(comments = it.comments, isCommentsLoading = false) },
+                onSuccess = { response ->
+                    _state.value = _state.value.copy(comments = response.comments, isCommentsLoading = false)
+                    response.comments.forEach { comment ->
+                        if (viewedCommentIds.add(comment.id)) {
+                            launch { commentRepository.recordView(comment.id) }
+                        }
+                    }
+                },
                 onFailure = { _state.value = _state.value.copy(isCommentsLoading = false) }
             )
         }

@@ -62,7 +62,10 @@ data class EntriesResponse(
 )
 
 @Serializable
-data class CreateEntryRequest(val text: String)
+data class CreateEntryRequest(
+    val text: String,
+    @SerialName("image_ids") val imageIds: List<Int>? = null
+)
 
 @Serializable
 data class CreateEntryResponse(

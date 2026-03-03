@@ -34,6 +34,7 @@ import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.StateFlow
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
+import net.kibotu.trail.feature.auth.DeletionBlockerScreen
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.notification.NotificationRepository
@@ -86,7 +87,8 @@ fun TrailNavigation(
     val scrollConnection = rememberFloatingTabBarScrollConnection()
     val hazeState = rememberHazeState()
 
-    val authState by LocalAuthViewModel.current.state.collectAsState()
+    val authViewModel = LocalAuthViewModel.current
+    val authState by authViewModel.state.collectAsState()
     val notificationRepository = remember { NotificationRepository(ApiClient.client) }
     var unreadCount by remember { mutableIntStateOf(0) }
 
@@ -121,6 +123,15 @@ fun TrailNavigation(
             launchSingleTop = true
             restoreState = true
         }
+    }
+
+    if (authState.pendingDeletion) {
+        DeletionBlockerScreen(
+            deletionRequestedAt = authState.deletionRequestedAt,
+            onRevertSuccess = { authViewModel.clearPendingDeletion() },
+            onLogout = { authViewModel.logout() }
+        )
+        return
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -214,6 +225,9 @@ fun TrailNavigation(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToEntry = { hashId ->
                         navController.navigate(Routes.entryDetail(hashId))
+                    },
+                    onNavigateToUser = { nick ->
+                        navController.navigate(Routes.userProfile(nick))
                     }
                 )
             }

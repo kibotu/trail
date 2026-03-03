@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
 import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.comment.CommentRepository
 import net.kibotu.trail.shared.comment.CreateCommentRequest
@@ -25,6 +26,8 @@ import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.entry.UserEntriesPagingSource
+import net.kibotu.trail.shared.image.ImageUploadManager
+import net.kibotu.trail.shared.image.ImageUploadRepository
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.user.UserRepository
@@ -34,6 +37,7 @@ class MyFeedViewModel(
     private val entryRepository: EntryRepository,
     private val commentRepository: CommentRepository,
     private val userRepository: UserRepository,
+    private val imageUploadManager: ImageUploadManager,
     private val nickname: String,
     private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
@@ -63,10 +67,13 @@ class MyFeedViewModel(
 
     fun onVideoPlay(id: String?) { _currentlyPlayingVideoId.value = id }
 
-    fun createEntry(text: String) {
+    private val _uploadProgress = MutableStateFlow(0f)
+    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
+
+    fun createEntry(text: String, imageIds: List<Int> = emptyList()) {
         viewModelScope.launch {
             _isPosting.value = true
-            entryRepository.createEntry(CreateEntryRequest(text)).fold(
+            entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
                     _pagingSource.value?.invalidate()
                     if (inAppReviewManager.shouldPrompt()) {
@@ -79,6 +86,22 @@ class MyFeedViewModel(
         }
     }
 
+    fun uploadImage(context: Context, uri: Uri, onComplete: (Int) -> Unit) {
+        viewModelScope.launch {
+            imageUploadManager.uploadImage(context, uri) { progress ->
+                _uploadProgress.value = progress
+            }.fold(
+                onSuccess = { imageId ->
+                    _uploadProgress.value = 0f
+                    onComplete(imageId)
+                },
+                onFailure = {
+                    _uploadProgress.value = 0f
+                }
+            )
+        }
+    }
+
     fun toggleComments(entryId: Int, hashId: String?) {
         val current = _commentsState.value[entryId] ?: CommentState()
         val newExpanded = !current.isExpanded
@@ -87,6 +110,8 @@ class MyFeedViewModel(
             loadComments(entryId, hashId)
         }
     }
+
+    private val viewedCommentIds = mutableSetOf<Int>()
 
     fun loadComments(entryId: Int, hashId: String?) {
         if (hashId == null) return
@@ -97,6 +122,11 @@ class MyFeedViewModel(
                 onSuccess = { response ->
                     val updated = _commentsState.value[entryId] ?: CommentState()
                     _commentsState.value = _commentsState.value + (entryId to updated.copy(comments = response.comments, isLoading = false))
+                    response.comments.forEach { comment ->
+                        if (viewedCommentIds.add(comment.id)) {
+                            launch { commentRepository.recordView(comment.id) }
+                        }
+                    }
                 },
                 onFailure = {
                     val updated = _commentsState.value[entryId] ?: CommentState()
@@ -141,7 +171,8 @@ class MyFeedViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val client = ApiClient.client
-            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), nickname, inAppReviewManager) as T
+            val imageUploadManager = ImageUploadManager(ImageUploadRepository(client))
+            return MyFeedViewModel(EntryRepository(client), CommentRepository(client), UserRepository(client), imageUploadManager, nickname, inAppReviewManager) as T
         }
     }
 }

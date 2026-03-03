@@ -73,7 +73,7 @@ fun CommentsSection(
     modifier: Modifier = Modifier
 ) {
     var commentText by remember { mutableStateOf("") }
-    val maxCharacters = 140
+    val maxCharacters = 280
 
     Column(
         modifier = modifier
@@ -450,7 +450,7 @@ fun EditCommentDialog(
     onConfirm: (String) -> Unit
 ) {
     var editedText by remember { mutableStateOf(comment.text) }
-    val maxCharacters = 140
+    val maxCharacters = 280
 
     AlertDialog(
         onDismissRequest = onDismiss,

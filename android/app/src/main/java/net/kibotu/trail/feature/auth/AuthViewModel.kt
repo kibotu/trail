@@ -21,7 +21,9 @@ data class AuthState(
     val isLoading: Boolean = true,
     val user: AuthUser? = null,
     val error: String? = null,
-    val pendingSharedText: String? = null
+    val pendingSharedText: String? = null,
+    val pendingDeletion: Boolean = false,
+    val deletionRequestedAt: String? = null
 )
 
 class AuthViewModel(
@@ -43,12 +45,13 @@ class AuthViewModel(
                 val photoUrl = authRepository.userPhotoUrl.first()
                 var isAdmin = false
 
-                // Fetch profile from server to get authoritative nickname and admin status
+                var deletionRequestedAt: String? = null
+
                 profileRepository.getProfile().onSuccess { profile ->
                     nickname = profile.nickname ?: nickname
                     userId = profile.id
                     isAdmin = profile.isAdmin ?: false
-                    // Persist the nickname so next restore doesn't need a network call
+                    deletionRequestedAt = profile.deletionRequestedAt
                     profile.nickname?.let { authRepository.saveNickname(it) }
                 }
 
@@ -56,6 +59,8 @@ class AuthViewModel(
                 _state.value = AuthState(
                     isLoggedIn = true,
                     isLoading = false,
+                    pendingDeletion = deletionRequestedAt != null,
+                    deletionRequestedAt = deletionRequestedAt,
                     user = if (resolvedUserId != null && (name != null || nickname != null)) {
                         AuthUser(
                             id = resolvedUserId,
@@ -80,6 +85,7 @@ class AuthViewModel(
             authRepository.googleSignIn(idToken).fold(
                 onSuccess = { response ->
                     var user = response.user
+                    var deletionRequestedAt: String? = null
                     profileRepository.getProfile().onSuccess { profile ->
                         val nickname = profile.nickname ?: user.nickname
                         nickname?.let { authRepository.saveNickname(it) }
@@ -87,16 +93,16 @@ class AuthViewModel(
                             nickname = nickname,
                             isAdmin = profile.isAdmin ?: user.isAdmin
                         )
+                        deletionRequestedAt = profile.deletionRequestedAt
                     }
                     _state.value = _state.value.copy(
                         isLoggedIn = true,
                         isLoading = false,
-                        user = user
+                        user = user,
+                        pendingDeletion = deletionRequestedAt != null,
+                        deletionRequestedAt = deletionRequestedAt,
+                        pendingSharedText = null
                     )
-                    val pending = _state.value.pendingSharedText
-                    if (pending != null) {
-                        _state.value = _state.value.copy(pendingSharedText = null)
-                    }
                 },
                 onFailure = { e ->
                     _state.value = _state.value.copy(
@@ -123,6 +129,10 @@ class AuthViewModel(
         val text = _state.value.pendingSharedText
         _state.value = _state.value.copy(pendingSharedText = null)
         return text
+    }
+
+    fun clearPendingDeletion() {
+        _state.value = _state.value.copy(pendingDeletion = false, deletionRequestedAt = null)
     }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

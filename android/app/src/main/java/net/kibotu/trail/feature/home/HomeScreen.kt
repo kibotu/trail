@@ -115,7 +115,8 @@ fun HomeScreen(
                                 onUpdateComment = { commentId, text -> viewModel.updateComment(commentId, text, entry.id) },
                                 onDeleteComment = { commentId -> viewModel.deleteComment(commentId, entry.id) },
                                 onClapComment = { commentId, count -> viewModel.clapComment(commentId, count, entry.id) },
-                                onReportComment = { commentId -> viewModel.reportComment(commentId, entry.id) }
+                                onReportComment = { commentId -> viewModel.reportComment(commentId, entry.id) },
+                                onMentionClick = { nick -> onNavigateToUser(nick) }
                             )
                         }
 

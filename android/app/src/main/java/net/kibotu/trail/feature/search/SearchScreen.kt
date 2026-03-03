@@ -133,7 +133,8 @@ fun SearchScreen(
                             onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                             onShare = { viewModel.shareEntry(context, entry) },
                             onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
-                            onMuteUser = { viewModel.muteUser(entry.userId) }
+                            onMuteUser = { viewModel.muteUser(entry.userId) },
+                            onMentionClick = { nick -> onNavigateToUser(nick) }
                         )
                     }
 
