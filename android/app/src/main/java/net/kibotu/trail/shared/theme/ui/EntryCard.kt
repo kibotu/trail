@@ -231,7 +231,7 @@ fun EntryCard(
 
             // Tags
             if (showTags && entry.tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -384,7 +384,8 @@ fun EntryCard(
                     onUpdateComment = onUpdateComment,
                     onDeleteComment = onDeleteComment,
                     onClapComment = onClapComment,
-                    onReportComment = onReportComment
+                    onReportComment = onReportComment,
+                    onMentionClick = onMentionClick
                 )
             }
         }

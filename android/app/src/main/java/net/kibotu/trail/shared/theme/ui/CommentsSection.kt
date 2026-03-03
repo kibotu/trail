@@ -70,6 +70,7 @@ fun CommentsSection(
     onDeleteComment: (Int) -> Unit,
     onClapComment: (Int, Int) -> Unit,
     onReportComment: (Int) -> Unit,
+    onMentionClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var commentText by remember { mutableStateOf("") }
@@ -206,7 +207,8 @@ fun CommentsSection(
                         onEdit = { onUpdateComment(comment.id, it) },
                         onDelete = { onDeleteComment(comment.id) },
                         onClap = { count -> onClapComment(comment.id, count) },
-                        onReport = { onReportComment(comment.id) }
+                        onReport = { onReportComment(comment.id) },
+                        onMentionClick = onMentionClick
                     )
                     if (index < comments.lastIndex) {
                         HorizontalDivider(
@@ -232,7 +234,8 @@ fun CommentItem(
     onEdit: (String) -> Unit,
     onDelete: () -> Unit,
     onClap: (Int) -> Unit,
-    onReport: () -> Unit
+    onReport: () -> Unit,
+    onMentionClick: (String) -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -360,11 +363,11 @@ fun CommentItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
+            MentionText(
                 text = comment.text,
                 style = MaterialTheme.typography.bodySmall,
                 lineHeight = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                onMentionClick = onMentionClick
             )
 
             // Comment media (images, GIFs, videos)
