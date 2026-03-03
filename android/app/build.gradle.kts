@@ -201,6 +201,10 @@ dependencies {
     implementation(libs.play.review)
     implementation(libs.play.review.ktx)
 
+    // in-app update
+    implementation(libs.play.update)
+    implementation(libs.play.update.ktx)
+
     // networking with ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)

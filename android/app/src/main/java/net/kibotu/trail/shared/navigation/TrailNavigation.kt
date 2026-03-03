@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,37 @@ fun TrailNavigation(
     themePreferences: ThemePreferences,
     pendingSharedText: StateFlow<String?>,
     onConsumeSharedText: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val authViewModel = LocalAuthViewModel.current
+    val authState by authViewModel.state.collectAsState()
+
+    if (authState.pendingDeletion) {
+        DeletionBlockerScreen(
+            deletionRequestedAt = authState.deletionRequestedAt,
+            onRevertSuccess = { authViewModel.clearPendingDeletion() },
+            onLogout = { authViewModel.logout() }
+        )
+        return
+    }
+
+    val sessionKey = authState.user?.id ?: 0
+
+    key(sessionKey) {
+        TrailNavigationContent(
+            themePreferences = themePreferences,
+            pendingSharedText = pendingSharedText,
+            onConsumeSharedText = onConsumeSharedText,
+            modifier = modifier
+        )
+    }
+}
+
+@Composable
+private fun TrailNavigationContent(
+    themePreferences: ThemePreferences,
+    pendingSharedText: StateFlow<String?>,
+    onConsumeSharedText: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -123,15 +155,6 @@ fun TrailNavigation(
             launchSingleTop = true
             restoreState = true
         }
-    }
-
-    if (authState.pendingDeletion) {
-        DeletionBlockerScreen(
-            deletionRequestedAt = authState.deletionRequestedAt,
-            onRevertSuccess = { authViewModel.clearPendingDeletion() },
-            onLogout = { authViewModel.logout() }
-        )
-        return
     }
 
     Box(modifier = modifier.fillMaxSize()) {

@@ -30,6 +30,7 @@ navigation = "2.9.7"
 paging = "3.4.1"
 playReview = "2.0.2"
 playServicesAuth = "21.5.1"
+playUpdate = "2.1.0"
 playservices = "4.4.4"
 profileinstaller = "1.4.1"
 splashScreen = "1.2.0"
@@ -87,6 +88,8 @@ paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = 
 play-review = { module = "com.google.android.play:review", version.ref = "playReview" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+play-update = { module = "com.google.android.play:app-update", version.ref = "playUpdate" }
+play-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "playUpdate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

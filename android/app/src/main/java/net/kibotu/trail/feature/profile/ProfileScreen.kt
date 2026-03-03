@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,8 +27,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContentCopy
@@ -35,7 +38,6 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -49,7 +51,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -62,8 +63,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -71,10 +74,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
+import net.kibotu.trail.R
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.profile.ProfileEntry
@@ -707,31 +713,118 @@ fun ProfileScreen(
             }
 
             if (showDeleteConfirmation) {
-                AlertDialog(
+                val nickname = profile.nickname ?: ""
+                var confirmInput by remember { mutableStateOf("") }
+                val isConfirmed = confirmInput.trim() == nickname
+
+                Dialog(
                     onDismissRequest = { showDeleteConfirmation = false },
-                    icon = {
-                        FaIcon(FaIcons.ExclamationTriangle, size = 24.dp, tint = MaterialTheme.colorScheme.error)
-                    },
-                    title = { Text("Delete Account?") },
-                    text = {
-                        Text("This action will hide all your content and schedule your account for permanent deletion in 14 days. You can reverse this by logging back in.")
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showDeleteConfirmation = false
-                                viewModel.requestDeletion { authViewModel.logout() }
-                            }
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.verticalScroll(rememberScrollState())
                         ) {
-                            Text("Delete", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteConfirmation = false }) {
-                            Text("Cancel")
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF1A1A1A))
+                                    .padding(top = 16.dp, bottom = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(R.drawable.delete_whale),
+                                    contentDescription = "Are you sure you want to say goodbye?",
+                                    modifier = Modifier.fillMaxWidth(0.7f),
+                                    contentScale = ContentScale.FillWidth
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier.padding(20.dp)
+                            ) {
+                                Text(
+                                    "Before you go, here\u2019s what will happen:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                DeleteConsequenceItem(
+                                    icon = FaIcons.EyeSlash,
+                                    text = "Your profile, entries, and comments will be hidden immediately from public view."
+                                )
+                                DeleteConsequenceItem(
+                                    icon = FaIcons.Clock,
+                                    text = "Your account and all data will be permanently deleted after 14 days."
+                                )
+                                DeleteConsequenceItem(
+                                    icon = FaIcons.Undo,
+                                    text = "You can reverse this decision within the 14-day window by logging back in."
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    "Type your nickname $nickname to confirm:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = confirmInput,
+                                    onValueChange = { confirmInput = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Enter your nickname") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { showDeleteConfirmation = false },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Cancel")
+                                    }
+                                    Button(
+                                        onClick = {
+                                            showDeleteConfirmation = false
+                                            viewModel.requestDeletion { authViewModel.logout() }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        enabled = isConfirmed,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFD32F2F),
+                                            disabledContainerColor = Color(0xFFD32F2F).copy(alpha = 0.4f)
+                                        )
+                                    ) {
+                                        FaIcon(FaIcons.TrashAlt, size = 12.dp, tint = Color.White)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Delete", color = Color.White)
+                                    }
+                                }
+                            }
                         }
                     }
-                )
+                }
             }
         }
 
@@ -829,5 +922,32 @@ private fun TopEntryRow(
                 color = statColor
             )
         }
+    }
+}
+
+@Composable
+private fun DeleteConsequenceItem(
+    icon: com.guru.fontawesomecomposelib.FaIconType,
+    text: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        FaIcon(
+            icon,
+            size = 14.dp,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.padding(top = 2.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 20.sp
+        )
     }
 }

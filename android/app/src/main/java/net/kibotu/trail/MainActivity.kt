@@ -21,19 +21,27 @@ import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.navigation.TrailNavigation
 import net.kibotu.trail.shared.splash.HeartBeatAnimation
+import androidx.activity.result.contract.ActivityResultContracts
 import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.TrailTheme
+import net.kibotu.trail.shared.update.InAppUpdateManager
+import net.kibotu.trail.shared.update.LocalInAppUpdateManager
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var inAppReviewManager: InAppReviewManager
+    private lateinit var inAppUpdateManager: InAppUpdateManager
     private var splashScreenDecorator: net.kibotu.splashscreen.SplashScreenDecorator? = null
     private val _pendingSharedText = MutableStateFlow<String?>(null)
     private val pendingSharedText = _pendingSharedText.asStateFlow()
+
+    private val updateResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { /* result handling is optional for flexible updates */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreenDecorator = splash {
@@ -55,6 +63,7 @@ class MainActivity : ComponentActivity() {
 
         themePreferences = ThemePreferences(applicationContext)
         inAppReviewManager = InAppReviewManager(applicationContext)
+        inAppUpdateManager = InAppUpdateManager(applicationContext)
 
         setContent {
             val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
@@ -65,13 +74,18 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(authState.isLoading) {
                 if (!authState.isLoading) {
                     splashScreenDecorator?.dismiss()
+                    inAppUpdateManager.checkAndPromptUpdate(
+                        this@MainActivity,
+                        updateResultLauncher,
+                    )
                 }
             }
 
             CompositionLocalProvider(
                 LocalAuthViewModel provides authViewModel,
                 LocalThemePreferences provides themePreferences,
-                LocalInAppReviewManager provides inAppReviewManager
+                LocalInAppReviewManager provides inAppReviewManager,
+                LocalInAppUpdateManager provides inAppUpdateManager,
             ) {
                 TrailTheme(darkTheme = isDarkTheme) {
                     Surface(
