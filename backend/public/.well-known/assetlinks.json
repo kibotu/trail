@@ -1,0 +1,18 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.kibotu.trail",
+      "sha256_cert_fingerprints": [
+        "54:AF:C3:BA:3A:6E:2F:25:BA:6B:4A:B4:75:F8:2E:60:73:0D:6A:60:1C:3D:D5:D6:75:2A:89:D0:B1:63:27:CD",
+        "93:22:58:07:2E:BA:85:34:EC:3D:2E:04:1A:FD:11:32:64:83:13:84:56:E1:F1:02:3E:76:76:93:E9:C6:38:6F",
+        "63:8C:6D:8A:DD:5F:33:72:3D:78:C8:DB:8D:3C:26:8C:37:19:D9:EE:B3:86:E5:57:E5:A8:30:AE:70:A3:DC:51",
+        "D3:04:AA:9D:EE:3B:D6:6B:A8:1B:B1:97:6E:CF:78:90:4B:85:2D:20:A9:FE:34:59:AB:89:4B:AF:B5:10:96:A2",
+        "53:F4:A8:BF:FE:3C:04:0F:2F:E4:AC:56:2E:67:0C:15:32:28:EC:2B:68:9A:B2:A8:01:DD:2C:97:A9:3E:D8:88"
+      ]
+    }
+  }
+]
