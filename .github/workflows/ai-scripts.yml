@@ -2,7 +2,10 @@ name: AI Scripts
 
 on:
   schedule:
-    - cron: '0 12 * * *'
+    # https://crontab.guru/#0_10_*_*_*
+    - cron: '0 10 * * *'
+    # https://crontab.guru/#30_19_*_*_*
+    - cron: '30 19 * * *'
   workflow_dispatch:
 
 jobs:
