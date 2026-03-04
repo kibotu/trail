@@ -8,7 +8,11 @@ A self-hosted micro link journal. Multi-user, chronological, yours.
 
 **Live demo:** https://trail.services.kibotu.net
 
-[![App Demo](android/playstore/last-frame.jpg)](https://github.com/kibotu/trail/releases/download/1.1.7/maestro-recording.mp4)
+[![App Demo](android/playstore/last-frame.jpg)](https://github.com/user-attachments/assets/38f7ab42-e3ff-4276-84fe-6142ff216112
+)
+
+https://github.com/user-attachments/assets/38f7ab42-e3ff-4276-84fe-6142ff216112
+
 
 ---
 
