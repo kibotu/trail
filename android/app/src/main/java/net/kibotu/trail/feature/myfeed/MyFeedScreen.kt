@@ -119,10 +119,16 @@ fun MyFeedScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reviewEvent.collect {
+            timber.log.Timber.d("──── MyFeedScreen: reviewEvent received ────")
             inAppReviewManager.markHasPosted()
-            context.findActivity()?.let { activity ->
+            val activity = context.findActivity()
+            if (activity != null) {
+                timber.log.Timber.d("MyFeedScreen: found activity, calling promptIfEligible")
                 inAppReviewManager.promptIfEligible(activity)
+            } else {
+                timber.log.Timber.w("MyFeedScreen: findActivity() returned null! Review skipped")
             }
+            timber.log.Timber.d("MyFeedScreen: review flow complete")
         }
     }
 

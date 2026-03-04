@@ -1,7 +1,7 @@
 package net.kibotu.trail.shared.update
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -19,7 +19,6 @@ import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.android.play.core.ktx.installStatus
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
 private val Context.updateDataStore: DataStore<Preferences>
@@ -32,24 +31,24 @@ class InAppUpdateManager(private val context: Context) {
     private val installStateListener = InstallStateUpdatedListener { state ->
         when (state.installStatus) {
             InstallStatus.DOWNLOADED -> {
-                Log.d(TAG, "Update downloaded, completing update")
+                Timber.d("Update downloaded, completing update")
                 appUpdateManager.completeUpdate()
             }
-            InstallStatus.FAILED -> Log.w(TAG, "Update install failed")
-            InstallStatus.DOWNLOADING -> Log.d(TAG, "Update downloading...")
-            else -> Log.d(TAG, "Install status: ${state.installStatus}")
+            InstallStatus.FAILED -> Timber.w("Update install failed")
+            InstallStatus.DOWNLOADING -> Timber.d("Update downloading...")
+            else -> Timber.d("Install status: %s", state.installStatus)
         }
     }
 
     private suspend fun shouldPrompt(): Boolean {
         val timestamp = context.updateDataStore.data.first()[KEY_LAST_PROMPT_TIMESTAMP] ?: 0L
         if (timestamp == 0L) {
-            Log.d(TAG, "shouldPrompt: true (first time)")
+            Timber.d("shouldPrompt: true (first time)")
             return true
         }
         val elapsed = System.currentTimeMillis() - timestamp
         val eligible = elapsed >= PROMPT_COOLDOWN_MS
-        Log.d(TAG, "shouldPrompt: $eligible (elapsed ${elapsed / 1000}s, cooldown ${PROMPT_COOLDOWN_MS / 1000}s)")
+        Timber.d("shouldPrompt: %s (elapsed %ds, cooldown %ds)", eligible, elapsed / 1000, PROMPT_COOLDOWN_MS / 1000)
         return eligible
     }
 
@@ -60,8 +59,9 @@ class InAppUpdateManager(private val context: Context) {
         if (!shouldPrompt()) return
         try {
             val appUpdateInfo = appUpdateManager.appUpdateInfo.await()
-            Log.d(TAG, "Update availability: ${appUpdateInfo.updateAvailability()}, " +
-                    "flexible allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
+            Timber.d("Update availability: %s, flexible allowed: %s",
+                appUpdateInfo.updateAvailability(),
+                appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE))
 
             if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
                 && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
@@ -73,9 +73,9 @@ class InAppUpdateManager(private val context: Context) {
                     AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
                 )
                 recordPromptTimestamp()
-                Log.d(TAG, "Update flow started")
+                Timber.d("Update flow started")
             } else if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                Log.d(TAG, "Resuming in-progress update")
+                Timber.d("Resuming in-progress update")
                 appUpdateManager.registerListener(installStateListener)
                 appUpdateManager.startUpdateFlowForResult(
                     appUpdateInfo,
@@ -84,7 +84,7 @@ class InAppUpdateManager(private val context: Context) {
                 )
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Update check failed: ${e.message}", e)
+            Timber.w(e, "Update check failed: %s", e.message)
         }
     }
 
@@ -99,7 +99,6 @@ class InAppUpdateManager(private val context: Context) {
     }
 
     companion object {
-        private const val TAG = "InAppUpdateManager"
         private val KEY_LAST_PROMPT_TIMESTAMP =
             longPreferencesKey("last_update_prompt_timestamp")
         private const val PROMPT_COOLDOWN_MS = 24L * 60 * 60 * 1000

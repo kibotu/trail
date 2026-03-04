@@ -228,6 +228,8 @@ ServerSignature Off
     AddType application/javascript .js
     AddType text/css .css
     AddType image/svg+xml .svg
+    AddType image/webp .webp
+    AddType image/avif .avif
 </IfModule>
 
 # ============================================

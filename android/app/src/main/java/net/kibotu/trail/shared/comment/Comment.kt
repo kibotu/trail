@@ -37,6 +37,7 @@ data class CommentImage(
 ) {
     val isVideo: Boolean get() = mimeType?.startsWith("video/") == true
     val isGif: Boolean get() = mimeType == "image/gif"
+    val isSvg: Boolean get() = mimeType == "image/svg+xml" || url.endsWith(".svg", ignoreCase = true)
     val isImage: Boolean get() = !isVideo
 }
 
@@ -47,6 +48,7 @@ private data class CommentMediaItem(private val image: CommentImage) : MediaItem
     override val height: Int? get() = image.height
     override val isVideo: Boolean get() = image.isVideo
     override val isGif: Boolean get() = image.isGif
+    override val isSvg: Boolean get() = image.isSvg
     override val isImage: Boolean get() = image.isImage
 }
 

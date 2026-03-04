@@ -94,9 +94,11 @@ class MyFeedViewModel(
             uploadProgress.value = 0f
             entryRepository.createEntry(CreateEntryRequest(text, imageIds.ifEmpty { null })).fold(
                 onSuccess = {
+                    timber.log.Timber.d("MyFeedViewModel: entry created successfully, emitting reviewEvent")
                     _pagingSource.value?.invalidate()
                     postSuccessEvent.tryEmit(Unit)
-                    reviewEvent.tryEmit(Unit)
+                    val emitted = reviewEvent.tryEmit(Unit)
+                    timber.log.Timber.d("MyFeedViewModel: reviewEvent.tryEmit=%s (subscribers=%d)", emitted, reviewEvent.subscriptionCount.value)
                 },
                 onFailure = {}
             )

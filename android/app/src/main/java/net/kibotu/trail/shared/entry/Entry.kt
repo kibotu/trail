@@ -50,6 +50,7 @@ data class EntryImage(
 ) {
     val isVideo: Boolean get() = mimeType?.startsWith("video/") == true
     val isGif: Boolean get() = mimeType == "image/gif"
+    val isSvg: Boolean get() = mimeType == "image/svg+xml" || url.endsWith(".svg", ignoreCase = true)
     val isImage: Boolean get() = !isVideo
 }
 
@@ -118,6 +119,7 @@ interface MediaItemData {
     val height: Int?
     val isVideo: Boolean
     val isGif: Boolean
+    val isSvg: Boolean
     val isImage: Boolean
 }
 
@@ -128,6 +130,7 @@ private data class EntryMediaItem(private val image: EntryImage) : MediaItemData
     override val height: Int? get() = image.height
     override val isVideo: Boolean get() = image.isVideo
     override val isGif: Boolean get() = image.isGif
+    override val isSvg: Boolean get() = image.isSvg
     override val isImage: Boolean get() = image.isImage
 }
 

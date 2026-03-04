@@ -146,10 +146,16 @@ fun ShareScreen(
                 CreateEntryRequest(text, imageIds.ifEmpty { null })
             ).fold(
                 onSuccess = {
+                    timber.log.Timber.d("──── ShareScreen: entry created successfully ────")
                     inAppReviewManager.markHasPosted()
-                    context.findActivity()?.let { activity ->
+                    val activity = context.findActivity()
+                    if (activity != null) {
+                        timber.log.Timber.d("ShareScreen: found activity, calling promptIfEligible")
                         inAppReviewManager.promptIfEligible(activity)
+                    } else {
+                        timber.log.Timber.w("ShareScreen: findActivity() returned null! Review skipped")
                     }
+                    timber.log.Timber.d("ShareScreen: calling onShareSuccess (navigating away)")
                     onShareSuccess()
                 },
                 onFailure = { e ->

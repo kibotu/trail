@@ -237,6 +237,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network)
     implementation(libs.coil.gif)
+    implementation(libs.coil.svg)
     implementation(libs.androidx.constraintlayout.compose)
 
     // media3 for video playback

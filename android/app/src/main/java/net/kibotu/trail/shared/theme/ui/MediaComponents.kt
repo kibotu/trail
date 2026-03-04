@@ -83,9 +83,12 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.compose.ui.platform.LocalConfiguration
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import net.kibotu.trail.shared.entry.MediaItemData
+import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -112,10 +115,14 @@ fun MediaGallery(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             media.forEach { item ->
-                val itemAspectRatio = if (item.width != null && item.height != null && item.height!! > 0) {
-                    item.width!!.toFloat() / item.height!!.toFloat()
+                val hasDimensions = item.width != null && item.height != null && item.height!! > 0
+                val itemModifier = if (hasDimensions) {
+                    val ratio = (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
+                    Modifier.fillMaxWidth().aspectRatio(ratio)
+                } else if (item.isSvg) {
+                    Modifier.fillMaxWidth().height(200.dp)
                 } else {
-                    16f / 9f
+                    Modifier.fillMaxWidth().aspectRatio(16f / 9f)
                 }
                 Box(
                     modifier = Modifier
@@ -127,9 +134,7 @@ fun MediaGallery(
                         baseUrl = baseUrl,
                         currentlyPlayingId = currentlyPlayingId,
                         onVideoPlay = onVideoPlay,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(itemAspectRatio.coerceIn(0.5f, 2f))
+                        modifier = itemModifier
                     )
                 }
             }
@@ -143,20 +148,21 @@ fun MediaGallery(
         ) {
             items(media.size, key = { index -> "media_${media[index].id}_$index" }) { index ->
                 val item = media[index]
-                val itemAspectRatio = if (item.width != null && item.height != null && item.height!! > 0) {
-                    item.width!!.toFloat() / item.height!!.toFloat()
+                val hasDimensions = item.width != null && item.height != null && item.height!! > 0
+                val itemModifier = if (hasDimensions) {
+                    val ratio = (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
+                    Modifier.height(galleryHeight).aspectRatio(ratio).clip(RoundedCornerShape(12.dp))
+                } else if (item.isSvg) {
+                    Modifier.height(galleryHeight).clip(RoundedCornerShape(12.dp))
                 } else {
-                    16f / 9f
+                    Modifier.height(galleryHeight).aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp))
                 }
                 MediaItemView(
                     item = item,
                     baseUrl = baseUrl,
                     currentlyPlayingId = currentlyPlayingId,
                     onVideoPlay = onVideoPlay,
-                    modifier = Modifier
-                        .height(galleryHeight)
-                        .aspectRatio(itemAspectRatio.coerceIn(0.5f, 2f))
-                        .clip(RoundedCornerShape(12.dp))
+                    modifier = itemModifier
                 )
             }
         }
@@ -177,6 +183,7 @@ fun MediaItemView(
     val fullUrl = buildFullUrl(baseUrl, item.url)
     val mediaId = "media_${item.id}"
     var showFullscreenViewer by remember { mutableStateOf(false) }
+    var svgUsesWebView by remember { mutableStateOf(false) }
 
     when {
         item.isVideo -> {
@@ -198,6 +205,15 @@ fun MediaItemView(
                 modifier = modifier
             )
         }
+        item.isSvg -> {
+            SvgImage(
+                url = fullUrl,
+                contentDescription = "SVG image",
+                onClick = { showFullscreenViewer = true },
+                onWebViewFallback = { svgUsesWebView = it },
+                modifier = modifier
+            )
+        }
         else -> {
             StaticImage(
                 url = fullUrl,
@@ -209,10 +225,17 @@ fun MediaItemView(
     }
 
     if (showFullscreenViewer) {
-        FullscreenImageViewer(
-            url = fullUrl,
-            onDismiss = { showFullscreenViewer = false }
-        )
+        if (item.isSvg && svgUsesWebView) {
+            FullscreenSvgViewer(
+                url = fullUrl,
+                onDismiss = { showFullscreenViewer = false }
+            )
+        } else {
+            FullscreenImageViewer(
+                url = fullUrl,
+                onDismiss = { showFullscreenViewer = false }
+            )
+        }
     }
 }
 
@@ -261,6 +284,159 @@ fun GifImage(
             if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
         )
     )
+}
+
+/**
+ * Displays an SVG image. First attempts native rendering via Coil's SvgDecoder.
+ * If the decoded bitmap is blank (e.g. the SVG uses <foreignObject> with embedded HTML,
+ * which AndroidSVG doesn't support), falls back to a WebView for full rendering.
+ */
+@Composable
+fun SvgImage(
+    url: String,
+    contentDescription: String,
+    onClick: (() -> Unit)? = null,
+    onWebViewFallback: ((Boolean) -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    var useWebView by remember { mutableStateOf(false) }
+
+    if (useWebView) {
+        SvgWebView(
+            url = url,
+            onClick = onClick,
+            modifier = modifier
+        )
+    } else {
+        val context = LocalContext.current
+        val imageLoader = remember { coil3.SingletonImageLoader.get(context) }
+        val painter = rememberAsyncImagePainter(
+            model = ImageRequest.Builder(context)
+                .data(url)
+                .crossfade(true)
+                .build(),
+            imageLoader = imageLoader,
+            onSuccess = { state ->
+                val bitmap = (state.result.image as? coil3.BitmapImage)?.bitmap
+                if (bitmap != null && isBitmapBlank(bitmap)) {
+                    Timber.d("SVG rendered blank via Coil, falling back to WebView: %s", url)
+                    useWebView = true
+                    onWebViewFallback?.invoke(true)
+                }
+            },
+            onError = { state ->
+                Timber.w(state.result.throwable, "SVG failed to load via Coil, falling back to WebView: %s", url)
+                useWebView = true
+                onWebViewFallback?.invoke(true)
+            }
+        )
+
+        val intrinsicSize = painter.intrinsicSize
+        val aspectModifier = if (
+            painter.state is AsyncImagePainter.State.Success &&
+            intrinsicSize.width > 0 && intrinsicSize.height > 0 &&
+            intrinsicSize.width.isFinite() && intrinsicSize.height.isFinite()
+        ) {
+            modifier.aspectRatio(intrinsicSize.width / intrinsicSize.height)
+        } else {
+            modifier
+        }
+
+        androidx.compose.foundation.Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Fit,
+            modifier = aspectModifier
+                .background(Color.White, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .then(
+                    if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                )
+        )
+    }
+}
+
+/**
+ * Checks if a bitmap is effectively blank (all pixels are transparent or white).
+ * Samples a grid of pixels for performance.
+ */
+private fun isBitmapBlank(bitmap: android.graphics.Bitmap): Boolean {
+    val w = bitmap.width
+    val h = bitmap.height
+    if (w == 0 || h == 0) return true
+
+    val step = maxOf(1, minOf(w, h) / 10)
+    for (y in 0 until h step step) {
+        for (x in 0 until w step step) {
+            val pixel = bitmap.getPixel(x, y)
+            val alpha = (pixel ushr 24) and 0xFF
+            if (alpha == 0) continue
+            val r = (pixel ushr 16) and 0xFF
+            val g = (pixel ushr 8) and 0xFF
+            val b = pixel and 0xFF
+            if (r < 250 || g < 250 || b < 250) return false
+        }
+    }
+    return true
+}
+
+/**
+ * Renders an SVG via WebView — handles complex SVGs with foreignObject,
+ * embedded HTML/CSS, and fonts that AndroidSVG cannot render.
+ * Loads the SVG URL directly so the browser engine renders it as a document.
+ * A transparent overlay captures taps for fullscreen; the inline WebView
+ * itself has touch disabled so it doesn't steal scroll/click events.
+ */
+@Composable
+private fun SvgWebView(
+    url: String,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.clip(RoundedCornerShape(8.dp))
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                android.webkit.WebView(ctx).apply {
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    settings.apply {
+                        loadWithOverviewMode = true
+                        useWideViewPort = true
+                        builtInZoomControls = false
+                        displayZoomControls = false
+                        javaScriptEnabled = false
+                        @Suppress("DEPRECATION")
+                        allowFileAccess = false
+                        setSupportZoom(false)
+                    }
+                    isVerticalScrollBarEnabled = false
+                    isHorizontalScrollBarEnabled = false
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                    isClickable = false
+                    loadUrl(url)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(onClick) {
+                    if (onClick != null) {
+                        detectTapGestures { onClick() }
+                    } else {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+                }
+        )
+    }
 }
 
 /**
@@ -868,6 +1044,71 @@ private fun FullscreenImageViewer(
     LaunchedEffect(dismissOffsetY) {
         if (abs(dismissOffsetY) > 300f && scale <= 1f) {
             onDismiss()
+        }
+    }
+}
+
+/**
+ * Fullscreen SVG viewer using WebView with built-in zoom, text selection, and scroll.
+ * The WebView owns all touch events so users can pinch-to-zoom, select text, and pan.
+ * Dismiss via close button or system back.
+ */
+@Composable
+private fun FullscreenSvgViewer(
+    url: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            AndroidView(
+                factory = { ctx ->
+                    android.webkit.WebView(ctx).apply {
+                        setBackgroundColor(android.graphics.Color.BLACK)
+                        settings.apply {
+                            loadWithOverviewMode = true
+                            useWideViewPort = true
+                            builtInZoomControls = true
+                            displayZoomControls = false
+                            javaScriptEnabled = false
+                            @Suppress("DEPRECATION")
+                            allowFileAccess = false
+                            setSupportZoom(true)
+                        }
+                        loadUrl(url)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Black.copy(alpha = 0.5f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

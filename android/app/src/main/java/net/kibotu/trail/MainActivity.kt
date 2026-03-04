@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         themePreferences = ThemePreferences(applicationContext)
+        timber.log.Timber.d("──── MainActivity.onCreate: creating InAppReviewManager ────")
         inAppReviewManager = InAppReviewManager(applicationContext)
         inAppUpdateManager = InAppUpdateManager(applicationContext)
 
@@ -80,6 +81,9 @@ class MainActivity : ComponentActivity() {
                         this@MainActivity,
                         updateResultLauncher,
                     )
+                    timber.log.Timber.d("──── MainActivity: auth loaded, checking review on app start ────")
+                    timber.log.Timber.d("MainActivity: isLoggedIn=%s, user=%s", authState.isLoggedIn, authState.user?.nickname)
+                    inAppReviewManager.dumpState()
                     inAppReviewManager.promptIfEligible(this@MainActivity)
                 }
             }
