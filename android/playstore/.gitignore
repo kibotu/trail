@@ -2,4 +2,3 @@ raw/
 .venv/
 __pycache__/
 
-*.png
