@@ -1,6 +1,5 @@
 package net.kibotu.trail.feature.share
 
-import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -69,6 +68,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
+import net.kibotu.trail.shared.review.findActivity
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
 
@@ -146,7 +146,8 @@ fun ShareScreen(
                 CreateEntryRequest(text, imageIds.ifEmpty { null })
             ).fold(
                 onSuccess = {
-                    (context as? Activity)?.let { activity ->
+                    inAppReviewManager.markHasPosted()
+                    context.findActivity()?.let { activity ->
                         inAppReviewManager.promptIfEligible(activity)
                     }
                     onShareSuccess()

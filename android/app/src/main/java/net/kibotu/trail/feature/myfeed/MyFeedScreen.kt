@@ -43,7 +43,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -78,6 +77,7 @@ import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.feature.home.CommentState
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
+import net.kibotu.trail.shared.review.findActivity
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
@@ -119,7 +119,8 @@ fun MyFeedScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reviewEvent.collect {
-            (context as? Activity)?.let { activity ->
+            inAppReviewManager.markHasPosted()
+            context.findActivity()?.let { activity ->
                 inAppReviewManager.promptIfEligible(activity)
             }
         }

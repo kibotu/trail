@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
                         this@MainActivity,
                         updateResultLauncher,
                     )
+                    inAppReviewManager.promptIfEligible(this@MainActivity)
                 }
             }
 

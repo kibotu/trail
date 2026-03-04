@@ -38,8 +38,10 @@ appId: net.kibotu.trail
 - scroll
 - waitForAnimationToEnd:
     timeout: 2000
-- swipe:
-    direction: DOWN
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
 - swipe:
     direction: DOWN
 - swipe:
@@ -73,8 +75,10 @@ appId: net.kibotu.trail
 - scroll
 - waitForAnimationToEnd:
     timeout: 2000
-- swipe:
-    direction: DOWN
+    timeout: 2000
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
 - swipe:
     direction: DOWN
 - swipe:
@@ -96,12 +100,6 @@ appId: net.kibotu.trail
 
 # ── Delete the posted entry ─────────────────────────────────────────
 # Scroll to top so the new post is visible, then tap its 3-dots menu.
-- swipe:
-    direction: DOWN
-- swipe:
-    direction: DOWN
-- swipe:
-    direction: DOWN
 - swipe:
     direction: DOWN
 - waitForAnimationToEnd:
@@ -132,8 +130,9 @@ appId: net.kibotu.trail
 - scroll
 - waitForAnimationToEnd:
     timeout: 2000
-- swipe:
-    direction: DOWN
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
 - swipe:
     direction: DOWN
 - swipe:
