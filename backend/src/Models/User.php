@@ -299,11 +299,7 @@ class User
      */
     public function findByApiToken(string $apiToken): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table} 
-             WHERE api_token = ? 
-             AND (api_token_created_at IS NULL OR api_token_created_at > DATE_SUB(NOW(), INTERVAL 90 DAY))"
-        );
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE api_token = ?");
         $stmt->execute([$apiToken]);
         $user = $stmt->fetch();
         
