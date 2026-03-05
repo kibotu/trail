@@ -58,17 +58,29 @@ if [ ! -d "$BACKEND_DIR" ]; then
     exit 1
 fi
 
-# Check if lftp is installed
+# Check required tools
 if ! command -v lftp &> /dev/null; then
     echo -e "${RED}✗ Error: lftp is not installed${NC}"
     echo -e "${YELLOW}  Install with: brew install lftp (macOS) or apt-get install lftp (Linux)${NC}"
     exit 1
 fi
 
+if ! command -v terser &> /dev/null; then
+    echo -e "${RED}✗ Error: terser is not installed${NC}"
+    echo -e "${YELLOW}  Install with: npm install -g terser${NC}"
+    exit 1
+fi
+
+if ! command -v javascript-obfuscator &> /dev/null; then
+    echo -e "${RED}✗ Error: javascript-obfuscator is not installed${NC}"
+    echo -e "${YELLOW}  Install with: npm install -g javascript-obfuscator${NC}"
+    exit 1
+fi
+
 cd "$BACKEND_DIR"
 
 # Step 0: Security verification
-echo -e "${YELLOW}[0/4]${NC} Verifying security configuration..."
+echo -e "${YELLOW}[0/7]${NC} Verifying security configuration..."
 if [ -f "$BACKEND_DIR/verify-security.sh" ]; then
     if bash "$BACKEND_DIR/verify-security.sh"; then
         echo -e "${GREEN}✓${NC} Security verification passed"
@@ -83,7 +95,7 @@ fi
 echo ""
 
 # Step 1: Install/update Composer dependencies
-echo -e "${YELLOW}[1/4]${NC} Installing Composer dependencies..."
+echo -e "${YELLOW}[1/7]${NC} Installing Composer dependencies..."
 if ! command -v composer &> /dev/null; then
     echo -e "${RED}✗ Error: Composer not found${NC}"
     echo -e "${YELLOW}  Please install Composer: https://getcomposer.org/${NC}"
@@ -94,12 +106,13 @@ composer install --no-dev --optimize-autoloader --no-interaction
 echo -e "${GREEN}✓${NC} Dependencies installed"
 echo ""
 
-# Step 2: Bundle JS assets
-echo -e "${YELLOW}[2/5]${NC} Bundling JavaScript assets..."
+# Step 2: Bundle JS/CSS assets
+echo -e "${YELLOW}[2/7]${NC} Bundling assets..."
 
 JS_DIR="$BACKEND_DIR/public/assets/js"
 CSS_DIR="$BACKEND_DIR/public/assets/css"
 DIST_DIR="$BACKEND_DIR/public/assets/dist"
+rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
 bundle_js() {
@@ -112,72 +125,131 @@ bundle_js() {
     cat "${files[@]}" > "$DIST_DIR/$output"
 }
 
-# Landing page: 14 scripts -> 1 bundle
 bundle_js "landing.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js celebrations.js image-upload.js \
     comments-manager.js search-manager.js shader-background.js scroll-to-top.js \
     notifications.js landing-page.js
 
-# User page: 13 scripts -> 1 bundle
 bundle_js "user.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js image-upload.js comments-manager.js \
     search-manager.js shader-who.js user-profile-manager.js scroll-to-top.js \
     user-page.js
 
-# Status page: 9 scripts -> 1 bundle
 bundle_js "status.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js image-upload.js comments-manager.js meta-updater.js \
     status-page.js
 
-# Profile page: 7 scripts -> 1 bundle
 bundle_js "profile.bundle.js" \
     auth-client.js snackbar.js profile-manager.js api-token-manager.js \
     embed-configurator.js account-manager.js profile-page.js
 
-# Embed page: 8 scripts -> 1 bundle (includes optional modules)
 bundle_js "embed.bundle.js" \
     config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js user-profile-manager.js \
     search-manager.js embed-page.js
 
-# Error page: 6 scripts -> 1 bundle
 bundle_js "error.bundle.js" \
     config.js snackbar.js celebrations.js ui-interactions.js \
     entries-manager.js error-page.js
 
-# Notifications pages: 2 scripts -> 1 bundle
 bundle_js "notifications.bundle.js" \
     auth-client.js notifications.js
 
-# Account pending deletion: 2 scripts -> 1 bundle
 bundle_js "account-deletion.bundle.js" \
     auth-client.js snackbar.js
 
-# Bundle CSS
 cat "$CSS_DIR/main.css" > "$DIST_DIR/main.bundle.css"
 if [ -f "$CSS_DIR/notifications.css" ]; then
     cat "$CSS_DIR/notifications.css" >> "$DIST_DIR/main.bundle.css"
 fi
 
-# Minify with terser if available (optional, gracefully degrades)
-if command -v terser &> /dev/null; then
-    for bundle in "$DIST_DIR"/*.bundle.js; do
-        terser "$bundle" --compress --mangle -o "$bundle" 2>/dev/null && \
-            echo -e "  ${GREEN}✓${NC} Minified $(basename "$bundle")"
-    done
-else
-    echo -e "  ${YELLOW}⚠${NC} terser not found — bundles not minified (install: npm i -g terser)"
-fi
-
 BUNDLE_COUNT=$(ls -1 "$DIST_DIR"/*.bundle.js 2>/dev/null | wc -l | tr -d ' ')
-echo -e "${GREEN}✓${NC} Created $BUNDLE_COUNT JS bundles in assets/dist/"
+echo -e "${GREEN}✓${NC} Created $BUNDLE_COUNT JS bundles + CSS bundle"
 echo ""
 
-# Step 3: Verify vendor directory
-echo -e "${YELLOW}[3/5]${NC} Verifying vendor directory..."
+# Step 3: Minify bundles
+echo -e "${YELLOW}[3/7]${NC} Minifying bundles..."
+
+TOTAL_BEFORE=0
+TOTAL_AFTER=0
+
+for bundle in "$DIST_DIR"/*.bundle.js; do
+    SIZE_BEFORE=$(wc -c < "$bundle" | tr -d ' ')
+    TOTAL_BEFORE=$((TOTAL_BEFORE + SIZE_BEFORE))
+
+    if ! terser "$bundle" --compress --mangle -o "$bundle"; then
+        echo -e "  ${RED}✗${NC} Failed to minify $(basename "$bundle")"
+        exit 1
+    fi
+
+    SIZE_AFTER=$(wc -c < "$bundle" | tr -d ' ')
+    TOTAL_AFTER=$((TOTAL_AFTER + SIZE_AFTER))
+    SAVINGS=$(( (SIZE_BEFORE - SIZE_AFTER) * 100 / SIZE_BEFORE ))
+    echo -e "  ${GREEN}✓${NC} $(basename "$bundle")  ${BLUE}${SIZE_BEFORE}${NC} → ${BLUE}${SIZE_AFTER}${NC} bytes  (${GREEN}-${SAVINGS}%${NC})"
+done
+
+# Minify CSS if clean-css-cli is available
+if command -v cleancss &> /dev/null; then
+    for bundle in "$DIST_DIR"/*.bundle.css; do
+        SIZE_BEFORE=$(wc -c < "$bundle" | tr -d ' ')
+        TOTAL_BEFORE=$((TOTAL_BEFORE + SIZE_BEFORE))
+        cleancss -o "$bundle" "$bundle"
+        SIZE_AFTER=$(wc -c < "$bundle" | tr -d ' ')
+        TOTAL_AFTER=$((TOTAL_AFTER + SIZE_AFTER))
+        SAVINGS=$(( (SIZE_BEFORE - SIZE_AFTER) * 100 / SIZE_BEFORE ))
+        echo -e "  ${GREEN}✓${NC} $(basename "$bundle")  ${BLUE}${SIZE_BEFORE}${NC} → ${BLUE}${SIZE_AFTER}${NC} bytes  (${GREEN}-${SAVINGS}%${NC})"
+    done
+else
+    echo -e "  ${YELLOW}⚠${NC} cleancss not found — CSS not minified (optional: npm i -g clean-css-cli)"
+fi
+
+TOTAL_SAVINGS=$(( (TOTAL_BEFORE - TOTAL_AFTER) * 100 / (TOTAL_BEFORE > 0 ? TOTAL_BEFORE : 1) ))
+echo -e "${GREEN}✓${NC} Minification complete — total ${BLUE}${TOTAL_BEFORE}${NC} → ${BLUE}${TOTAL_AFTER}${NC} bytes (${GREEN}-${TOTAL_SAVINGS}%${NC})"
+echo ""
+
+# Step 4: Obfuscate JS bundles
+echo -e "${YELLOW}[4/7]${NC} Obfuscating JavaScript..."
+
+OBF_BEFORE=0
+OBF_AFTER=0
+
+for bundle in "$DIST_DIR"/*.bundle.js; do
+    SIZE_BEFORE=$(wc -c < "$bundle" | tr -d ' ')
+    OBF_BEFORE=$((OBF_BEFORE + SIZE_BEFORE))
+
+    OBF_OUTPUT=$(javascript-obfuscator "$bundle" \
+        --output "$bundle" \
+        --compact true \
+        --self-defending false \
+        --identifier-names-generator mangled-shuffled \
+        --rename-globals false \
+        --string-array true \
+        --string-array-threshold 0.75 \
+        --string-array-encoding base64 \
+        --string-array-shuffles true \
+        --string-array-wrappers-count 2 \
+        --split-strings true \
+        --split-strings-chunk-length 10 2>&1)
+
+    if [ $? -ne 0 ]; then
+        echo -e "  ${RED}✗${NC} Failed to obfuscate $(basename "$bundle")"
+        echo -e "  ${RED}$OBF_OUTPUT${NC}"
+        exit 1
+    fi
+
+    SIZE_AFTER=$(wc -c < "$bundle" | tr -d ' ')
+    OBF_AFTER=$((OBF_AFTER + SIZE_AFTER))
+    echo -e "  ${GREEN}✓${NC} $(basename "$bundle")  ${BLUE}${SIZE_BEFORE}${NC} → ${BLUE}${SIZE_AFTER}${NC} bytes"
+done
+
+echo -e "${GREEN}✓${NC} Obfuscation complete — ${BLUE}${OBF_BEFORE}${NC} → ${BLUE}${OBF_AFTER}${NC} bytes"
+echo ""
+
+# Step 5: Verify vendor directory
+echo -e "${YELLOW}[5/7]${NC} Verifying vendor directory..."
 if [ ! -d "$BACKEND_DIR/vendor" ]; then
     echo -e "${RED}✗ Error: vendor/ directory not found${NC}"
     exit 1
@@ -185,8 +257,8 @@ fi
 echo -e "${GREEN}✓${NC} vendor/ directory verified"
 echo ""
 
-# Step 4: Upload via lftp mirror
-echo -e "${YELLOW}[4/5]${NC} Uploading to FTP server..."
+# Step 6: Upload via lftp mirror
+echo -e "${YELLOW}[6/7]${NC} Uploading to FTP server..."
 echo -e "${BLUE}Production Structure:${NC}"
 echo -e "  FTP Root (not public)"
 echo -e "  ├── public/      → $APP_BASE_URL/"
@@ -287,8 +359,8 @@ else
     exit 1
 fi
 
-# Step 5: Run migrations
-echo -e "${YELLOW}[5/5]${NC} Running database migrations..."
+# Step 7: Run migrations
+echo -e "${YELLOW}[7/7]${NC} Running database migrations..."
 
 # Extract database credentials from secrets.yml (strip quotes if present)
 DB_HOST=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}' | tr -d '"'"'")
