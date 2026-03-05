@@ -245,8 +245,7 @@ class ImageProxyService
             'image/jpeg' => @imagecreatefromjpeg($originalPath),
             'image/png' => @imagecreatefrompng($originalPath),
             'image/webp' => @imagecreatefromwebp($originalPath),
-            'image/gif' => @imagecreatefromgif($originalPath),
-            default => false
+            default => @imagecreatefromgif($originalPath),
         };
         
         if ($sourceImage === false) {

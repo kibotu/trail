@@ -590,7 +590,7 @@ class ImageService
      * @param string $targetDir Directory containing the image
      * @param string $baseFilename Filename without extension (e.g. "1_12345_abc")
      * @param string $extension File extension (e.g. "webp")
-     * @return array<int, array{width: int, height: int, file_size: int}> Keyed by target width
+     * @return array<int, array{width: int, height: int, file_size: int, filename: string}> Keyed by target width
      */
     public function generateResponsiveThumbnails(
         string $sourcePath,
