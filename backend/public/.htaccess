@@ -20,7 +20,7 @@
 # ============================================
 <IfModule mod_headers.c>
     # HSTS - enforce HTTPS for 1 year
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     
     # Prevent clickjacking attacks
     Header always set X-Frame-Options "SAMEORIGIN"
@@ -41,12 +41,18 @@
     # Permissions Policy (formerly Feature Policy)
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
 
+    # Prevent cross-origin information leaks
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+
     # Allow embedding for /@username/embed: unset restrictive headers so PHP can set permissive ones.
     # After mod_rewrite internally redirects to index.php, env vars get prefixed with REDIRECT_,
     # so we must match on REDIRECT_EMBED_REQUEST in the header directives.
     Header always unset X-Frame-Options env=REDIRECT_EMBED_REQUEST
     Header always unset Content-Security-Policy env=REDIRECT_EMBED_REQUEST
     Header always unset Permissions-Policy env=REDIRECT_EMBED_REQUEST
+    Header always unset Cross-Origin-Opener-Policy env=REDIRECT_EMBED_REQUEST
+    Header always unset Cross-Origin-Resource-Policy env=REDIRECT_EMBED_REQUEST
 </IfModule>
 
 # ============================================
@@ -149,11 +155,10 @@ ServerSignature Off
     RewriteCond %{QUERY_STRING} base64_(en|de)code[^(]*\([^)]*\) [NC,OR]
     RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
     RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
-    RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>|ê|"|;|\?|\*|=$).* [NC,OR]
     RewriteCond %{QUERY_STRING} (NULL|OUTFILE|LOAD_FILE) [OR]
     RewriteCond %{QUERY_STRING} (\.{1,}/)+(motd|etc|bin) [NC,OR]
     RewriteCond %{QUERY_STRING} (localhost|loopback|127\.0\.0\.1) [NC,OR]
-    RewriteCond %{QUERY_STRING} (<|>|'|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|>|'|"|%0A|%0D|%22|%27|%3C|%3E|%00) [NC,OR]
     RewriteCond %{QUERY_STRING} concat[^\(]*\( [NC,OR]
     RewriteCond %{QUERY_STRING} union([^s]*s)+elect [NC,OR]
     RewriteCond %{QUERY_STRING} union([^a]*a)+ll([^s]*s)+elect [NC,OR]
@@ -164,7 +169,7 @@ ServerSignature Off
 # ============================================
 # 9. Limit Request Methods
 # ============================================
-<LimitExcept GET POST PUT DELETE OPTIONS>
+<LimitExcept GET POST PUT DELETE PATCH OPTIONS>
     # Apache 2.4+
     <IfModule mod_authz_core.c>
         Require all denied
@@ -238,7 +243,49 @@ ServerSignature Off
 # 14. Compression (Performance)
 # ============================================
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/rss+xml application/atom+xml application/xml
+    AddOutputFilterByType DEFLATE \
+        text/html \
+        text/plain \
+        text/xml \
+        text/css \
+        text/javascript \
+        text/x-component \
+        text/cache-manifest \
+        text/vcard \
+        text/vtt \
+        text/x-cross-domain-policy \
+        application/javascript \
+        application/x-javascript \
+        application/json \
+        application/ld+json \
+        application/manifest+json \
+        application/schema+json \
+        application/geo+json \
+        application/rss+xml \
+        application/atom+xml \
+        application/xml \
+        application/xhtml+xml \
+        application/vnd.ms-fontobject \
+        application/x-font-ttf \
+        application/x-font-opentype \
+        application/x-font-truetype \
+        font/ttf \
+        font/otf \
+        font/opentype \
+        font/eot \
+        image/svg+xml \
+        image/x-icon \
+        image/vnd.microsoft.icon
+
+    # Don't compress already-compressed formats
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp|avif|woff2?|mp4|webm|ogg|zip|gz|br|bz2|rar|7z)$ no-gzip
+
+    # Vary header scoped to compressible content only
+    <IfModule mod_headers.c>
+        <FilesMatch "\.(html|css|js|json|xml|svg|txt|ico|ttf|otf|eot)$">
+            Header append Vary Accept-Encoding
+        </FilesMatch>
+    </IfModule>
 </IfModule>
 
 # ============================================
@@ -246,38 +293,95 @@ ServerSignature Off
 # ============================================
 <IfModule mod_expires.c>
     ExpiresActive On
-    
-    # User uploaded images: 7 days with revalidation after 24h
-    <FilesMatch "^/uploads/images/.*\.(jpg|jpeg|png|gif|webp|svg|avif)$">
-        ExpiresDefault "access plus 7 days"
-        Header set Cache-Control "public, max-age=86400, stale-while-revalidate=518400"
-    </FilesMatch>
-    
-    # Static images (icons, etc): long cache
-    ExpiresByType image/jpg "access plus 1 year"
+
+    # Fallback: any component not matched below gets 1 month
+    ExpiresDefault "access plus 1 month"
+
+    # HTML: never cache (dynamic content)
+    ExpiresByType text/html "access plus 0 seconds"
+
+    # Data interchange
+    ExpiresByType application/json "access plus 0 seconds"
+    ExpiresByType application/ld+json "access plus 0 seconds"
+    ExpiresByType application/xml "access plus 0 seconds"
+    ExpiresByType text/xml "access plus 0 seconds"
+
+    # Feeds
+    ExpiresByType application/rss+xml "access plus 1 hour"
+    ExpiresByType application/atom+xml "access plus 1 hour"
+
+    # Favicon / icons
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+
+    # Images
     ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/gif "access plus 1 year"
     ExpiresByType image/png "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/avif "access plus 1 year"
-    
-    # CSS/JS: 1 day cache, always revalidate via ETag
-    ExpiresByType text/css "access plus 1 day"
-    ExpiresByType application/javascript "access plus 1 day"
-    
+    ExpiresByType image/bmp "access plus 1 year"
+    ExpiresByType image/tiff "access plus 1 year"
+
+    # Video / Audio
+    ExpiresByType video/mp4 "access plus 1 year"
+    ExpiresByType video/webm "access plus 1 year"
+    ExpiresByType video/ogg "access plus 1 year"
+    ExpiresByType audio/ogg "access plus 1 year"
+    ExpiresByType audio/mpeg "access plus 1 year"
+
+    # Fonts
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/eot "access plus 1 year"
+    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+    ExpiresByType application/x-font-ttf "access plus 1 year"
+    ExpiresByType application/x-font-opentype "access plus 1 year"
+    ExpiresByType application/x-font-woff "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+
+    # CSS / JavaScript
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType application/x-javascript "access plus 1 year"
+
+    # Manifest / Service Worker
+    ExpiresByType application/manifest+json "access plus 1 year"
+    ExpiresByType text/cache-manifest "access plus 0 seconds"
+
+    # Documents
     ExpiresByType application/pdf "access plus 1 month"
-    ExpiresByType text/html "access plus 0 seconds"
 </IfModule>
 
 # ============================================
-# 16. ETag Validation for CSS/JS Assets
+# 16. Cache-Control Headers
 # ============================================
 <IfModule mod_headers.c>
-    # Enable ETag generation (Apache default uses inode+size+mtime)
     FileETag MTime Size
 
+    # Immutable static assets (images, fonts, media)
+    <FilesMatch "\.(ico|jpg|jpeg|png|gif|webp|avif|svg|bmp|tiff|mp4|webm|ogg|woff|woff2|ttf|otf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # CSS/JS with cache-busting via query string or hashed filenames
     <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "public, max-age=86400, must-revalidate"
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # HTML: no cache
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+    </FilesMatch>
+
+    # User-uploaded images: shorter cache with revalidation
+    <FilesMatch "^uploads-">
+        Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
     </FilesMatch>
 </IfModule>
