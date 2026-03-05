@@ -203,7 +203,20 @@ if command -v cleancss &> /dev/null; then
         echo -e "  ${GREEN}✓${NC} $(basename "$bundle")  ${BLUE}${SIZE_BEFORE}${NC} → ${BLUE}${SIZE_AFTER}${NC} bytes  (${GREEN}-${SAVINGS}%${NC})"
     done
 else
-    echo -e "  ${YELLOW}⚠${NC} cleancss not found — CSS not minified (optional: npm i -g clean-css-cli)"
+    echo -e "  ${YELLOW}⚠${NC} cleancss not found — installing clean-css-cli..."
+    if npm install -g clean-css-cli 2>/dev/null; then
+        for bundle in "$DIST_DIR"/*.bundle.css; do
+            SIZE_BEFORE=$(wc -c < "$bundle" | tr -d ' ')
+            TOTAL_BEFORE=$((TOTAL_BEFORE + SIZE_BEFORE))
+            cleancss -o "$bundle" "$bundle"
+            SIZE_AFTER=$(wc -c < "$bundle" | tr -d ' ')
+            TOTAL_AFTER=$((TOTAL_AFTER + SIZE_AFTER))
+            SAVINGS=$(( (SIZE_BEFORE - SIZE_AFTER) * 100 / SIZE_BEFORE ))
+            echo -e "  ${GREEN}✓${NC} $(basename "$bundle")  ${BLUE}${SIZE_BEFORE}${NC} → ${BLUE}${SIZE_AFTER}${NC} bytes  (${GREEN}-${SAVINGS}%${NC})"
+        done
+    else
+        echo -e "  ${YELLOW}⚠${NC} Could not install clean-css-cli — CSS not minified"
+    fi
 fi
 
 TOTAL_SAVINGS=$(( (TOTAL_BEFORE - TOTAL_AFTER) * 100 / (TOTAL_BEFORE > 0 ? TOTAL_BEFORE : 1) ))
@@ -229,7 +242,7 @@ for bundle in "$DIST_DIR"/*.bundle.js; do
         --string-array true \
         --string-array-threshold 0.75 \
         --string-array-encoding base64 \
-        --string-array-shuffles true \
+        --string-array-shuffle true \
         --string-array-wrappers-count 2 \
         --split-strings true \
         --split-strings-chunk-length 10 2>&1)

@@ -449,8 +449,56 @@ class ImageService
         $mimeType = finfo_file($finfo, $sourcePath);
         // Note: finfo_close() is deprecated in PHP 8.5+, objects are freed automatically
         
-        // Handle SVG: sanitize then save (no raster conversion)
+        // Handle SVG: sanitize then save; rasterize to WebP if over 200KB
         if ($mimeType === 'image/svg+xml') {
+            $svgSize = filesize($sourcePath);
+            
+            if ($svgSize > 200 * 1024) {
+                // Large SVG: sanitize first, then rasterize to WebP via Imagick
+                if (extension_loaded('imagick')) {
+                    // Sanitize SVG before passing to Imagick to prevent SSRF via external entities
+                    $rawSvg = file_get_contents($sourcePath);
+                    $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+                    $safeSvg = $sanitizer->sanitize($rawSvg);
+                    if ($safeSvg === false || $safeSvg === '') {
+                        throw new InvalidArgumentException('SVG file could not be sanitized');
+                    }
+                    $sanitizedTmp = $sourcePath . '.sanitized.svg';
+                    file_put_contents($sanitizedTmp, $safeSvg);
+                    
+                    $imagick = new \Imagick();
+                    try {
+                        $imagick->readImage($sanitizedTmp);
+                        $imagick->setImageFormat('webp');
+                        $imagick->resizeImage($maxWidth, $maxHeight, \Imagick::FILTER_LANCZOS, 1, true);
+                        $imagick->setImageCompressionQuality(self::WEBP_QUALITY);
+                        
+                        $webpTarget = preg_replace('/\.svg$/i', '.webp', $targetPath);
+                        $imagick->writeImage($webpTarget);
+                        
+                        $newWidth = $imagick->getImageWidth();
+                        $newHeight = $imagick->getImageHeight();
+                    } finally {
+                        $imagick->clear();
+                        $imagick->destroy();
+                        @unlink($sanitizedTmp);
+                    }
+                    
+                    if (file_exists($webpTarget)) {
+                        if ($webpTarget !== $targetPath && file_exists($targetPath)) {
+                            @unlink($targetPath);
+                        }
+                        return [
+                            'width' => $newWidth,
+                            'height' => $newHeight,
+                            'file_size' => filesize($webpTarget)
+                        ];
+                    }
+                }
+                
+                error_log("Warning: Large SVG ({$svgSize} bytes) could not be rasterized (Imagick not available). Saving as-is.");
+            }
+            
             $dirtySvg = file_get_contents($sourcePath);
             $sanitizer = new \enshrined\svgSanitize\Sanitizer();
             $cleanSvg = $sanitizer->sanitize($dirtySvg);
@@ -530,6 +578,100 @@ class ImageService
             'height' => $newHeight,
             'file_size' => filesize($targetPath)
         ];
+    }
+    
+    private const RESPONSIVE_WIDTHS = [300, 600];
+    
+    /**
+     * Generate responsive thumbnails for an image at predefined widths.
+     * Creates smaller versions alongside the original for srcset usage.
+     * 
+     * @param string $sourcePath Path to the original (already processed) image
+     * @param string $targetDir Directory containing the image
+     * @param string $baseFilename Filename without extension (e.g. "1_12345_abc")
+     * @param string $extension File extension (e.g. "webp")
+     * @return array<int, array{width: int, height: int, file_size: int}> Keyed by target width
+     */
+    public function generateResponsiveThumbnails(
+        string $sourcePath,
+        string $targetDir,
+        string $baseFilename,
+        string $extension
+    ): array {
+        $results = [];
+        
+        if (!file_exists($sourcePath)) {
+            return $results;
+        }
+        
+        $mimeType = mime_content_type($sourcePath) ?: '';
+        
+        if ($mimeType === 'image/svg+xml' || in_array($mimeType, self::VIDEO_MIME_TYPES, true)) {
+            return $results;
+        }
+        
+        if ($mimeType === 'image/gif' && $this->isAnimatedGif($sourcePath)) {
+            return $results;
+        }
+        
+        $sourceImage = match ($mimeType) {
+            'image/jpeg' => @imagecreatefromjpeg($sourcePath),
+            'image/png' => @imagecreatefrompng($sourcePath),
+            'image/gif' => @imagecreatefromgif($sourcePath),
+            'image/webp' => @imagecreatefromwebp($sourcePath),
+            default => false
+        };
+        
+        if ($sourceImage === false) {
+            return $results;
+        }
+        
+        $origWidth = imagesx($sourceImage);
+        $origHeight = imagesy($sourceImage);
+        
+        foreach (self::RESPONSIVE_WIDTHS as $targetWidth) {
+            if ($targetWidth >= $origWidth) {
+                continue;
+            }
+            
+            $ratio = $targetWidth / $origWidth;
+            $newWidth = $targetWidth;
+            $newHeight = (int) round($origHeight * $ratio);
+            
+            $thumb = imagecreatetruecolor($newWidth, $newHeight);
+            imagealphablending($thumb, false);
+            imagesavealpha($thumb, true);
+            $transparent = imagecolorallocatealpha($thumb, 0, 0, 0, 127);
+            imagefilledrectangle($thumb, 0, 0, $newWidth, $newHeight, $transparent);
+            
+            imagecopyresampled($thumb, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+            
+            $thumbFilename = "{$baseFilename}_{$targetWidth}.{$extension}";
+            $thumbPath = rtrim($targetDir, '/') . '/' . $thumbFilename;
+            
+            $saved = match ($extension) {
+                'webp' => imagewebp($thumb, $thumbPath, self::WEBP_QUALITY),
+                'png' => imagepng($thumb, $thumbPath, 6),
+                'jpg', 'jpeg' => imagejpeg($thumb, $thumbPath, 85),
+                default => imagewebp($thumb, $thumbPath, self::WEBP_QUALITY),
+            };
+            
+            imagedestroy($thumb);
+            
+            if ($saved && file_exists($thumbPath)) {
+                $this->secureUploadedFile($thumbPath);
+                $results[$targetWidth] = [
+                    'width' => $newWidth,
+                    'height' => $newHeight,
+                    'file_size' => filesize($thumbPath),
+                    'filename' => $thumbFilename,
+                ];
+            }
+        }
+        
+        imagedestroy($sourceImage);
+        
+        return $results;
     }
     
     /**

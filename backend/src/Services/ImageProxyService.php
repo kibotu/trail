@@ -216,6 +216,75 @@ class ImageProxyService
     }
 
     /**
+     * Resize a cached image to the given max width, caching the result.
+     * Returns path to the resized version, or original if resize is not possible.
+     * 
+     * @param string $originalPath Path to the original cached image
+     * @param string $mimeType MIME type of the image
+     * @param int $maxWidth Target max width in pixels
+     * @return array{path: string, mime: string}
+     */
+    public function getResized(string $originalPath, string $mimeType, int $maxWidth): array
+    {
+        $maxWidth = max(100, min(1920, $maxWidth));
+        
+        if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+            return ['path' => $originalPath, 'mime' => $mimeType];
+        }
+        
+        $baseName = pathinfo($originalPath, PATHINFO_FILENAME);
+        $baseName = preg_replace('/[^a-zA-Z0-9_-]/', '', $baseName);
+        $resizedKey = $baseName . "_{$maxWidth}";
+        $resizedPath = $this->cacheDir . '/' . $resizedKey . '.webp';
+        
+        if (file_exists($resizedPath)) {
+            return ['path' => $resizedPath, 'mime' => 'image/webp'];
+        }
+        
+        $sourceImage = match ($mimeType) {
+            'image/jpeg' => @imagecreatefromjpeg($originalPath),
+            'image/png' => @imagecreatefrompng($originalPath),
+            'image/webp' => @imagecreatefromwebp($originalPath),
+            'image/gif' => @imagecreatefromgif($originalPath),
+            default => false
+        };
+        
+        if ($sourceImage === false) {
+            return ['path' => $originalPath, 'mime' => $mimeType];
+        }
+        
+        $origWidth = imagesx($sourceImage);
+        $origHeight = imagesy($sourceImage);
+        
+        if ($origWidth <= $maxWidth) {
+            imagedestroy($sourceImage);
+            return ['path' => $originalPath, 'mime' => $mimeType];
+        }
+        
+        $ratio = $maxWidth / $origWidth;
+        $newWidth = $maxWidth;
+        $newHeight = (int) round($origHeight * $ratio);
+        
+        $newImage = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($newImage, false);
+        imagesavealpha($newImage, true);
+        $transparent = imagecolorallocatealpha($newImage, 0, 0, 0, 127);
+        imagefilledrectangle($newImage, 0, 0, $newWidth, $newHeight, $transparent);
+        
+        imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+        imagewebp($newImage, $resizedPath, 80);
+        
+        imagedestroy($sourceImage);
+        imagedestroy($newImage);
+        
+        if (file_exists($resizedPath)) {
+            return ['path' => $resizedPath, 'mime' => 'image/webp'];
+        }
+        
+        return ['path' => $originalPath, 'mime' => $mimeType];
+    }
+
+    /**
      * Clean up expired cache files
      * 
      * @return int Number of files cleaned up

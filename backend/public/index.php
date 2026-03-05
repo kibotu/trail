@@ -476,7 +476,7 @@ $app->get('/api/image-proxy/{encoded}', function ($request, $response, array $ar
         // Block proxying our own domain to prevent loops
         $parsedUrl = parse_url($url);
         $host = $parsedUrl['host'] ?? '';
-        $ownDomains = ['trail.kibotu.net', 'localhost', '127.0.0.1'];
+        $ownDomains = ['trail.services.kibotu.net', 'trail.kibotu.net', 'localhost', '127.0.0.1'];
         if (in_array($host, $ownDomains, true)) {
             $response->getBody()->write('Cannot proxy own domain');
             return $response->withStatus(400)->withHeader('Content-Type', 'text/plain');
@@ -493,6 +493,17 @@ $app->get('/api/image-proxy/{encoded}', function ($request, $response, array $ar
         }
         
         $filePath = $result['path'];
+        $mime = $result['mime'];
+        
+        // Resize if ?w= parameter is provided (max width in pixels)
+        $queryParams = $request->getQueryParams();
+        $requestedWidth = isset($queryParams['w']) ? (int) $queryParams['w'] : 0;
+        if ($requestedWidth > 0) {
+            $resized = $proxyService->getResized($filePath, $mime, $requestedWidth);
+            $filePath = $resized['path'];
+            $mime = $resized['mime'];
+        }
+        
         $fileSize = filesize($filePath);
 
         if ($fileSize === false) {
@@ -504,7 +515,7 @@ $app->get('/api/image-proxy/{encoded}', function ($request, $response, array $ar
 
         return $response
             ->withBody($stream)
-            ->withHeader('Content-Type', $result['mime'])
+            ->withHeader('Content-Type', $mime)
             ->withHeader('Content-Length', (string) $fileSize)
             ->withHeader('Cache-Control', 'public, max-age=604800')
             ->withHeader('X-Image-Proxy', $result['cached'] ? 'HIT' : 'MISS');

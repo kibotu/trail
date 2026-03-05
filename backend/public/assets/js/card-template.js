@@ -46,21 +46,22 @@ function extractDomain(url) {
 }
 
 // Convert external image URL to use our image proxy (to avoid CORS issues)
-function getProxiedImageUrl(url) {
+function getProxiedImageUrl(url, maxWidth) {
     if (!url) return url;
     
     try {
         const parsed = new URL(url);
         
         // Don't proxy our own domain or data URLs
-        const ownDomains = ['trail.kibotu.net', 'localhost', '127.0.0.1'];
+        const ownDomains = ['trail.services.kibotu.net', 'trail.kibotu.net', 'localhost', '127.0.0.1'];
         if (ownDomains.includes(parsed.hostname) || url.startsWith('data:')) {
             return url;
         }
         
         // Base64 encode URL for proxy (URL-safe base64)
         const encoded = btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        return `/api/image-proxy/${encoded}`;
+        const widthParam = maxWidth ? `?w=${maxWidth}` : '?w=600';
+        return `/api/image-proxy/${encoded}${widthParam}`;
     } catch (e) {
         // Invalid URL, return as-is
         return url;
@@ -259,12 +260,20 @@ function createEntryImagesHtml(entry) {
             `;
         } else {
             // Image: clickable to open in new tab
+            const imgWidth = media.width || 600;
+            const imgHeight = media.height || 400;
+            const srcsetAttr = media.srcset 
+                ? `srcset="${escapeHtml(media.srcset)}" sizes="(max-width: 600px) 300px, (max-width: 1200px) 600px, 1200px"` 
+                : '';
             mediaHtml += `
                 <div class="entry-image-wrapper">
                     <a href="${url}" target="_blank" rel="noopener noreferrer">
                         <img src="${url}" 
+                             ${srcsetAttr}
                              alt="Post image" 
                              class="entry-image"
+                             width="${imgWidth}"
+                             height="${imgHeight}"
                              loading="lazy"
                              onerror="this.parentElement.parentElement.style.display='none'">
                     </a>
@@ -603,6 +612,8 @@ function createLinkPreviewCard(entry, options = {}) {
             <img src="${escapeHtml(proxiedImageUrl)}" 
                  alt="Preview" 
                  class="link-preview-image" 
+                 width="600"
+                 height="315"
                  loading="lazy"
                  onerror="this.style.display='none'">
         `;
@@ -730,9 +741,9 @@ function createEntryCard(entry, options = {}) {
         <div class="entry-header">
             ${userProfileLink ? 
                 `<a href="${userProfileLink}" data-no-navigate>
-                    <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" loading="lazy">
+                    <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">
                 </a>` :
-                `<img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" loading="lazy">`
+                `<img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">`
             }
             <div class="entry-header-content">
                 <div class="entry-header-top">
@@ -798,8 +809,8 @@ function createEntryCard(entry, options = {}) {
                                 data-entry-id="${entry.id}"
                                 data-hash-id="${hashId}"
                                 data-comment-count="${entry.comment_count || 0}"
-                                aria-label="Comments">
-                            <i class="fa-regular fa-comment"></i>
+                                aria-label="${entry.comment_count || 0} comments">
+                            <i class="fa-regular fa-comment" aria-hidden="true"></i>
                             <span class="comment-count">${entry.comment_count || 0}</span>
                         </button>
                         <button class="clap-button ${(entry.user_clap_count || 0) > 0 ? 'clapped' : ''} ${currentUserId && currentUserId === entry.user_id ? 'own-entry' : ''}" 
@@ -809,8 +820,8 @@ function createEntryCard(entry, options = {}) {
                                 data-user-claps="${entry.user_clap_count || 0}"
                                 data-total-claps="${entry.clap_count || 0}"
                                 data-is-own="${currentUserId && currentUserId === entry.user_id ? 'true' : 'false'}"
-                                aria-label="${currentUserId && currentUserId === entry.user_id ? 'Your entry claps' : 'Clap for this entry'}">
-                            <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart"></i>
+                                aria-label="${formatClapCount(entry.clap_count || 0)} likes">
+                            <i class="fa-${(entry.user_clap_count || 0) > 0 ? 'solid' : 'regular'} fa-heart" aria-hidden="true"></i>
                             <span class="clap-count">${formatClapCount(entry.clap_count || 0)}</span>
                         </button>
                         <span class="view-counter" 

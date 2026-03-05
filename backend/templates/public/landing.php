@@ -6,10 +6,15 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="description" content="Trail is a minimal link journal for sharing and discovering interesting links, thoughts, and updates.">
     <title>Trail - Public Entries</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="preload" href="/assets/fonts/inter/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/assets/fonts/inter/Inter-Medium.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
     <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
     <link rel="stylesheet" href="/assets/css/notifications.css">
@@ -144,7 +149,7 @@
         </div>
     </main>
 
-    <script src="/assets/dist/landing.bundle.js"></script>
+    <script src="/assets/dist/landing.bundle.js" defer></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

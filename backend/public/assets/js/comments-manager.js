@@ -327,7 +327,7 @@ class CommentsManager {
         return `
             <div class="comment-card" data-comment-id="${comment.id}" data-comment-hash-id="${commentHashId}">
                 <div class="comment-header">
-                    <img src="${escapeHtml(comment.avatar_url)}" alt="${escapeHtml(comment.user_nickname || comment.user_name)}" class="comment-avatar">
+                    <img src="${escapeHtml(comment.avatar_url)}" alt="${escapeHtml(comment.user_nickname || comment.user_name)}" class="comment-avatar" width="32" height="32">
                     <div class="comment-header-info">
                         <span class="comment-user-name">${escapeHtml(comment.user_nickname || comment.user_name)}</span>
                         <span class="comment-timestamp">${formatTimestamp(comment.created_at)}</span>
@@ -365,6 +365,8 @@ class CommentsManager {
                                 <img src="${escapeHtml(img.url)}" 
                                      alt="Comment image" 
                                      class="comment-image"
+                                     width="${img.width || 300}"
+                                     height="${img.height || 200}"
                                      loading="lazy">
                             `).join('')}
                         </div>

@@ -282,6 +282,21 @@ class ImageUploadController
             // Secure the uploaded file (remove execute permissions)
             $imageService->secureUploadedFile($targetPath);
             
+            // Generate responsive thumbnails for post images (not videos, not SVGs)
+            $thumbnails = [];
+            if ($metadata['image_type'] === 'post' && !$isVideo && !$isAnimatedGif
+                && $storedMimeType !== 'image/svg+xml') {
+                $ext = pathinfo($secureFilename, PATHINFO_EXTENSION);
+                $base = pathinfo($secureFilename, PATHINFO_FILENAME);
+                $userDir = $imageService->getUserImagePath($userId);
+                $thumbnails = $imageService->generateResponsiveThumbnails(
+                    $targetPath,
+                    $userDir,
+                    $base,
+                    $ext
+                );
+            }
+            
             // Generate ETag
             $etag = $imageService->generateETag($targetPath);
             
@@ -311,12 +326,31 @@ class ImageUploadController
             // Clean up temp files
             $imageService->cleanupTempPath($uploadId);
             
+            // Build srcset data from thumbnails
+            $srcset = [];
+            foreach ($thumbnails as $w => $thumb) {
+                $srcset[] = [
+                    'url' => '/uploads/images/' . $userId . '/' . $thumb['filename'],
+                    'width' => $thumb['width'],
+                    'descriptor' => $thumb['width'] . 'w',
+                ];
+            }
+            // Add original as largest srcset entry
+            if (!empty($srcset)) {
+                $srcset[] = [
+                    'url' => '/uploads/images/' . $userId . '/' . $secureFilename,
+                    'width' => $optimized['width'],
+                    'descriptor' => ($optimized['width'] ?? 1200) . 'w',
+                ];
+            }
+            
             $response->getBody()->write(json_encode([
                 'image_id' => $imageId,
                 'url' => '/uploads/images/' . $userId . '/' . $secureFilename,
                 'width' => $optimized['width'],
                 'height' => $optimized['height'],
-                'file_size' => $optimized['file_size']
+                'file_size' => $optimized['file_size'],
+                'srcset' => $srcset
             ]));
             
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');

@@ -53,25 +53,45 @@ class EntriesManager {
 
             const data = await response.json();
 
-            // Render entries if container provided
+            // Render entries if container provided, batched to avoid long tasks
             if (container && data.entries && data.entries.length > 0) {
-                data.entries.forEach(entry => {
-                    // Resolve canModify if it's a function (per-entry check)
-                    const resolvedOptions = { ...cardOptions };
-                    if (typeof cardOptions.canModify === 'function') {
-                        resolvedOptions.canModify = cardOptions.canModify(entry);
-                    }
-                    const card = createEntryCard(entry, resolvedOptions);
+                const entries = data.entries;
+                const initialBatch = 10;
+                const laterBatch = 5;
+                
+                const renderBatch = (startIdx, size) => {
+                    const fragment = document.createDocumentFragment();
+                    const end = Math.min(startIdx + size, entries.length);
                     
-                    // Store entry data in card for edit functionality
-                    if (entry.image_ids) {
-                        card.dataset.imageIds = entry.image_ids;
-                    } else if (entry.images && Array.isArray(entry.images)) {
-                        card.dataset.imageIds = JSON.stringify(entry.images.map(img => img.id));
+                    for (let i = startIdx; i < end; i++) {
+                        const entry = entries[i];
+                        const resolvedOptions = { ...cardOptions };
+                        if (typeof cardOptions.canModify === 'function') {
+                            resolvedOptions.canModify = cardOptions.canModify(entry);
+                        }
+                        const card = createEntryCard(entry, resolvedOptions);
+                        
+                        if (entry.image_ids) {
+                            card.dataset.imageIds = entry.image_ids;
+                        } else if (entry.images && Array.isArray(entry.images)) {
+                            card.dataset.imageIds = JSON.stringify(entry.images.map(img => img.id));
+                        }
+                        
+                        fragment.appendChild(card);
                     }
                     
-                    container.appendChild(card);
-                });
+                    container.appendChild(fragment);
+                    
+                    if (end < entries.length) {
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(() => renderBatch(end, laterBatch));
+                        } else {
+                            setTimeout(() => renderBatch(end, laterBatch), 0);
+                        }
+                    }
+                };
+                
+                renderBatch(0, initialBatch);
             }
 
             return {

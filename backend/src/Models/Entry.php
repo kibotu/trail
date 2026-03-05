@@ -656,6 +656,60 @@ class Entry
         return $this->attachImageUrls($entry);
     }
     
+    /** @var array<string, bool> Caches file_exists results within the request */
+    private static array $thumbExistsCache = [];
+    
+    /**
+     * Build image data with responsive srcset URLs from a DB row.
+     * Checks for thumbnail files at predefined widths (300, 600).
+     */
+    private static function buildImageData(array $img): array
+    {
+        $baseUrl = '/uploads/images/' . $img['user_id'] . '/';
+        $filename = $img['filename'];
+        $data = [
+            'id' => $img['id'],
+            'url' => $baseUrl . $filename,
+            'width' => $img['width'],
+            'height' => $img['height'],
+            'file_size' => $img['file_size'],
+            'mime_type' => $img['mime_type'] ?? null,
+        ];
+        
+        // Skip srcset for non-raster images or images without dimensions
+        $mime = $img['mime_type'] ?? '';
+        if (!$img['width'] || str_contains($mime, 'svg') || str_contains($mime, 'video') || str_contains($mime, 'gif')) {
+            return $data;
+        }
+        
+        $ext = pathinfo($filename, PATHINFO_EXTENSION);
+        $base = pathinfo($filename, PATHINFO_FILENAME);
+        $uploadRoot = __DIR__ . '/../../public/uploads/images/' . $img['user_id'] . '/';
+        
+        $srcsetParts = [];
+        foreach ([300, 600] as $w) {
+            if ($w >= (int) $img['width']) {
+                continue;
+            }
+            $thumbFile = "{$base}_{$w}.{$ext}";
+            $thumbPath = $uploadRoot . $thumbFile;
+            
+            if (!isset(self::$thumbExistsCache[$thumbPath])) {
+                self::$thumbExistsCache[$thumbPath] = file_exists($thumbPath);
+            }
+            if (self::$thumbExistsCache[$thumbPath]) {
+                $srcsetParts[] = $baseUrl . $thumbFile . " {$w}w";
+            }
+        }
+        
+        if (!empty($srcsetParts)) {
+            $srcsetParts[] = $baseUrl . $filename . ' ' . $img['width'] . 'w';
+            $data['srcset'] = implode(', ', $srcsetParts);
+        }
+        
+        return $data;
+    }
+    
     /**
      * Attach image URLs to entry
      */
@@ -677,14 +731,7 @@ class Entry
                     $images = $stmt->fetchAll();
 
                     $entry['images'] = array_map(function($img) {
-                        return [
-                            'id' => $img['id'],
-                            'url' => '/uploads/images/' . $img['user_id'] . '/' . $img['filename'],
-                            'width' => $img['width'],
-                            'height' => $img['height'],
-                            'file_size' => $img['file_size'],
-                            'mime_type' => $img['mime_type'] ?? null
-                        ];
+                        return self::buildImageData($img);
                     }, $images);
                 }
             }
@@ -735,14 +782,7 @@ class Entry
 
             $imageMap = [];
             foreach ($rows as $img) {
-                $imageMap[(int) $img['id']] = [
-                    'id' => $img['id'],
-                    'url' => '/uploads/images/' . $img['user_id'] . '/' . $img['filename'],
-                    'width' => $img['width'],
-                    'height' => $img['height'],
-                    'file_size' => $img['file_size'],
-                    'mime_type' => $img['mime_type'] ?? null
-                ];
+                $imageMap[(int) $img['id']] = self::buildImageData($img);
             }
 
             foreach ($entries as &$entry) {

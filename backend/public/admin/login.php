@@ -76,7 +76,9 @@ try {
     <title>Trail - Admin Login</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body class="page-admin-login">

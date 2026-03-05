@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
     <link rel="stylesheet" href="/assets/css/main.css">
     <link rel="stylesheet" href="/assets/css/notifications.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
 </head>
 <body class="page-notifications">
     <div class="orb orb-1"></div>
@@ -120,7 +122,7 @@
         <?php endif; ?>
     </div>
     
-    <script src="/assets/dist/notifications.bundle.js"></script>
+    <script src="/assets/dist/notifications.bundle.js" defer></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

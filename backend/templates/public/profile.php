@@ -6,10 +6,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="description" content="Manage your Trail profile, settings, and activity.">
     <title>Profile - Trail</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body class="page-profile">
@@ -375,7 +378,7 @@
         </div>
     </div>
 
-    <script src="/assets/dist/profile.bundle.js"></script>
+    <script src="/assets/dist/profile.bundle.js" defer></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

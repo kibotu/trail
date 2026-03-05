@@ -7,7 +7,9 @@
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/css/main.css">
     <link rel="stylesheet" href="/assets/css/notifications.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
 </head>
 <body>
     <div class="preferences-page">
@@ -68,7 +70,7 @@
         </div>
     </div>
     
-    <script src="/assets/dist/notifications.bundle.js"></script>
+    <script src="/assets/dist/notifications.bundle.js" defer></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

@@ -9,7 +9,9 @@
     <title>Account Pending Deletion - Trail</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body class="page-account-pending-deletion">
@@ -62,7 +64,7 @@
 
     <div id="snackbar" class="snackbar"></div>
 
-    <script src="/assets/dist/account-deletion.bundle.js"></script>
+    <script src="/assets/dist/account-deletion.bundle.js" defer></script>
     <script>
         document.getElementById('revertDeletionBtn').addEventListener('click', async function() {
             const btn = this;
