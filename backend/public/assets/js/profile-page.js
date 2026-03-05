@@ -21,6 +21,9 @@
         // Setup auto-save tracking after profile is loaded
         profileManager.setupDirtyTracking();
 
+        // Setup feedback section
+        profileManager.setupFeedback();
+
         // Pass nickname to account manager for deletion confirmation
         const nicknameEl = document.getElementById('identity-nickname-text');
         if (nicknameEl && nicknameEl.textContent) {

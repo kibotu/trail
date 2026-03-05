@@ -712,6 +712,114 @@ class ProfileManager {
     }
 
     /**
+     * Setup feedback section interactivity
+     */
+    setupFeedback() {
+        const textArea = document.getElementById('feedbackText');
+        const charCount = document.getElementById('feedbackCharCount');
+        const clearBtn = document.getElementById('feedbackClearBtn');
+        const submitBtn = document.getElementById('submitFeedbackBtn');
+        const sendingAs = document.getElementById('feedbackSendingAs');
+        const chips = document.querySelectorAll('.feedback-chip');
+
+        if (!textArea || !submitBtn) return;
+
+        if (sendingAs && this.currentProfile?.email) {
+            sendingAs.innerHTML = `<i class="fa-solid fa-lock" style="font-size:0.625rem"></i> Sending as ${this.escapeHtml(this.currentProfile.email)}`;
+        }
+
+        const updateState = () => {
+            const len = textArea.value.length;
+            if (charCount) charCount.textContent = len;
+            if (clearBtn) clearBtn.style.display = len > 0 ? '' : 'none';
+            submitBtn.disabled = len < 10;
+
+            chips.forEach(chip => {
+                const prefix = chip.dataset.prefix;
+                chip.classList.toggle('active', textArea.value.startsWith(prefix));
+            });
+        };
+
+        textArea.addEventListener('input', updateState);
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                textArea.value = '';
+                updateState();
+                textArea.focus();
+            });
+        }
+
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                const prefix = chip.dataset.prefix;
+                if (!textArea.value.startsWith(prefix)) {
+                    textArea.value = prefix;
+                }
+                updateState();
+                textArea.focus();
+                textArea.setSelectionRange(textArea.value.length, textArea.value.length);
+            });
+        });
+
+        submitBtn.addEventListener('click', () => this.submitFeedback());
+    }
+
+    /**
+     * Submit feedback to the API
+     */
+    async submitFeedback() {
+        const textArea = document.getElementById('feedbackText');
+        const submitBtn = document.getElementById('submitFeedbackBtn');
+        if (!textArea || !submitBtn) return;
+
+        const text = textArea.value.trim();
+        if (text.length < 10) return;
+
+        submitBtn.disabled = true;
+        const originalHTML = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-inline"></span> <span>Sending…</span>';
+
+        try {
+            const response = await fetch(`${this.apiBase}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ text })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to send feedback');
+            }
+
+            textArea.value = '';
+            document.getElementById('feedbackCharCount').textContent = '0';
+            const clearBtn = document.getElementById('feedbackClearBtn');
+            if (clearBtn) clearBtn.style.display = 'none';
+            document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
+
+            this.showAlert('Thanks! Your feedback just made a whale very happy. 🐳', 'success');
+        } catch (error) {
+            console.error('Error submitting feedback:', error);
+            this.showAlert(error.message || 'Failed to send feedback. Please try again.', 'error');
+        } finally {
+            submitBtn.innerHTML = originalHTML;
+            submitBtn.disabled = textArea.value.trim().length < 10;
+        }
+    }
+
+    /**
+     * Escape HTML special characters
+     */
+    escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    /**
      * Get current profile data
      * @returns {Object|null} Current profile data
      */

@@ -244,6 +244,53 @@
                     </button>
                 </section>
 
+                <!-- Feedback Section -->
+                <section class="profile-section feedback-section">
+                    <div class="profile-section-header">
+                        <i class="fa-solid fa-comment-dots"></i>
+                        <h2>Got Feedback?</h2>
+                    </div>
+
+                    <div class="feedback-mascot">
+                        <img src="/assets/feedback-whale.png" alt="Got Feedback?" loading="lazy">
+                    </div>
+
+                    <p class="feedback-description">
+                        Whether it's a brilliant idea, a pesky bug, or just a compliment to make our day — we're all ears (and fins).
+                    </p>
+
+                    <div class="feedback-categories">
+                        <button type="button" class="feedback-chip" data-prefix="Feature Request: ">💡 Feature Request</button>
+                        <button type="button" class="feedback-chip" data-prefix="Bug Report: ">🐛 Bug Report</button>
+                        <button type="button" class="feedback-chip" data-prefix="Just wanted to say: ">👋 Just Saying Hi</button>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="feedback-textarea-wrapper">
+                            <textarea 
+                                id="feedbackText" 
+                                placeholder="What's on your mind?"
+                                maxlength="5000"
+                                rows="4"
+                            ></textarea>
+                            <button type="button" class="feedback-clear-btn" id="feedbackClearBtn" style="display: none;" title="Clear">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div class="feedback-meta-row">
+                            <span class="feedback-char-count">
+                                <span id="feedbackCharCount">0</span> / 5000
+                            </span>
+                            <span class="feedback-sending-as" id="feedbackSendingAs"></span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary" id="submitFeedbackBtn" disabled>
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Send Feedback</span>
+                    </button>
+                </section>
+
                 <!-- Embed Section -->
                 <section class="profile-section embed-section">
                     <button class="embed-section-toggle" id="embedSectionToggle" type="button" aria-expanded="false" aria-controls="embedSectionContent">
