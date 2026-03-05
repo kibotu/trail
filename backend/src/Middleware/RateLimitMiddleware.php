@@ -12,154 +12,159 @@ use Slim\Psr7\Response;
 
 /**
  * Rate Limiting Middleware
- * 
+ *
  * Limits the number of requests from a single IP address within a time window.
- * Uses a simple in-memory store (can be upgraded to Redis for production).
+ * Uses file-based storage so counters persist across PHP processes.
  */
 class RateLimitMiddleware implements MiddlewareInterface
 {
     private int $maxAttempts;
     private int $windowSeconds;
     private bool $enabled;
-    private static array $attempts = [];
-    
-    /**
-     * @param int $maxAttempts Maximum number of attempts allowed
-     * @param int $windowSeconds Time window in seconds
-     * @param bool $enabled Whether rate limiting is enabled
-     */
+    private static string $storageDir = '';
+
     public function __construct(int $maxAttempts = 5, int $windowSeconds = 300, bool $enabled = true)
     {
         $this->maxAttempts = $maxAttempts;
         $this->windowSeconds = $windowSeconds;
         $this->enabled = $enabled;
+
+        if (self::$storageDir === '') {
+            self::$storageDir = sys_get_temp_dir() . '/trail_rate_limit';
+            if (!is_dir(self::$storageDir)) {
+                @mkdir(self::$storageDir, 0700, true);
+            }
+        }
     }
-    
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Skip rate limiting if disabled
         if (!$this->enabled) {
             return $handler->handle($request);
         }
-        
+
         $ip = $this->getClientIp($request);
         $key = $this->getKey($ip, $request->getUri()->getPath());
-        
-        // Clean up old attempts
-        $this->cleanupOldAttempts($key);
-        
-        // Check if rate limit exceeded
-        if ($this->isRateLimited($key)) {
+        $file = self::$storageDir . '/' . $key;
+
+        $attempts = $this->loadAttempts($file);
+        $attempts = $this->pruneOld($attempts);
+
+        if (count($attempts) >= $this->maxAttempts) {
+            $retryAfter = $this->getRetryAfter($attempts);
             $response = new Response();
             $response->getBody()->write(json_encode([
                 'error' => 'Too many requests. Please try again later.',
-                'retry_after' => $this->getRetryAfter($key)
+                'retry_after' => $retryAfter
             ]));
             return $response
                 ->withStatus(429)
                 ->withHeader('Content-Type', 'application/json')
-                ->withHeader('Retry-After', (string) $this->getRetryAfter($key));
+                ->withHeader('Retry-After', (string) $retryAfter);
         }
-        
-        // Record this attempt
-        $this->recordAttempt($key);
-        
+
+        $attempts[] = time();
+        $this->saveAttempts($file, $attempts);
+
         return $handler->handle($request);
     }
-    
-    /**
-     * Get client IP address
-     */
+
     private function getClientIp(ServerRequestInterface $request): string
     {
-        // Check for proxy headers
         $headers = [
-            'HTTP_CF_CONNECTING_IP',  // Cloudflare
+            'HTTP_CF_CONNECTING_IP',
             'HTTP_X_FORWARDED_FOR',
             'HTTP_X_REAL_IP',
             'REMOTE_ADDR'
         ];
-        
+
+        $serverParams = $request->getServerParams();
         foreach ($headers as $header) {
-            $serverParams = $request->getServerParams();
             if (!empty($serverParams[$header])) {
                 $ip = $serverParams[$header];
-                // Handle comma-separated IPs (take first one)
                 if (strpos($ip, ',') !== false) {
                     $ip = trim(explode(',', $ip)[0]);
                 }
                 return $ip;
             }
         }
-        
+
         return '0.0.0.0';
     }
-    
-    /**
-     * Generate cache key for rate limiting
-     */
+
     private function getKey(string $ip, string $path): string
     {
-        return 'rate_limit:' . md5($ip . ':' . $path);
+        return hash('sha256', $ip . ':' . $path);
     }
-    
-    /**
-     * Check if rate limit is exceeded
-     */
-    private function isRateLimited(string $key): bool
+
+    /** @return int[] */
+    private function loadAttempts(string $file): array
     {
-        if (!isset(self::$attempts[$key])) {
-            return false;
+        if (!file_exists($file)) {
+            return [];
         }
-        
-        return count(self::$attempts[$key]) >= $this->maxAttempts;
-    }
-    
-    /**
-     * Record an attempt
-     */
-    private function recordAttempt(string $key): void
-    {
-        if (!isset(self::$attempts[$key])) {
-            self::$attempts[$key] = [];
+
+        $fh = @fopen($file, 'r');
+        if (!$fh) {
+            return [];
         }
-        
-        self::$attempts[$key][] = time();
+
+        flock($fh, LOCK_SH);
+        $data = stream_get_contents($fh);
+        flock($fh, LOCK_UN);
+        fclose($fh);
+
+        $decoded = json_decode($data, true);
+        return is_array($decoded) ? $decoded : [];
     }
-    
-    /**
-     * Clean up attempts outside the time window
-     */
-    private function cleanupOldAttempts(string $key): void
+
+    /** @param int[] $attempts */
+    private function saveAttempts(string $file, array $attempts): void
     {
-        if (!isset(self::$attempts[$key])) {
+        $fh = @fopen($file, 'c');
+        if (!$fh) {
             return;
         }
-        
-        $cutoff = time() - $this->windowSeconds;
-        self::$attempts[$key] = array_filter(
-            self::$attempts[$key],
-            fn($timestamp) => $timestamp > $cutoff
-        );
-        
-        // Remove key if no attempts left
-        if (empty(self::$attempts[$key])) {
-            unset(self::$attempts[$key]);
-        }
+
+        flock($fh, LOCK_EX);
+        ftruncate($fh, 0);
+        rewind($fh);
+        fwrite($fh, json_encode(array_values($attempts)));
+        fflush($fh);
+        flock($fh, LOCK_UN);
+        fclose($fh);
     }
-    
-    /**
-     * Get seconds until rate limit resets
-     */
-    private function getRetryAfter(string $key): int
+
+    /** @param int[] $attempts */
+    private function pruneOld(array $attempts): array
     {
-        if (!isset(self::$attempts[$key]) || empty(self::$attempts[$key])) {
+        $cutoff = time() - $this->windowSeconds;
+        return array_values(array_filter($attempts, fn(int $t) => $t > $cutoff));
+    }
+
+    /** @param int[] $attempts */
+    private function getRetryAfter(array $attempts): int
+    {
+        if (empty($attempts)) {
             return 0;
         }
-        
-        $oldestAttempt = min(self::$attempts[$key]);
-        $resetTime = $oldestAttempt + $this->windowSeconds;
-        
-        return max(0, $resetTime - time());
+        $oldest = min($attempts);
+        return max(0, ($oldest + $this->windowSeconds) - time());
+    }
+
+    /**
+     * Purge stale rate-limit files (call from a cron job).
+     */
+    public static function cleanup(): void
+    {
+        if (self::$storageDir === '' || !is_dir(self::$storageDir)) {
+            return;
+        }
+        $cutoff = time() - 7200; // 2 hours
+        foreach (glob(self::$storageDir . '/*') as $file) {
+            if (is_file($file) && filemtime($file) < $cutoff) {
+                @unlink($file);
+            }
+        }
     }
 }

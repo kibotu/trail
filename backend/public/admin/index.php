@@ -505,6 +505,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         // Short link resolver config from backend
         window.SHORT_LINK_CONFIG = <?= json_encode($shortLinkConfig) ?>;
     </script>
+    <script src="/assets/js/auth-client.js"></script>
     <script src="/assets/js/config.js"></script>
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/card-template.js"></script>

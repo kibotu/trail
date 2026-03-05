@@ -79,7 +79,7 @@ class CommentController
         $db = Database::getInstance($config);
         
         // Decode hash to get real entry ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($entryHashId);
         
@@ -184,7 +184,7 @@ class CommentController
         $db = Database::getInstance($config);
         
         // Decode hash to get real entry ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($entryHashId);
         
@@ -209,7 +209,7 @@ class CommentController
 
         // Add avatar URLs, hash_ids, and ensure nicknames
         $userModel = new \Trail\Models\User($db);
-        $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+        $salt = Config::getNicknameSalt($config);
         
         foreach ($comments as &$comment) {
             $comment['avatar_url'] = self::getAvatarUrl($comment);

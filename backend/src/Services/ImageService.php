@@ -449,9 +449,15 @@ class ImageService
         $mimeType = finfo_file($finfo, $sourcePath);
         // Note: finfo_close() is deprecated in PHP 8.5+, objects are freed automatically
         
-        // Handle SVG separately (no conversion needed)
+        // Handle SVG: sanitize then save (no raster conversion)
         if ($mimeType === 'image/svg+xml') {
-            copy($sourcePath, $targetPath);
+            $dirtySvg = file_get_contents($sourcePath);
+            $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+            $cleanSvg = $sanitizer->sanitize($dirtySvg);
+            if ($cleanSvg === false || $cleanSvg === '') {
+                throw new InvalidArgumentException('SVG file could not be sanitized');
+            }
+            file_put_contents($targetPath, $cleanSvg);
             return [
                 'width' => null,
                 'height' => null,

@@ -42,7 +42,7 @@ class ProfileController
         // Get or generate nickname if not set
         $nickname = $user['nickname'];
         if (empty($nickname)) {
-            $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+            $salt = Config::getNicknameSalt($config);
             $nickname = $userModel->getOrGenerateNickname($userId, $user['google_id'], $salt);
         }
 
@@ -50,7 +50,7 @@ class ProfileController
         $stats = $userModel->getProfileStats($userId);
 
         // Add hash_id to top entries
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         if (!empty($stats['top_entries_by_claps'])) {
@@ -208,7 +208,7 @@ class ProfileController
         $stats = $userModel->getProfileStats((int) $user['id']);
 
         // Add hash_id to top entries
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         if (!empty($stats['top_entries_by_claps'])) {
@@ -339,7 +339,7 @@ class ProfileController
         }
 
         $nickname = $user['nickname'] ?? $user['name'] ?? 'Unknown';
-        error_log("Account restored: User {$nickname} ({$user['email']}) reversed their deletion request");
+        error_log("Account restored: User ID {$userId} reversed their deletion request");
 
         $response->getBody()->write(json_encode([
             'success' => true,

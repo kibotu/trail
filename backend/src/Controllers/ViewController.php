@@ -28,7 +28,7 @@ class ViewController
         array $args
     ): ResponseInterface {
         $config = Config::load(__DIR__ . '/../../secrets.yml');
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
 
         $entryId = $hashIdService->decode($args['id'] ?? '');
@@ -78,7 +78,7 @@ class ViewController
         array $args
     ): ResponseInterface {
         $config = Config::load(__DIR__ . '/../../secrets.yml');
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
 
         $commentId = $hashIdService->decode($args['id'] ?? '');

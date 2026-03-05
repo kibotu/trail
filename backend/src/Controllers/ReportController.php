@@ -58,7 +58,7 @@ class ReportController
         if (!$reportModel->wasEmailSent($entryId)) {
             try {
                 // Add hash_id to entry for email
-                $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+                $hashSalt = Config::getEntryHashSalt($config);
                 $hashIdService = new HashIdService($hashSalt);
                 $entry['hash_id'] = $hashIdService->encode($entryId);
                 

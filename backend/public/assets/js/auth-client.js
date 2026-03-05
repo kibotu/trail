@@ -1,4 +1,29 @@
 /**
+ * Read the CSRF token from the double-submit cookie.
+ */
+function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)trail_csrf_token=([^;]+)/);
+    return match ? match[1] : '';
+}
+
+// Auto-inject X-CSRF-Token header on all state-changing fetch requests.
+(function() {
+    const _origFetch = window.fetch;
+    window.fetch = function(input, init) {
+        init = init || {};
+        const method = (init.method || 'GET').toUpperCase();
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+            const headers = new Headers(init.headers || {});
+            if (!headers.has('X-CSRF-Token')) {
+                headers.set('X-CSRF-Token', getCsrfToken());
+            }
+            init.headers = headers;
+        }
+        return _origFetch.call(this, input, init);
+    };
+})();
+
+/**
  * Secure Authentication Client
  * 
  * Handles API authentication without exposing JWT tokens in JavaScript.

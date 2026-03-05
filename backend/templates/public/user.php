@@ -188,6 +188,7 @@
     </main>
 
     <!-- Core JavaScript Modules -->
+    <script src="/assets/js/auth-client.js"></script>
     <script src="/assets/js/config.js"></script>
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/card-template.js"></script>

@@ -10,10 +10,16 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Convert URLs in text to clickable links
+// Convert URLs in text to clickable links (input must already be HTML-escaped)
 function linkifyText(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    return text.replace(urlRegex, function(url) {
+        // Validate protocol to prevent injection via crafted URLs
+        if (!/^https?:\/\//i.test(url)) return url;
+        // The URL is already HTML-entity-escaped by escapeHtml(); use it as-is
+        // in both the href attribute and the link text.
+        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+    });
 }
 
 // Convert @mentions to clickable links
@@ -935,10 +941,9 @@ function createEntryCard(entry, options = {}) {
                 const response = await fetch(`/api/entries/${hashId}/claps`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}`
+                        'Content-Type': 'application/json'
                     },
-                    credentials: 'include',
+                    credentials: 'same-origin',
                     body: JSON.stringify({ count: userClaps })
                 });
                 

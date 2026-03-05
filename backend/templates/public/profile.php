@@ -376,6 +376,7 @@
     </div>
 
     <!-- Core JavaScript Modules -->
+    <script src="/assets/js/auth-client.js"></script>
     <script src="/assets/js/snackbar.js"></script>
     <script src="/assets/js/profile-manager.js"></script>
     <script src="/assets/js/api-token-manager.js"></script>

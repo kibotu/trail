@@ -339,7 +339,7 @@ class NotificationController
         if (!empty($notification['entry_id'])) {
             // Generate hash_id dynamically (not stored in database)
             $hashId = null;
-            $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+            $hashSalt = Config::getEntryHashSalt($config);
             
             try {
                 $hashIdService = new HashIdService($hashSalt);

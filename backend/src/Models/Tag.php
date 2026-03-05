@@ -86,7 +86,8 @@ class Tag
              ORDER BY entry_count DESC, t.name ASC
              LIMIT ?"
         );
-        $stmt->execute(['%' . $query . '%', $limit]);
+        $escapedQuery = str_replace(['%', '_'], ['\\%', '\\_'], $query);
+        $stmt->execute(['%' . $escapedQuery . '%', $limit]);
 
         return $stmt->fetchAll();
     }

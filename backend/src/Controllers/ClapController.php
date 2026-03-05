@@ -34,7 +34,7 @@ class ClapController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Initialize HashIdService with salt from config
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         // Decode hash to get real entry ID
@@ -168,7 +168,7 @@ class ClapController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Initialize HashIdService with salt from config
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         // Decode hash to get real entry ID

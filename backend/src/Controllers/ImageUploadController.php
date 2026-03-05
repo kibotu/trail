@@ -328,7 +328,7 @@ class ImageUploadController
             error_log("Image upload completion failed: " . $e->getMessage());
             
             $response->getBody()->write(json_encode([
-                'error' => 'Failed to process image: ' . $e->getMessage()
+                'error' => 'Failed to process image'
             ]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }

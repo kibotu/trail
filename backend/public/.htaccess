@@ -8,36 +8,38 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Uncomment for production to force HTTPS
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # Force HTTPS in production
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 # ============================================
 # 2. Security Headers
 # ============================================
 <IfModule mod_headers.c>
+    # HSTS - enforce HTTPS for 1 year
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    
     # Prevent clickjacking attacks
     Header always set X-Frame-Options "SAMEORIGIN"
     
     # Prevent MIME type sniffing
     Header always set X-Content-Type-Options "nosniff"
     
-    # Enable XSS protection
-    Header always set X-XSS-Protection "1; mode=block"
-    
     # Referrer policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
     # Content Security Policy (adjust as needed)
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';"
     
     # Remove server signature
     Header always unset X-Powered-By
     Header always unset Server
     
     # Permissions Policy (formerly Feature Policy)
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
 
     # Allow embedding for /@username/embed: unset restrictive headers so PHP can set permissive ones.
     # After mod_rewrite internally redirects to index.php, env vars get prefixed with REDIRECT_,

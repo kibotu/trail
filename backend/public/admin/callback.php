@@ -19,7 +19,6 @@ use Trail\Services\JwtService;
 // Security headers
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 
 try {
@@ -98,12 +97,15 @@ try {
 
     // Create new session with JWT token
     $sessionId = generateSessionId();
-    $expiresAt = (new DateTime())->modify('+1 year');
+    $expiresAt = (new DateTime())->modify('+30 days');
 
     createSession($db, $sessionId, $userId, $email, $photoUrl, $isAdmin, $expiresAt, $jwtToken);
 
     // Set secure session cookie
     setSecureSessionCookie($sessionId, $expiresAt->getTimestamp());
+
+    // Set CSRF double-submit cookie for browser sessions
+    \Trail\Middleware\CsrfMiddleware::generateAndSetCookie();
 
     // Redirect to blocker page if deletion is pending, otherwise landing page
     $redirectTo = '/';
@@ -115,7 +117,7 @@ try {
 
 } catch (Exception $e) {
     error_log("OAuth callback error: " . $e->getMessage());
-    header('Location: /?error=' . urlencode($e->getMessage()));
+    header('Location: /?error=authentication_failed');
     exit;
 }
 

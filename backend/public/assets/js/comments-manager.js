@@ -534,7 +534,6 @@ class CommentsManager {
         submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Posting...';
         
         try {
-            const token = localStorage.getItem('jwt_token');
             const payload = { text: text.trim() };
             if (imageIds.length > 0) {
                 payload.image_ids = imageIds;
@@ -543,8 +542,7 @@ class CommentsManager {
             const response = await fetch(`/api/entries/${hashId}/comments`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(payload)
@@ -639,12 +637,10 @@ class CommentsManager {
             saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             
             try {
-                const token = localStorage.getItem('jwt_token');
                 const response = await fetch(`/api/comments/${commentId}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        'Content-Type': 'application/json'
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ text: newText })
@@ -678,12 +674,8 @@ class CommentsManager {
         }
         
         try {
-            const token = localStorage.getItem('jwt_token');
             const response = await fetch(`/api/comments/${commentId}`, {
                 method: 'DELETE',
-                headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
                 credentials: 'same-origin'
             });
             
@@ -718,12 +710,10 @@ class CommentsManager {
         const originalTotalClaps = parseInt(button.dataset.totalClaps) || 0;
         
         try {
-            const token = localStorage.getItem('jwt_token');
             const response = await fetch(`/api/comments/${commentId}/claps`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({ count: userClaps })
@@ -775,12 +765,8 @@ class CommentsManager {
         }
         
         try {
-            const token = localStorage.getItem('jwt_token');
             const response = await fetch(`/api/comments/${commentId}/report`, {
                 method: 'POST',
-                headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
                 credentials: 'same-origin'
             });
             

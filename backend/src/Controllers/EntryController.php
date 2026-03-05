@@ -165,7 +165,7 @@ class EntryController
                 }
             } catch (\Throwable $e) {
                 error_log("EntryController::create: Media upload failed: " . $e->getMessage());
-                $response->getBody()->write(json_encode(['error' => 'Media upload failed: ' . $e->getMessage()]));
+                $response->getBody()->write(json_encode(['error' => 'Media upload failed']));
                 return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
             }
         }
@@ -299,7 +299,7 @@ class EntryController
                 );
                 
                 // Generate hash ID for the entry
-                $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+                $hashSalt = Config::getEntryHashSalt($config);
                 $hashIdService = new \Trail\Services\HashIdService($hashSalt);
                 $hashId = $hashIdService->encode($entryId);
                 
@@ -419,12 +419,12 @@ class EntryController
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
 
         // Add avatar URLs, ensure nicknames, and add hash IDs
         $userModel = new \Trail\Models\User($db);
-        $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+        $salt = Config::getNicknameSalt($config);
         
         foreach ($entries as &$entry) {
             $entry['avatar_url'] = self::getAvatarUrl($entry);
@@ -514,7 +514,7 @@ class EntryController
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
 
         // Add avatar URLs and hash IDs
@@ -672,7 +672,7 @@ class EntryController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Initialize HashIdService with salt from config
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         // Decode hash to get real entry ID
@@ -704,7 +704,7 @@ class EntryController
         // Generate nickname if not set
         if (empty($entry['user_nickname']) && !empty($entry['google_id'])) {
             $userModel = new \Trail\Models\User($db);
-            $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+            $salt = Config::getNicknameSalt($config);
             $entry['user_nickname'] = $userModel->getOrGenerateNickname(
                 (int) $entry['user_id'],
                 $entry['google_id'],
@@ -782,7 +782,7 @@ class EntryController
         $hasMore = count($entries) === $limit;
 
         // Initialize HashIdService
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
 
         // Add avatar URLs and hash IDs

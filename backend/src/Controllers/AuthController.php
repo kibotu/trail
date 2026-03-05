@@ -31,17 +31,16 @@ class AuthController
             $userData = $googleAuth->verifyIdToken($googleToken);
 
             if (!$userData) {
-                $errorDetail = $googleAuth->getLastError() ?? 'Invalid Google token';
+                error_log("AuthController::googleAuth: Token verification failed: " . ($googleAuth->getLastError() ?? 'unknown'));
                 $response->getBody()->write(json_encode([
-                    'error' => 'Invalid Google token',
-                    'detail' => $errorDetail
+                    'error' => 'Invalid Google token'
                 ]));
                 return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
             }
         } catch (\Exception $e) {
+            error_log("AuthController::googleAuth: " . $e->getMessage());
             $response->getBody()->write(json_encode([
-                'error' => 'Server error during authentication',
-                'detail' => $e->getMessage()
+                'error' => 'Server error during authentication'
             ]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }
@@ -121,9 +120,17 @@ class AuthController
     {
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
-        // Only allow in development mode
+        // Only allow in development mode and from localhost
         if (($config['app']['environment'] ?? 'production') !== 'development') {
             $response->getBody()->write(json_encode(['error' => 'Dev auth only available in development mode']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        $serverParams = $request->getServerParams();
+        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? '';
+        $localAddresses = ['127.0.0.1', '::1', 'localhost'];
+        if (!in_array($remoteAddr, $localAddresses, true)) {
+            $response->getBody()->write(json_encode(['error' => 'Dev auth only available from localhost']));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 

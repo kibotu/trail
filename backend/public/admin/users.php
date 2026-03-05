@@ -59,7 +59,7 @@ try {
     // Debug: Log user count and IDs
     error_log("Retrieved " . count($users) . " users from database");
     $userIds = array_map(function($u) { return $u['id']; }, $users);
-    error_log("User IDs: " . implode(', ', $userIds));
+    error_log("Admin users page: loaded " . count($userIds) . " user(s)");
     
     // Check for duplicates in the raw query result
     $uniqueIds = array_unique($userIds);
@@ -119,7 +119,7 @@ try {
 
 } catch (Exception $e) {
     error_log("Admin users error: " . $e->getMessage());
-    header('Location: /admin?error=' . urlencode($e->getMessage()));
+    header('Location: /admin?error=internal_error');
     exit;
 }
 
@@ -388,6 +388,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
         <?php endif; ?>
     </div>
 
+    <script src="/assets/js/auth-client.js"></script>
     <script src="/assets/js/admin-users.js"></script>
 </body>
 </html>

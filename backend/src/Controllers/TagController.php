@@ -60,7 +60,7 @@ class TagController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Decode hash ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($hashId);
         
@@ -119,7 +119,7 @@ class TagController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Decode hash ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($hashId);
         
@@ -199,7 +199,7 @@ class TagController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Decode hash ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($hashId);
         
@@ -282,7 +282,7 @@ class TagController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
         // Decode hash ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         $entryId = $hashIdService->decode($hashId);
         
@@ -389,7 +389,7 @@ class TagController
                 $entry = $entryModel->findByIdWithImages($entryId, $currentUserId);
                 if ($entry) {
                     // Add hash ID
-                    $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+                    $hashSalt = Config::getEntryHashSalt($config);
                     $hashIdService = new HashIdService($hashSalt);
                     $entry['hash_id'] = $hashIdService->encode($entry['id']);
                     
@@ -658,7 +658,7 @@ class TagController
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         $db = Database::getInstance($config);
         
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new HashIdService($hashSalt);
         
         $tagModel = new Tag($db);

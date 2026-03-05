@@ -24,6 +24,42 @@ class Config
         return Yaml::parse($content);
     }
 
+    private const INSECURE_SALT_PATTERNS = [
+        'default_entry_salt_change_me',
+        'default_salt_change_me',
+        'change_this_to_a_random_string_in_production',
+    ];
+
+    /**
+     * Get the entry hash salt, rejecting insecure defaults in production.
+     */
+    public static function getEntryHashSalt(array $config): string
+    {
+        $salt = $config['app']['entry_hash_salt'] ?? '';
+        self::assertSaltConfigured($salt, 'entry_hash_salt', $config);
+        return $salt;
+    }
+
+    /**
+     * Get the nickname salt, rejecting insecure defaults in production.
+     */
+    public static function getNicknameSalt(array $config): string
+    {
+        $salt = $config['app']['nickname_salt'] ?? '';
+        self::assertSaltConfigured($salt, 'nickname_salt', $config);
+        return $salt;
+    }
+
+    private static function assertSaltConfigured(string $salt, string $name, array $config): void
+    {
+        if (($config['app']['environment'] ?? 'production') === 'development') {
+            return;
+        }
+        if ($salt === '' || in_array($salt, self::INSECURE_SALT_PATTERNS, true)) {
+            throw new \RuntimeException("Security: app.{$name} must be set to a unique random value in production");
+        }
+    }
+
     /**
      * Get the maximum text length for entries and comments from config
      * 

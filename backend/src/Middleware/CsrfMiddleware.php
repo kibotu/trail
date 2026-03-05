@@ -11,125 +11,123 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * CSRF Protection Middleware
- * 
- * Validates CSRF tokens for state-changing operations (POST, PUT, DELETE, PATCH).
- * Tokens are stored in the session and must be included in requests.
+ * CSRF Protection Middleware (Double-Submit Cookie Pattern)
+ *
+ * Uses a non-httpOnly CSRF cookie paired with an X-CSRF-Token header.
+ * The cookie is set on every response; JS reads the cookie and sends
+ * the value back via header on state-changing requests.
+ *
+ * Requests authenticated via Bearer token (mobile/API clients) skip
+ * CSRF validation because they are not vulnerable to cross-site attacks.
  */
 class CsrfMiddleware implements MiddlewareInterface
 {
     private const TOKEN_LENGTH = 32;
-    private const SESSION_KEY = 'csrf_token';
-    
+    private const COOKIE_NAME = 'trail_csrf_token';
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $method = $request->getMethod();
-        
-        // Only validate CSRF for state-changing methods
-        if (!in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'])) {
-            return $handler->handle($request);
-        }
-        
-        // Skip CSRF validation for certain endpoints
-        $path = $request->getUri()->getPath();
-        if ($this->shouldSkipCsrf($path)) {
-            return $handler->handle($request);
-        }
-        
-        // Get token from request
-        $token = $this->getTokenFromRequest($request);
-        
-        // Get expected token from session
-        $expectedToken = $_SESSION[self::SESSION_KEY] ?? null;
-        
-        // Validate token
-        if (!$token || !$expectedToken || !hash_equals($expectedToken, $token)) {
-            $response = new Response();
-            $response->getBody()->write(json_encode([
-                'error' => 'CSRF token validation failed'
-            ]));
-            return $response
-                ->withStatus(403)
-                ->withHeader('Content-Type', 'application/json');
-        }
-        
-        return $handler->handle($request);
-    }
-    
-    /**
-     * Generate a new CSRF token and store it in the session
-     */
-    public static function generateToken(): string
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        $token = bin2hex(random_bytes(self::TOKEN_LENGTH));
-        $_SESSION[self::SESSION_KEY] = $token;
-        
-        return $token;
-    }
-    
-    /**
-     * Get the current CSRF token from the session
-     */
-    public static function getToken(): ?string
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        return $_SESSION[self::SESSION_KEY] ?? null;
-    }
-    
-    /**
-     * Extract CSRF token from request
-     */
-    private function getTokenFromRequest(ServerRequestInterface $request): ?string
-    {
-        // Check header first (for AJAX requests)
-        $headerToken = $request->getHeaderLine('X-CSRF-Token');
-        if ($headerToken) {
-            return $headerToken;
-        }
-        
-        // Check body for form submissions
-        $body = $request->getParsedBody();
-        if (is_array($body) && isset($body['csrf_token'])) {
-            return $body['csrf_token'];
-        }
-        
-        // Check JSON body
-        $contentType = $request->getHeaderLine('Content-Type');
-        if (strpos($contentType, 'application/json') !== false) {
-            $jsonBody = json_decode((string) $request->getBody(), true);
-            if (is_array($jsonBody) && isset($jsonBody['csrf_token'])) {
-                return $jsonBody['csrf_token'];
+
+        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
+            $path = $request->getUri()->getPath();
+
+            if (!$this->shouldSkipCsrf($request, $path)) {
+                $headerToken = $request->getHeaderLine('X-CSRF-Token');
+                $cookieToken = $request->getCookieParams()[self::COOKIE_NAME] ?? null;
+
+                if (
+                    !$headerToken
+                    || !$cookieToken
+                    || !hash_equals($cookieToken, $headerToken)
+                ) {
+                    $response = new Response();
+                    $response->getBody()->write(json_encode([
+                        'error' => 'CSRF token validation failed'
+                    ]));
+                    return $response
+                        ->withStatus(403)
+                        ->withHeader('Content-Type', 'application/json');
+                }
             }
         }
-        
-        return null;
+
+        $response = $handler->handle($request);
+
+        // Always ensure the CSRF cookie exists
+        $existingToken = $request->getCookieParams()[self::COOKIE_NAME] ?? null;
+        if (!$existingToken) {
+            $newToken = bin2hex(random_bytes(self::TOKEN_LENGTH));
+            $response = $this->setCsrfCookie($response, $newToken);
+        }
+
+        return $response;
     }
-    
+
     /**
-     * Determine if CSRF validation should be skipped for this path
+     * Read the current CSRF token from the cookie (for embedding in pages).
      */
-    private function shouldSkipCsrf(string $path): bool
+    public static function getTokenFromCookie(): ?string
     {
-        // Skip CSRF for authentication endpoints (they use other protections)
+        return $_COOKIE[self::COOKIE_NAME] ?? null;
+    }
+
+    /**
+     * Generate a fresh CSRF token and set it as a cookie via header().
+     * Used during login/session creation before the middleware runs.
+     */
+    public static function generateAndSetCookie(): string
+    {
+        $token = bin2hex(random_bytes(self::TOKEN_LENGTH));
+        setcookie(self::COOKIE_NAME, $token, [
+            'expires' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => true,
+            'httponly' => false, // JS must be able to read this
+            'samesite' => 'Strict'
+        ]);
+        return $token;
+    }
+
+    private function setCsrfCookie(ResponseInterface $response, string $token): ResponseInterface
+    {
+        $cookie = self::COOKIE_NAME . '=' . $token
+            . '; Path=/; Secure; SameSite=Strict';
+        return $response->withAddedHeader('Set-Cookie', $cookie);
+    }
+
+    private function shouldSkipCsrf(ServerRequestInterface $request, string $path): bool
+    {
+        // Bearer-token requests (mobile / API clients) are not subject to CSRF
+        $authHeader = $request->getHeaderLine('Authorization');
+        if (preg_match('/^Bearer\s+.+$/i', $authHeader)) {
+            return true;
+        }
+
         $skipPaths = [
             '/api/auth/google',
             '/api/auth/dev',
             '/api/auth/logout',
+            // View tracking is anonymous, no session side-effects
+            '/api/entries/',  // matched more specifically below
+            '/api/comments/', // matched more specifically below
+            '/api/users/',    // matched more specifically below
         ];
-        
-        foreach ($skipPaths as $skipPath) {
-            if ($path === $skipPath || strpos($path, $skipPath) === 0) {
-                return true;
-            }
+
+        // Exact path matches
+        if (in_array($path, ['/api/auth/google', '/api/auth/dev', '/api/auth/logout'], true)) {
+            return true;
         }
-        
+
+        // View tracking endpoints are anonymous POST with no auth side-effects
+        if (preg_match('#^/api/(entries|comments)/[^/]+/views$#', $path)) {
+            return true;
+        }
+        if (preg_match('#^/api/users/[^/]+/views$#', $path)) {
+            return true;
+        }
+
         return false;
     }
 }

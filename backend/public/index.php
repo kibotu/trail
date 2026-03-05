@@ -59,7 +59,8 @@ if ($config['app']['environment'] !== 'development') {
 }
 
 // Add global middleware
-$app->add(new CorsMiddleware());
+$app->add(new CorsMiddleware($config));
+$app->add(new CsrfMiddleware());
 $app->add(new SecurityMiddleware($config));
 // Note: Rate limiting is applied per-route, not globally
 
@@ -309,7 +310,7 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
         $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
         
         try {
-            $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+            $hashSalt = Config::getEntryHashSalt($config);
             $hashIdService = new \Trail\Services\HashIdService($hashSalt);
             $entryId = $hashIdService->decode($hashId);
             
@@ -320,7 +321,7 @@ $app->get('/status/{id}', function ($request, $response, array $args) use ($conf
                 // Generate nickname if not set
                 if ($entry && empty($entry['user_nickname']) && !empty($entry['google_id'])) {
                     $userModel = new \Trail\Models\User($db);
-                    $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+                    $salt = Config::getNicknameSalt($config);
                     $entry['user_nickname'] = $userModel->getOrGenerateNickname(
                         (int) $entry['user_id'],
                         $entry['google_id'],
@@ -514,7 +515,7 @@ $app->get('/api/preview-image/{id}.png', function ($request, $response, array $a
     
     try {
         // Decode hash ID
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new \Trail\Services\HashIdService($hashSalt);
         $entryId = $hashIdService->decode($hashId);
         
@@ -542,7 +543,7 @@ $app->get('/api/preview-image/{id}.png', function ($request, $response, array $a
         // Generate nickname if not set
         if (empty($entry['user_nickname']) && !empty($entry['google_id'])) {
             $userModel = new \Trail\Models\User($db);
-            $salt = $config['app']['nickname_salt'] ?? 'default_salt_change_me';
+            $salt = Config::getNicknameSalt($config);
             $entry['user_nickname'] = $userModel->getOrGenerateNickname(
                 (int) $entry['user_id'],
                 $entry['google_id'],

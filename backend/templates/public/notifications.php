@@ -120,6 +120,7 @@
         <?php endif; ?>
     </div>
     
+    <script src="/assets/js/auth-client.js"></script>
     <script src="/assets/js/notifications.js"></script>
 
     <footer class="site-footer">

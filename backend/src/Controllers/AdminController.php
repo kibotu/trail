@@ -74,7 +74,7 @@ class AdminController
         $entries = $entryModel->getAllWithImages($limit, null, $offset, null, [], null, $sourceFilter, $tagFilter, true);
 
         // Initialize HashIdService
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new \Trail\Services\HashIdService($hashSalt);
 
         // Add avatar URLs and hash IDs (no HTML escaping — this is a JSON API response)
@@ -268,7 +268,7 @@ class AdminController
         $result = $entryModel->getDuplicateGroups($limit, $offset, $matchType);
 
         // Initialize HashIdService
-        $hashSalt = $config['app']['entry_hash_salt'] ?? 'default_entry_salt_change_me';
+        $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new \Trail\Services\HashIdService($hashSalt);
 
         // Add avatar URLs and hash IDs to entries within each group
