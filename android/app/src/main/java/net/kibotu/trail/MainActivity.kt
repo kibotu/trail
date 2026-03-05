@@ -5,9 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,29 +18,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import net.kibotu.splashscreen.SplashScreenDecorator
 import net.kibotu.splashscreen.splash
 import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.navigation.TrailNavigation
-import net.kibotu.trail.shared.splash.HeartBeatAnimation
-import androidx.activity.result.contract.ActivityResultContracts
 import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
+import net.kibotu.trail.shared.splash.HeartBeatAnimation
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.storage.ThemePreferences
-import net.kibotu.trail.shared.theme.TrailTheme
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
+import net.kibotu.trail.shared.theme.TrailTheme
 import net.kibotu.trail.shared.update.InAppUpdateManager
 import net.kibotu.trail.shared.update.LocalInAppUpdateManager
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
     private lateinit var themePreferences: ThemePreferences
     private lateinit var inAppReviewManager: InAppReviewManager
     private lateinit var inAppUpdateManager: InAppUpdateManager
-    private var splashScreenDecorator: net.kibotu.splashscreen.SplashScreenDecorator? = null
+    private var splashScreenDecorator: SplashScreenDecorator? = null
     private val pendingSharedText = MutableStateFlow<String?>(null)
 
     private val updateResultLauncher = registerForActivityResult(

@@ -36,7 +36,7 @@ playUpdate = "2.1.0"
 playservices = "4.4.4"
 profileinstaller = "1.4.1"
 splashScreen = "1.2.0"
-splashScreenCompose = "1.0.0"
+splashScreenCompose = "1.1.0"
 timber = "5.0.1"
 uiautomator = "2.3.0"
 
