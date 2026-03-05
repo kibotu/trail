@@ -246,17 +246,17 @@
 
                 <!-- Feedback Section -->
                 <section class="profile-section feedback-section">
+                    <div class="feedback-mascot">
+                        <img src="/assets/feedback-whale.png" alt="Got Feedback?" loading="lazy">
+                    </div>
+
                     <div class="profile-section-header">
                         <i class="fa-solid fa-comment-dots"></i>
                         <h2>Got Feedback?</h2>
                     </div>
 
-                    <div class="feedback-mascot">
-                        <img src="/assets/feedback-whale.png" alt="Got Feedback?" loading="lazy">
-                    </div>
-
                     <p class="feedback-description">
-                        Whether it's a brilliant idea, a pesky bug, or just a compliment to make our day — we're all ears (and fins).
+                        Whether it's a brilliant idea, a pesky bug, or just a compliment to make our day &mdash; we're all ears (and fins).
                     </p>
 
                     <div class="feedback-categories">
