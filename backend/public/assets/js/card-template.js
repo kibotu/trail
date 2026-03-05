@@ -363,14 +363,21 @@ function initializeVideoPlayers(card) {
             }
         }
         
-        // Seek to position
+        let cachedProgressRect = null;
+
+        function invalidateProgressRect() {
+            cachedProgressRect = null;
+        }
+
         function seekToPosition(clientX) {
             if (!progressBar) return;
             const duration = video.duration;
             if (!duration || !isFinite(duration)) return;
             
-            const rect = progressBar.getBoundingClientRect();
-            const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            if (!cachedProgressRect) {
+                cachedProgressRect = progressBar.getBoundingClientRect();
+            }
+            const percent = Math.max(0, Math.min(1, (clientX - cachedProgressRect.left) / cachedProgressRect.width));
             
             if (progressFilled) progressFilled.style.width = (percent * 100) + '%';
             if (progressHandle) progressHandle.style.left = (percent * 100) + '%';
@@ -408,6 +415,7 @@ function initializeVideoPlayers(card) {
                 e.stopPropagation();
                 e.preventDefault();
                 isDragging = true;
+                invalidateProgressRect();
                 wrapper.classList.add('seeking');
                 seekToPosition(e.clientX);
                 
@@ -427,6 +435,7 @@ function initializeVideoPlayers(card) {
             progressBar.addEventListener('touchstart', (e) => {
                 e.stopPropagation();
                 isDragging = true;
+                invalidateProgressRect();
                 wrapper.classList.add('seeking');
                 if (e.touches[0]) seekToPosition(e.touches[0].clientX);
             }, { passive: true });
@@ -1158,31 +1167,32 @@ function openShareModal(hashId, buttonElement) {
         </div>
     `;
     
+    tooltip.style.visibility = 'hidden';
     document.body.appendChild(tooltip);
     
-    // Position tooltip above the button
-    const buttonRect = buttonElement.getBoundingClientRect();
-    const tooltipRect = tooltip.getBoundingClientRect();
-    
-    // Calculate position (centered above button with arrow)
-    let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
-    let top = buttonRect.top - tooltipRect.height - 8; // 8px gap
-    
-    // Adjust if tooltip goes off-screen horizontally
-    if (left < 8) {
-        left = 8;
-    } else if (left + tooltipRect.width > window.innerWidth - 8) {
-        left = window.innerWidth - tooltipRect.width - 8;
-    }
-    
-    // If tooltip goes off-screen at top, show below button instead
-    if (top < 8) {
-        top = buttonRect.bottom + 8;
-        tooltip.style.animation = 'tooltipFadeInDown 0.2s ease-out';
-    }
-    
-    tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
+    // Defer position calculation to avoid forced reflow from the append above
+    requestAnimationFrame(() => {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+        let top = buttonRect.top - tooltipRect.height - 8;
+        
+        if (left < 8) {
+            left = 8;
+        } else if (left + tooltipRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - tooltipRect.width - 8;
+        }
+        
+        if (top < 8) {
+            top = buttonRect.bottom + 8;
+            tooltip.style.animation = 'tooltipFadeInDown 0.2s ease-out';
+        }
+        
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+        tooltip.style.visibility = '';
+    });
     
     // Add CSS animations if not already added
     if (!document.getElementById('share-tooltip-styles')) {

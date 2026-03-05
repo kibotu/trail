@@ -24,6 +24,7 @@ class InfiniteScroll {
         this.isLoading = false;
         this.hasMore = true;
         this.enabled = options.enabled !== false;
+        this._scrollRAF = null;
         
         // Bind handlers
         this.handleScroll = this.handleScroll.bind(this);
@@ -40,7 +41,7 @@ class InfiniteScroll {
      */
     start() {
         this.enabled = true;
-        window.addEventListener('scroll', this.handleScroll);
+        window.addEventListener('scroll', this.handleScroll, { passive: true });
         window.addEventListener('resize', this.handleResize);
         
         // Check immediately in case content is short
@@ -52,24 +53,34 @@ class InfiniteScroll {
      */
     stop() {
         this.enabled = false;
+        if (this._scrollRAF) {
+            cancelAnimationFrame(this._scrollRAF);
+            this._scrollRAF = null;
+        }
         window.removeEventListener('scroll', this.handleScroll);
         window.removeEventListener('resize', this.handleResize);
     }
 
     /**
-     * Handle scroll event
+     * Handle scroll event (RAF-throttled to avoid forced reflows)
      */
     handleScroll() {
-        if (!this.enabled) return;
-        this.checkScroll();
+        if (!this.enabled || this._scrollRAF) return;
+        this._scrollRAF = requestAnimationFrame(() => {
+            this._scrollRAF = null;
+            this.checkScroll();
+        });
     }
 
     /**
      * Handle resize event
      */
     handleResize() {
-        if (!this.enabled) return;
-        this.checkScroll();
+        if (!this.enabled || this._scrollRAF) return;
+        this._scrollRAF = requestAnimationFrame(() => {
+            this._scrollRAF = null;
+            this.checkScroll();
+        });
     }
 
     /**

@@ -67,8 +67,10 @@ function createPostConfetti(centerX, centerY, options = {}) {
         colors = ['#4f8cff', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4']
     } = options;
 
-    // Inject styles if not present
     _injectConfettiStyles();
+
+    const fragment = document.createDocumentFragment();
+    const removalTimers = [];
 
     for (let i = 0; i < count; i++) {
         const confetti = document.createElement('div');
@@ -77,18 +79,16 @@ function createPostConfetti(centerX, centerY, options = {}) {
         confetti.style.top = centerY + 'px';
         confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
 
-        // Random size and shape
         const size = Math.random() * 6 + 4;
         confetti.style.width = size + 'px';
         confetti.style.height = size + 'px';
         confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
 
-        // Explosive spread in all directions
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
         const velocity = Math.random() * 300 + 200;
 
         const tx = Math.cos(angle) * velocity;
-        const ty = Math.sin(angle) * velocity - 100; // Slight upward bias
+        const ty = Math.sin(angle) * velocity - 100;
 
         confetti.style.setProperty('--tx', tx + 'px');
         confetti.style.setProperty('--ty', ty + 'px');
@@ -97,9 +97,14 @@ function createPostConfetti(centerX, centerY, options = {}) {
         const duration = Math.random() * 0.8 + 1.2;
         confetti.style.animation = `post-confetti-burst ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`;
 
-        document.body.appendChild(confetti);
+        fragment.appendChild(confetti);
+        removalTimers.push({ el: confetti, ms: duration * 1000 + 100 });
+    }
 
-        setTimeout(() => confetti.remove(), duration * 1000 + 100);
+    document.body.appendChild(fragment);
+
+    for (const { el, ms } of removalTimers) {
+        setTimeout(() => el.remove(), ms);
     }
 }
 
@@ -120,20 +125,19 @@ function createCelebrationEmojis(centerX, centerY, options = {}) {
     // Inject styles if not present
     _injectEmojiStyles();
 
-    // Create 5-7 floating emojis
     const emojiCount = count || (Math.floor(Math.random() * 3) + 5);
+    const fragment = document.createDocumentFragment();
+    const removalTimers = [];
 
     for (let i = 0; i < emojiCount; i++) {
         const emojiEl = document.createElement('div');
         emojiEl.className = 'celebration-emoji';
         emojiEl.textContent = emojis[Math.floor(Math.random() * emojis.length)];
 
-        // Random starting position around the center
         const offsetX = (Math.random() - 0.5) * 100;
         emojiEl.style.left = (centerX + offsetX) + 'px';
         emojiEl.style.top = centerY + 'px';
 
-        // Random float direction
         const floatX = (Math.random() - 0.5) * 150;
         const floatY = -(Math.random() * 200 + 150);
 
@@ -144,9 +148,14 @@ function createCelebrationEmojis(centerX, centerY, options = {}) {
         const delay = Math.random() * 0.3;
         emojiEl.style.animation = `celebration-emoji-float ${duration}s ease-out ${delay}s forwards`;
 
-        document.body.appendChild(emojiEl);
+        fragment.appendChild(emojiEl);
+        removalTimers.push({ el: emojiEl, ms: (duration + delay) * 1000 + 100 });
+    }
 
-        setTimeout(() => emojiEl.remove(), (duration + delay) * 1000 + 100);
+    document.body.appendChild(fragment);
+
+    for (const { el, ms } of removalTimers) {
+        setTimeout(() => el.remove(), ms);
     }
 }
 
@@ -167,6 +176,10 @@ function createPageLoadConfetti(targetElement = null, options = {}) {
     setTimeout(() => {
         let centerX, centerY;
 
+        // Read all layout properties upfront before any DOM writes
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
         if (targetElement) {
             const element = typeof targetElement === 'string'
                 ? document.querySelector(targetElement)
@@ -175,23 +188,19 @@ function createPageLoadConfetti(targetElement = null, options = {}) {
             if (element) {
                 const rect = element.getBoundingClientRect();
                 centerX = rect.left + rect.width / 2;
-                centerY = rect.top + 100; // Near the top of element
+                centerY = rect.top + 100;
             }
         }
 
-        // Default to center of viewport
         if (!centerX || !centerY) {
-            centerX = window.innerWidth / 2;
-            centerY = window.innerHeight / 3;
+            centerX = viewportWidth / 2;
+            centerY = viewportHeight / 3;
         }
 
-        // Use viewport dimensions for radius calculation
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
         const maxRadius = Math.min(viewportWidth, viewportHeight) * 0.6;
-
-        // Create confetti pieces scaled to viewport
         const confettiCount = Math.min(50, Math.floor(viewportWidth / 20));
+        const fragment = document.createDocumentFragment();
+        const removalTimers = [];
 
         for (let i = 0; i < confettiCount; i++) {
             const confetti = document.createElement('div');
@@ -200,15 +209,12 @@ function createPageLoadConfetti(targetElement = null, options = {}) {
             confetti.style.top = centerY + 'px';
             confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
 
-            // Random size
             const size = Math.random() * 4 + 4;
             confetti.style.width = size + 'px';
             confetti.style.height = size + 'px';
 
-            // Random direction - full circle spread
             const angle = (Math.PI * 2 * i) / confettiCount + (Math.random() - 0.5) * 0.3;
 
-            // Velocity based on viewport size
             const minVelocity = maxRadius * 0.4;
             const maxVelocity = maxRadius * 0.8;
             const velocity = Math.random() * (maxVelocity - minVelocity) + minVelocity;
@@ -219,14 +225,17 @@ function createPageLoadConfetti(targetElement = null, options = {}) {
             confetti.style.setProperty('--tx', tx + 'px');
             confetti.style.setProperty('--ty', ty + 'px');
 
-            // Longer animation for larger distances
             const duration = Math.random() * 1.5 + 2;
             confetti.style.animation = `confetti-fall ${duration}s ease-out ${Math.random() * 0.3}s forwards`;
 
-            document.body.appendChild(confetti);
+            fragment.appendChild(confetti);
+            removalTimers.push({ el: confetti, ms: (duration + 0.5) * 1000 });
+        }
 
-            // Remove after animation
-            setTimeout(() => confetti.remove(), (duration + 0.5) * 1000);
+        document.body.appendChild(fragment);
+
+        for (const { el, ms } of removalTimers) {
+            setTimeout(() => el.remove(), ms);
         }
     }, delay);
 }

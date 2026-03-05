@@ -21,9 +21,9 @@
     // Initialize scroll-to-top functionality
     function initScrollToTop() {
         const scrollButton = createScrollToTopButton();
-        const scrollThreshold = 300; // Show button after scrolling 300px
+        const scrollThreshold = 300;
+        let scrollRAF = null;
 
-        // Show/hide button based on scroll position
         function toggleButtonVisibility() {
             if (window.pageYOffset > scrollThreshold) {
                 scrollButton.classList.add('visible');
@@ -32,7 +32,14 @@
             }
         }
 
-        // Smooth scroll to top
+        function onScroll() {
+            if (scrollRAF) return;
+            scrollRAF = requestAnimationFrame(() => {
+                scrollRAF = null;
+                toggleButtonVisibility();
+            });
+        }
+
         function scrollToTop() {
             window.scrollTo({
                 top: 0,
@@ -40,11 +47,9 @@
             });
         }
 
-        // Event listeners
-        window.addEventListener('scroll', toggleButtonVisibility, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
         scrollButton.addEventListener('click', scrollToTop);
 
-        // Initial check
         toggleButtonVisibility();
     }
 

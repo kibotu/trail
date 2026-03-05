@@ -295,8 +295,13 @@ function initShaderBackground(canvasElement, options = {}) {
 
     let animationFrameId = null;
     let isRunning = true;
+    let needsResize = true;
 
     function resize() {
+        needsResize = true;
+    }
+
+    function applyResize() {
         const displayWidth = canvas.clientWidth;
         const displayHeight = canvas.clientHeight;
 
@@ -305,12 +310,15 @@ function initShaderBackground(canvasElement, options = {}) {
             canvas.height = displayHeight;
             gl.viewport(0, 0, canvas.width, canvas.height);
         }
+        needsResize = false;
     }
 
     function render(time) {
         if (!isRunning) return;
 
-        resize();
+        if (needsResize) {
+            applyResize();
+        }
 
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -329,7 +337,7 @@ function initShaderBackground(canvasElement, options = {}) {
         animationFrameId = requestAnimationFrame(render);
     }
 
-    resize();
+    applyResize();
     window.addEventListener('resize', resize);
     animationFrameId = requestAnimationFrame(render);
 
