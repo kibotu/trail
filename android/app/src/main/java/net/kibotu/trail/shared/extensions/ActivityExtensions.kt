@@ -1,7 +1,6 @@
 package net.kibotu.trail.shared.extensions
 
 import android.app.Activity
-import android.app.Dialog
 import android.view.View
 import android.view.Window
 import androidx.annotation.Px
@@ -33,30 +32,6 @@ var Window.isLightNavigationBar
     get() = WindowCompat.getInsetsController(this, decorView).isAppearanceLightNavigationBars
     set(enabled) {
         WindowCompat.getInsetsController(this, decorView).isAppearanceLightNavigationBars = enabled
-    }
-
-var Activity.statusBarColor: Int
-    get() = window.statusBarColor
-    set(value) {
-        window.statusBarColor = value
-    }
-
-var Dialog.statusBarColor: Int?
-    get() = window?.statusBarColor
-    set(value) {
-        window?.statusBarColor = value ?: return
-    }
-
-var Activity.navigationBarColor: Int
-    get() = window.navigationBarColor
-    set(value) {
-        window.navigationBarColor = value
-    }
-
-var Dialog.navigationBarColor: Int?
-    get() = window?.navigationBarColor
-    set(value) {
-        window?.navigationBarColor = value ?: return
     }
 
 fun Window.toggleAdjustResize(view: View?, windowSoftInputMode: Int) {
