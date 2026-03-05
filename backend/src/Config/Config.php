@@ -8,11 +8,16 @@ use Symfony\Component\Yaml\Yaml;
 
 class Config
 {
+    private static ?array $cached = null;
+
     public static function load(string $path): array
     {
-        // Always use secrets.yml
+        if (self::$cached !== null) {
+            return self::$cached;
+        }
+
         $secretsPath = dirname($path) . '/secrets.yml';
-        
+
         if (!file_exists($secretsPath)) {
             throw new \RuntimeException(
                 "Configuration file not found: {$secretsPath}\n" .
@@ -21,7 +26,8 @@ class Config
         }
 
         $content = file_get_contents($secretsPath);
-        return Yaml::parse($content);
+        self::$cached = Yaml::parse($content);
+        return self::$cached;
     }
 
     private const INSECURE_SALT_PATTERNS = [

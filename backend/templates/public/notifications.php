@@ -120,8 +120,7 @@
         <?php endif; ?>
     </div>
     
-    <script src="/assets/js/auth-client.js"></script>
-    <script src="/assets/js/notifications.js"></script>
+    <script src="/assets/dist/notifications.bundle.js"></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

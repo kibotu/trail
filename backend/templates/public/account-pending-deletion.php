@@ -62,8 +62,7 @@
 
     <div id="snackbar" class="snackbar"></div>
 
-    <script src="/assets/js/auth-client.js"></script>
-    <script src="/assets/js/snackbar.js"></script>
+    <script src="/assets/dist/account-deletion.bundle.js"></script>
     <script>
         document.getElementById('revertDeletionBtn').addEventListener('click', async function() {
             const btn = this;

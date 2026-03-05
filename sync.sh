@@ -94,8 +94,90 @@ composer install --no-dev --optimize-autoloader --no-interaction
 echo -e "${GREEN}✓${NC} Dependencies installed"
 echo ""
 
-# Step 2: Verify vendor directory
-echo -e "${YELLOW}[2/3]${NC} Verifying vendor directory..."
+# Step 2: Bundle JS assets
+echo -e "${YELLOW}[2/5]${NC} Bundling JavaScript assets..."
+
+JS_DIR="$BACKEND_DIR/public/assets/js"
+CSS_DIR="$BACKEND_DIR/public/assets/css"
+DIST_DIR="$BACKEND_DIR/public/assets/dist"
+mkdir -p "$DIST_DIR"
+
+bundle_js() {
+    local output="$1"
+    shift
+    local files=()
+    for f in "$@"; do
+        files+=("$JS_DIR/$f")
+    done
+    cat "${files[@]}" > "$DIST_DIR/$output"
+}
+
+# Landing page: 14 scripts -> 1 bundle
+bundle_js "landing.bundle.js" \
+    auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
+    entries-manager.js infinite-scroll.js celebrations.js image-upload.js \
+    comments-manager.js search-manager.js shader-background.js scroll-to-top.js \
+    notifications.js landing-page.js
+
+# User page: 13 scripts -> 1 bundle
+bundle_js "user.bundle.js" \
+    auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
+    entries-manager.js infinite-scroll.js image-upload.js comments-manager.js \
+    search-manager.js shader-who.js user-profile-manager.js scroll-to-top.js \
+    user-page.js
+
+# Status page: 9 scripts -> 1 bundle
+bundle_js "status.bundle.js" \
+    auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
+    entries-manager.js image-upload.js comments-manager.js meta-updater.js \
+    status-page.js
+
+# Profile page: 7 scripts -> 1 bundle
+bundle_js "profile.bundle.js" \
+    auth-client.js snackbar.js profile-manager.js api-token-manager.js \
+    embed-configurator.js account-manager.js profile-page.js
+
+# Embed page: 8 scripts -> 1 bundle (includes optional modules)
+bundle_js "embed.bundle.js" \
+    config.js snackbar.js card-template.js ui-interactions.js \
+    entries-manager.js infinite-scroll.js user-profile-manager.js \
+    search-manager.js embed-page.js
+
+# Error page: 6 scripts -> 1 bundle
+bundle_js "error.bundle.js" \
+    config.js snackbar.js celebrations.js ui-interactions.js \
+    entries-manager.js error-page.js
+
+# Notifications pages: 2 scripts -> 1 bundle
+bundle_js "notifications.bundle.js" \
+    auth-client.js notifications.js
+
+# Account pending deletion: 2 scripts -> 1 bundle
+bundle_js "account-deletion.bundle.js" \
+    auth-client.js snackbar.js
+
+# Bundle CSS
+cat "$CSS_DIR/main.css" > "$DIST_DIR/main.bundle.css"
+if [ -f "$CSS_DIR/notifications.css" ]; then
+    cat "$CSS_DIR/notifications.css" >> "$DIST_DIR/main.bundle.css"
+fi
+
+# Minify with terser if available (optional, gracefully degrades)
+if command -v terser &> /dev/null; then
+    for bundle in "$DIST_DIR"/*.bundle.js; do
+        terser "$bundle" --compress --mangle -o "$bundle" 2>/dev/null && \
+            echo -e "  ${GREEN}✓${NC} Minified $(basename "$bundle")"
+    done
+else
+    echo -e "  ${YELLOW}⚠${NC} terser not found — bundles not minified (install: npm i -g terser)"
+fi
+
+BUNDLE_COUNT=$(ls -1 "$DIST_DIR"/*.bundle.js 2>/dev/null | wc -l | tr -d ' ')
+echo -e "${GREEN}✓${NC} Created $BUNDLE_COUNT JS bundles in assets/dist/"
+echo ""
+
+# Step 3: Verify vendor directory
+echo -e "${YELLOW}[3/5]${NC} Verifying vendor directory..."
 if [ ! -d "$BACKEND_DIR/vendor" ]; then
     echo -e "${RED}✗ Error: vendor/ directory not found${NC}"
     exit 1
@@ -103,8 +185,8 @@ fi
 echo -e "${GREEN}✓${NC} vendor/ directory verified"
 echo ""
 
-# Step 3: Upload via lftp mirror
-echo -e "${YELLOW}[3/3]${NC} Uploading to FTP server..."
+# Step 4: Upload via lftp mirror
+echo -e "${YELLOW}[4/5]${NC} Uploading to FTP server..."
 echo -e "${BLUE}Production Structure:${NC}"
 echo -e "  FTP Root (not public)"
 echo -e "  ├── public/      → $APP_BASE_URL/"
@@ -205,8 +287,8 @@ else
     exit 1
 fi
 
-# Step 4: Run migrations
-echo -e "${YELLOW}[4/4]${NC} Running database migrations..."
+# Step 5: Run migrations
+echo -e "${YELLOW}[5/5]${NC} Running database migrations..."
 
 # Extract database credentials from secrets.yml (strip quotes if present)
 DB_HOST=$(grep -A 10 "^database:" "$SECRETS_FILE" | grep "host:" | awk '{print $2}' | tr -d '"'"'")

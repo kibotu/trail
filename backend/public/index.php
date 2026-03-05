@@ -130,12 +130,17 @@ $app->get('/', function ($request, $response) use ($config) {
         $html = ob_get_clean();
         $response->getBody()->write($html);
         
-        // Add cache control headers to prevent caching of session-dependent content
+        $response = $response->withHeader('Content-Type', 'text/html');
+
+        if ($isLoggedIn) {
+            return $response
+                ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->withHeader('Pragma', 'no-cache')
+                ->withHeader('Expires', '0');
+        }
+
         return $response
-            ->withHeader('Content-Type', 'text/html')
-            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->withHeader('Pragma', 'no-cache')
-            ->withHeader('Expires', '0');
+            ->withHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
     }
     
     require_once __DIR__ . '/helpers/error.php';
@@ -487,19 +492,21 @@ $app->get('/api/image-proxy/{encoded}', function ($request, $response, array $ar
             return $response->withStatus(404)->withHeader('Content-Type', 'text/plain');
         }
         
-        // Serve the image
-        $imageData = file_get_contents($result['path']);
-        
-        if ($imageData === false) {
+        $filePath = $result['path'];
+        $fileSize = filesize($filePath);
+
+        if ($fileSize === false) {
             $response->getBody()->write('Failed to read cached image');
             return $response->withStatus(500)->withHeader('Content-Type', 'text/plain');
         }
-        
-        $response->getBody()->write($imageData);
-        
+
+        $stream = new \Slim\Psr7\Stream(fopen($filePath, 'rb'));
+
         return $response
+            ->withBody($stream)
             ->withHeader('Content-Type', $result['mime'])
-            ->withHeader('Cache-Control', 'public, max-age=604800') // 7 days
+            ->withHeader('Content-Length', (string) $fileSize)
+            ->withHeader('Cache-Control', 'public, max-age=604800')
             ->withHeader('X-Image-Proxy', $result['cached'] ? 'HIT' : 'MISS');
             
     } catch (\Throwable $e) {

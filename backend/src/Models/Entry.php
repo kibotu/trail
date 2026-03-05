@@ -333,50 +333,51 @@ class Entry
 
     public function delete(int $id): bool
     {
-        // Delete view counts for this entry
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id = ?"
-        );
-        $stmt->execute([$id]);
-        
-        // Delete raw views for this entry
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id = ?"
-        );
-        $stmt->execute([$id]);
-        
-        // Delete claps for this entry
-        $stmt = $this->db->prepare("DELETE FROM trail_claps WHERE entry_id = ?");
-        $stmt->execute([$id]);
-        
-        // Get comment IDs for this entry
-        $commentStmt = $this->db->prepare("SELECT id FROM trail_comments WHERE entry_id = ?");
-        $commentStmt->execute([$id]);
-        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
-        
-        if (!empty($commentIds)) {
-            $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
-            
-            // Delete view counts for comments
+        $this->db->beginTransaction();
+        try {
             $stmt = $this->db->prepare(
-                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+                "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id = ?"
             );
-            $stmt->execute($commentIds);
-            
-            // Delete raw views for comments
+            $stmt->execute([$id]);
+
             $stmt = $this->db->prepare(
-                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+                "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id = ?"
             );
-            $stmt->execute($commentIds);
+            $stmt->execute([$id]);
+
+            $stmt = $this->db->prepare("DELETE FROM trail_claps WHERE entry_id = ?");
+            $stmt->execute([$id]);
+
+            $commentStmt = $this->db->prepare("SELECT id FROM trail_comments WHERE entry_id = ?");
+            $commentStmt->execute([$id]);
+            $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+
+            if (!empty($commentIds)) {
+                $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
+
+                $stmt = $this->db->prepare(
+                    "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+                );
+                $stmt->execute($commentIds);
+
+                $stmt = $this->db->prepare(
+                    "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($placeholders)"
+                );
+                $stmt->execute($commentIds);
+            }
+
+            $stmt = $this->db->prepare("DELETE FROM trail_comments WHERE entry_id = ?");
+            $stmt->execute([$id]);
+
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            $result = $stmt->execute([$id]);
+
+            $this->db->commit();
+            return $result;
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            throw $e;
         }
-        
-        // Delete comments for this entry
-        $stmt = $this->db->prepare("DELETE FROM trail_comments WHERE entry_id = ?");
-        $stmt->execute([$id]);
-        
-        // Finally, delete the entry
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
-        return $stmt->execute([$id]);
     }
 
     public function countByUser(int $userId): int
@@ -411,69 +412,67 @@ class Entry
      */
     public function deleteByUser(int $userId): int
     {
-        // First, get all entry IDs for this user
         $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        
+
         if (empty($entryIds)) {
             return 0;
         }
-        
-        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
-        
-        // Delete view counts for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete raw views for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete claps for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete comments for these entries (and their views)
-        $commentStmt = $this->db->prepare(
-            "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
-        );
-        $commentStmt->execute($entryIds);
-        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
-        
-        if (!empty($commentIds)) {
-            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
-            
-            // Delete view counts for comments
+
+        $this->db->beginTransaction();
+        try {
+            $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+
             $stmt = $this->db->prepare(
-                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
-            );
-            $stmt->execute($commentIds);
-            
-            // Delete raw views for comments
-            $stmt = $this->db->prepare(
-                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
-            );
-            $stmt->execute($commentIds);
-            
-            // Delete the comments themselves
-            $stmt = $this->db->prepare(
-                "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
+                "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
             );
             $stmt->execute($entryIds);
+
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
+            );
+            $stmt->execute($entryIds);
+
+            $stmt = $this->db->prepare(
+                "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
+            );
+            $stmt->execute($entryIds);
+
+            $commentStmt = $this->db->prepare(
+                "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
+            );
+            $commentStmt->execute($entryIds);
+            $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
+
+            if (!empty($commentIds)) {
+                $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
+
+                $stmt = $this->db->prepare(
+                    "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+                );
+                $stmt->execute($commentIds);
+
+                $stmt = $this->db->prepare(
+                    "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
+                );
+                $stmt->execute($commentIds);
+
+                $stmt = $this->db->prepare(
+                    "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
+                );
+                $stmt->execute($entryIds);
+            }
+
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
+            $stmt->execute([$userId]);
+
+            $this->db->commit();
+            return count($entryIds);
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            throw $e;
         }
-        
-        // Finally, delete the entries
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        
-        return count($entryIds);
     }
 
     /**
@@ -486,69 +485,27 @@ class Entry
      */
     public function deleteByUrlPreviewId(int $urlPreviewId): int
     {
-        // First, get all entry IDs with this URL preview
         $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE url_preview_id = ?");
         $stmt->execute([$urlPreviewId]);
         $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        
+
         if (empty($entryIds)) {
             return 0;
         }
-        
-        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
-        
-        // Delete view counts for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete raw views for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete claps for these entries
-        $stmt = $this->db->prepare(
-            "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
-        );
-        $stmt->execute($entryIds);
-        
-        // Delete comments for these entries (and their views)
-        $commentStmt = $this->db->prepare(
-            "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
-        );
-        $commentStmt->execute($entryIds);
-        $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
-        
-        if (!empty($commentIds)) {
-            $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
-            
-            // Delete view counts for comments
-            $stmt = $this->db->prepare(
-                "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
-            );
-            $stmt->execute($commentIds);
-            
-            // Delete raw views for comments
-            $stmt = $this->db->prepare(
-                "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
-            );
-            $stmt->execute($commentIds);
-            
-            // Delete the comments themselves
-            $stmt = $this->db->prepare(
-                "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
-            );
-            $stmt->execute($entryIds);
+
+        $this->db->beginTransaction();
+        try {
+            $this->deleteEntriesAndRelated($entryIds);
+
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id = ?");
+            $stmt->execute([$urlPreviewId]);
+
+            $this->db->commit();
+            return count($entryIds);
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            throw $e;
         }
-        
-        // Finally, delete the entries
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id = ?");
-        $stmt->execute([$urlPreviewId]);
-        
-        return count($entryIds);
     }
 
     /**
@@ -564,73 +521,80 @@ class Entry
         if (empty($urlPreviewIds)) {
             return 0;
         }
-        
+
         $urlPreviewIds = array_map('intval', $urlPreviewIds);
         $previewPlaceholders = implode(',', array_fill(0, count($urlPreviewIds), '?'));
-        
-        // First, get all entry IDs with these URL previews
+
         $stmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE url_preview_id IN ($previewPlaceholders)");
         $stmt->execute($urlPreviewIds);
         $entryIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        
+
         if (empty($entryIds)) {
             return 0;
         }
-        
+
+        $this->db->beginTransaction();
+        try {
+            $this->deleteEntriesAndRelated($entryIds);
+
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id IN ($previewPlaceholders)");
+            $stmt->execute($urlPreviewIds);
+
+            $this->db->commit();
+            return count($entryIds);
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Delete related records (views, claps, comments) for a set of entry IDs.
+     * Must be called within an active transaction.
+     */
+    private function deleteEntriesAndRelated(array $entryIds): void
+    {
         $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
-        
-        // Delete view counts for these entries
+
         $stmt = $this->db->prepare(
             "DELETE FROM trail_view_counts WHERE target_type = 'entry' AND target_id IN ($placeholders)"
         );
         $stmt->execute($entryIds);
-        
-        // Delete raw views for these entries
+
         $stmt = $this->db->prepare(
             "DELETE FROM trail_views WHERE target_type = 'entry' AND target_id IN ($placeholders)"
         );
         $stmt->execute($entryIds);
-        
-        // Delete claps for these entries
+
         $stmt = $this->db->prepare(
             "DELETE FROM trail_claps WHERE entry_id IN ($placeholders)"
         );
         $stmt->execute($entryIds);
-        
-        // Delete comments for these entries (and their views)
+
         $commentStmt = $this->db->prepare(
             "SELECT id FROM trail_comments WHERE entry_id IN ($placeholders)"
         );
         $commentStmt->execute($entryIds);
         $commentIds = $commentStmt->fetchAll(\PDO::FETCH_COLUMN);
-        
+
         if (!empty($commentIds)) {
             $commentPlaceholders = implode(',', array_fill(0, count($commentIds), '?'));
-            
-            // Delete view counts for comments
+
             $stmt = $this->db->prepare(
                 "DELETE FROM trail_view_counts WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
             );
             $stmt->execute($commentIds);
-            
-            // Delete raw views for comments
+
             $stmt = $this->db->prepare(
                 "DELETE FROM trail_views WHERE target_type = 'comment' AND target_id IN ($commentPlaceholders)"
             );
             $stmt->execute($commentIds);
-            
-            // Delete the comments themselves
+
             $stmt = $this->db->prepare(
                 "DELETE FROM trail_comments WHERE entry_id IN ($placeholders)"
             );
             $stmt->execute($entryIds);
         }
-        
-        // Finally, delete the entries
-        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE url_preview_id IN ($previewPlaceholders)");
-        $stmt->execute($urlPreviewIds);
-        
-        return count($entryIds);
     }
 
     /**
@@ -698,15 +662,9 @@ class Entry
     private function attachImageUrls(array $entry): array
     {
         try {
-            // Debug: Log if image_ids exists
-            if (isset($entry['image_ids'])) {
-                error_log("Entry {$entry['id']} has image_ids: " . $entry['image_ids']);
-            }
-            
             if (!empty($entry['image_ids'])) {
                 $imageIds = json_decode($entry['image_ids'], true);
-                error_log("Decoded image_ids for entry {$entry['id']}: " . json_encode($imageIds));
-                
+
                 if (is_array($imageIds) && !empty($imageIds)) {
                     $placeholders = implode(',', array_fill(0, count($imageIds), '?'));
                     $stmt = $this->db->prepare("
@@ -717,9 +675,7 @@ class Entry
                     ");
                     $stmt->execute(array_merge($imageIds, $imageIds));
                     $images = $stmt->fetchAll();
-                    
-                    error_log("Found " . count($images) . " images for entry {$entry['id']}");
-                    
+
                     $entry['images'] = array_map(function($img) {
                         return [
                             'id' => $img['id'],
@@ -733,13 +689,86 @@ class Entry
                 }
             }
         } catch (\PDOException $e) {
-            // Fallback if trail_images table doesn't exist yet
-            error_log("attachImageUrls error (table may not exist): " . $e->getMessage());
+            error_log("attachImageUrls error: " . $e->getMessage());
         }
-        
+
         return $entry;
     }
     
+    /**
+     * Batch-attach image URLs to multiple entries (single query instead of N+1)
+     */
+    private function attachImagesToEntries(array $entries): array
+    {
+        if (empty($entries)) {
+            return $entries;
+        }
+
+        try {
+            $allImageIds = [];
+            foreach ($entries as $entry) {
+                if (!empty($entry['image_ids'])) {
+                    $ids = json_decode($entry['image_ids'], true);
+                    if (is_array($ids)) {
+                        $allImageIds = array_merge($allImageIds, $ids);
+                    }
+                }
+            }
+
+            $allImageIds = array_unique(array_map('intval', $allImageIds));
+
+            if (empty($allImageIds)) {
+                foreach ($entries as &$entry) {
+                    $entry['images'] = $entry['images'] ?? [];
+                }
+                return $entries;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($allImageIds), '?'));
+            $stmt = $this->db->prepare("
+                SELECT id, filename, user_id, width, height, file_size, mime_type
+                FROM trail_images
+                WHERE id IN ($placeholders)
+            ");
+            $stmt->execute(array_values($allImageIds));
+            $rows = $stmt->fetchAll();
+
+            $imageMap = [];
+            foreach ($rows as $img) {
+                $imageMap[(int) $img['id']] = [
+                    'id' => $img['id'],
+                    'url' => '/uploads/images/' . $img['user_id'] . '/' . $img['filename'],
+                    'width' => $img['width'],
+                    'height' => $img['height'],
+                    'file_size' => $img['file_size'],
+                    'mime_type' => $img['mime_type'] ?? null
+                ];
+            }
+
+            foreach ($entries as &$entry) {
+                $entry['images'] = [];
+                if (!empty($entry['image_ids'])) {
+                    $ids = json_decode($entry['image_ids'], true);
+                    if (is_array($ids)) {
+                        foreach ($ids as $id) {
+                            if (isset($imageMap[(int) $id])) {
+                                $entry['images'][] = $imageMap[(int) $id];
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $entries;
+        } catch (\PDOException $e) {
+            error_log("attachImagesToEntries error: " . $e->getMessage());
+            foreach ($entries as &$entry) {
+                $entry['images'] = $entry['images'] ?? [];
+            }
+            return $entries;
+        }
+    }
+
     /**
      * Attach tags to multiple entries (batch fetch for performance)
      */
@@ -783,7 +812,7 @@ class Entry
     public function getAllWithImages(int $limit = 50, ?string $before = null, ?int $offset = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?string $sourceFilter = null, ?int $tagFilter = null, bool $includeDeleted = false): array
     {
         $entries = $this->getAll($limit, $before, $offset, $excludeUserId, $excludeEntryIds, $currentUserId, $sourceFilter, $tagFilter, $includeDeleted);
-        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
     
@@ -793,7 +822,7 @@ class Entry
     public function getByUserWithImages(int $userId, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $entries = $this->getByUser($userId, $limit, $before, $currentUserId);
-        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
 
@@ -1023,7 +1052,7 @@ class Entry
     public function searchAllWithImages(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
         $entries = $this->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
-        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
 
@@ -1033,7 +1062,7 @@ class Entry
     public function searchByUserWithImages(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId);
-        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
 
@@ -1079,7 +1108,7 @@ class Entry
         
         // Exclude muted users if user is authenticated
         if ($excludeUserId !== null) {
-            $whereConditions[] = "e.user_id NOT IN (SELECT muted_user_id FROM trail_mutes WHERE user_id = ?)";
+            $whereConditions[] = "e.user_id NOT IN (SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?)";
             $params[] = $excludeUserId;
         }
         
@@ -1190,7 +1219,7 @@ class Entry
     public function searchByTagSlugWithImages(string $tagSlug, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
     {
         $entries = $this->searchByTagSlug($tagSlug, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
-        $entries = array_map([$this, 'attachImageUrls'], $entries);
+        $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
 

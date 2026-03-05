@@ -3,3 +3,4 @@
 secrets.yml
 storage/preview-cache/*.png
 storage/temp/
+public/assets/dist/

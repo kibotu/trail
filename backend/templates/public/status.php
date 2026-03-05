@@ -91,19 +91,7 @@
         </div>
     </main>
 
-    <!-- Core JavaScript Modules -->
-    <script src="/assets/js/auth-client.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/snackbar.js"></script>
-    <script src="/assets/js/card-template.js"></script>
-    <script src="/assets/js/ui-interactions.js"></script>
-    <script src="/assets/js/entries-manager.js"></script>
-    <script src="/assets/js/image-upload.js"></script>
-    <script src="/assets/js/comments-manager.js"></script>
-    <script src="/assets/js/meta-updater.js"></script>
-    
-    <!-- Page Initialization -->
-    <script src="/assets/js/status-page.js"></script>
+    <script src="/assets/dist/status.bundle.js"></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

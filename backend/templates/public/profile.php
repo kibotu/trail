@@ -375,16 +375,7 @@
         </div>
     </div>
 
-    <!-- Core JavaScript Modules -->
-    <script src="/assets/js/auth-client.js"></script>
-    <script src="/assets/js/snackbar.js"></script>
-    <script src="/assets/js/profile-manager.js"></script>
-    <script src="/assets/js/api-token-manager.js"></script>
-    <script src="/assets/js/embed-configurator.js"></script>
-    <script src="/assets/js/account-manager.js"></script>
-    
-    <!-- Page Initialization -->
-    <script src="/assets/js/profile-page.js"></script>
+    <script src="/assets/dist/profile.bundle.js"></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

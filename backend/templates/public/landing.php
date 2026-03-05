@@ -144,26 +144,7 @@
         </div>
     </main>
 
-    <!-- Core JavaScript Modules -->
-    <script src="/assets/js/auth-client.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/snackbar.js"></script>
-    <script src="/assets/js/card-template.js"></script>
-    <script src="/assets/js/ui-interactions.js"></script>
-    <script src="/assets/js/entries-manager.js"></script>
-    <script src="/assets/js/infinite-scroll.js"></script>
-    <script src="/assets/js/celebrations.js"></script>
-    <script src="/assets/js/image-upload.js"></script>
-    <script src="/assets/js/comments-manager.js"></script>
-    <script src="/assets/js/search-manager.js"></script>
-    <script src="/assets/js/shader-background.js"></script>
-    <script src="/assets/js/scroll-to-top.js"></script>
-    <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
-    <script src="/assets/js/notifications.js"></script>
-    <?php endif; ?>
-    
-    <!-- Page Initialization -->
-    <script src="/assets/js/landing-page.js"></script>
+    <script src="/assets/dist/landing.bundle.js"></script>
 
     <footer class="site-footer">
         <div class="site-footer-links">

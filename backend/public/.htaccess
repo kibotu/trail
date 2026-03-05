@@ -238,7 +238,7 @@ ServerSignature Off
 # 14. Compression (Performance)
 # ============================================
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/rss+xml application/atom+xml application/xml
 </IfModule>
 
 # ============================================
@@ -262,9 +262,22 @@ ServerSignature Off
     ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/avif "access plus 1 year"
     
-    # Other assets
-    ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
+    # CSS/JS: 1 day cache, always revalidate via ETag
+    ExpiresByType text/css "access plus 1 day"
+    ExpiresByType application/javascript "access plus 1 day"
+    
     ExpiresByType application/pdf "access plus 1 month"
     ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ============================================
+# 16. ETag Validation for CSS/JS Assets
+# ============================================
+<IfModule mod_headers.c>
+    # Enable ETag generation (Apache default uses inode+size+mtime)
+    FileETag MTime Size
+
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=86400, must-revalidate"
+    </FilesMatch>
 </IfModule>

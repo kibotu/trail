@@ -75,18 +75,6 @@
         </a>
     </div>
 
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/snackbar.js"></script>
-    <script src="/assets/js/card-template.js"></script>
-    <script src="/assets/js/ui-interactions.js"></script>
-    <script src="/assets/js/entries-manager.js"></script>
-    <script src="/assets/js/infinite-scroll.js"></script>
-    <?php if ($showHeader === '1'): ?>
-    <script src="/assets/js/user-profile-manager.js"></script>
-    <?php endif; ?>
-    <?php if ($showSearch === '1'): ?>
-    <script src="/assets/js/search-manager.js"></script>
-    <?php endif; ?>
-    <script src="/assets/js/embed-page.js"></script>
+    <script src="/assets/dist/embed.bundle.js"></script>
 </body>
 </html>

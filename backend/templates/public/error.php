@@ -80,15 +80,7 @@ $errorMessage = $errorInfo['message'];
 
 </div>
 
-<!-- Core JavaScript Modules -->
-<script src="/assets/js/config.js"></script>
-<script src="/assets/js/snackbar.js"></script>
-<script src="/assets/js/celebrations.js"></script>
-<script src="/assets/js/ui-interactions.js"></script>
-<script src="/assets/js/entries-manager.js"></script>
-
-<!-- Page Initialization -->
-<script src="/assets/js/error-page.js"></script>
+<script src="/assets/dist/error.bundle.js"></script>
 
 <footer class="site-footer">
     <div class="site-footer-links">
