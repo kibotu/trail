@@ -23,7 +23,8 @@ data class ProfileScreenState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isUpdating: Boolean = false,
-    val isExporting: Boolean = false
+    val isExporting: Boolean = false,
+    val isSendingFeedback: Boolean = false
 )
 
 class ProfileViewModel(
@@ -98,6 +99,21 @@ class ProfileViewModel(
                 },
                 onFailure = {
                     state.value = state.value.copy(isExporting = false, error = it.message)
+                }
+            )
+        }
+    }
+
+    fun submitFeedback(text: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            state.value = state.value.copy(isSendingFeedback = true)
+            profileRepository.sendFeedback(text).fold(
+                onSuccess = {
+                    state.value = state.value.copy(isSendingFeedback = false)
+                    onSuccess()
+                },
+                onFailure = {
+                    state.value = state.value.copy(isSendingFeedback = false, error = it.message)
                 }
             )
         }

@@ -1,6 +1,5 @@
 package net.kibotu.trail.feature.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +35,6 @@ import androidx.compose.ui.draw.clip
 
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -44,10 +42,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
 import kotlinx.coroutines.launch
-import net.kibotu.trail.R
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.profile.ProfileRepository
 import java.time.LocalDate
@@ -116,8 +115,8 @@ fun DeletionBlockerScreen(
                         .padding(top = 24.dp, bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.undo_delete_whale),
+                    AsyncImage(
+                        model = "${BuildConfig.API_BASE_URL}assets/undo-delete-whale.png",
                         contentDescription = "Changed your mind?",
                         modifier = Modifier
                             .fillMaxWidth(0.65f),

@@ -2,9 +2,9 @@ package net.kibotu.trail.feature.auth
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
@@ -28,9 +28,11 @@ import androidx.credentials.exceptions.GetCredentialCustomException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import coil3.compose.AsyncImage
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.R
 import timber.log.Timber
 import java.security.SecureRandom
@@ -60,11 +62,13 @@ fun LoginScreen(
                 if (isLoading) {
                     CircularProgressIndicator()
                 } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.login_whale),
+                    AsyncImage(
+                        model = "${BuildConfig.API_BASE_URL}assets/login-whale.png",
                         contentDescription = "Log in with Google",
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
+                            .aspectRatio(1f)
                             .clickable {
                                 coroutineScope.launch {
                                     val idToken = performGoogleSignIn(context, webClientId)

@@ -349,6 +349,167 @@ class ProfileController
     }
 
     /**
+     * Submit feedback via email to contact@kibotu.net (security-hardened)
+     */
+    public static function submitFeedback(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $userId = (int) $request->getAttribute('user_id');
+
+        if (!$userId) {
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $userModel = new User($db);
+
+        $user = $userModel->findById($userId);
+        if (!$user) {
+            $response->getBody()->write(json_encode(['error' => 'User not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        if (!empty($user['deletion_requested_at'])) {
+            $response->getBody()->write(json_encode(['error' => 'Account pending deletion']));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
+        }
+
+        $createdAt = strtotime($user['created_at']);
+        if ((time() - $createdAt) < 3600) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Please wait a bit before sending feedback. New accounts have a short cooldown.'
+            ]));
+            return $response->withStatus(429)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Ensure feedback log table exists
+        $db->exec("CREATE TABLE IF NOT EXISTS trail_feedback_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            ip_hash VARCHAR(64) NOT NULL,
+            text_length INT NOT NULL,
+            created_at DATETIME NOT NULL,
+            INDEX idx_user_daily (user_id, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Per-user daily rate limit (DB-backed, survives restarts)
+        $stmt = $db->prepare(
+            "SELECT COUNT(*) FROM trail_feedback_log
+             WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+        $stmt->execute([$userId]);
+        $dailyCount = (int) $stmt->fetchColumn();
+
+        if ($dailyCount >= 3) {
+            $response->getBody()->write(json_encode([
+                'error' => 'You can send up to 3 feedback messages per day. Try again tomorrow!'
+            ]));
+            return $response->withStatus(429)->withHeader('Content-Type', 'application/json');
+        }
+
+        $body = json_decode((string) $request->getBody(), true);
+        $text = trim($body['text'] ?? '');
+
+        if (empty($text)) {
+            $response->getBody()->write(json_encode(['error' => 'Feedback text is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+        if (mb_strlen($text) < 10) {
+            $response->getBody()->write(json_encode(['error' => 'Please write at least 10 characters']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+        if (mb_strlen($text) > 5000) {
+            $response->getBody()->write(json_encode(['error' => 'Feedback is too long (max 5000 characters)']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $sanitizedText = self::sanitizeFeedbackText($text);
+
+        if (mb_strlen($sanitizedText) < 10) {
+            $response->getBody()->write(json_encode(['error' => 'Feedback contains too little readable text']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $contactEmail = 'contact@kibotu.net';
+        $baseUrl = $config['app']['base_url'] ?? '';
+
+        $emailService = new EmailService($contactEmail, $baseUrl);
+        $emailService->sendFeedbackNotification($user, $sanitizedText);
+
+        $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
+            ?? $_SERVER['REMOTE_ADDR']
+            ?? 'unknown';
+
+        $stmt = $db->prepare(
+            "INSERT INTO trail_feedback_log (user_id, ip_hash, text_length, created_at)
+             VALUES (?, ?, ?, NOW())"
+        );
+        $stmt->execute([
+            $userId,
+            hash('sha256', $ip),
+            mb_strlen($text)
+        ]);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => 'Feedback received'
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private static function sanitizeFeedbackText(string $text): string
+    {
+        $text = strip_tags($text);
+
+        // Null bytes
+        $text = str_replace("\0", '', $text);
+
+        // Strip invisible/harmful Unicode but preserve emoji-critical codepoints:
+        //   U+200D (ZWJ) -- compound emojis like 👨‍👩‍👧‍👦
+        //   U+FE0E/U+FE0F (variation selectors) -- emoji vs text presentation (❤ → ❤️)
+        $text = preg_replace('/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{007F}-\x{009F}'
+            . '\x{00AD}'        // soft hyphen
+            . '\x{034F}'        // combining grapheme joiner
+            . '\x{061C}'        // arabic letter mark
+            . '\x{115F}\x{1160}'// hangul fillers
+            . '\x{17B4}\x{17B5}'// khmer inherent vowels
+            . '\x{180E}'        // mongolian vowel separator
+            . '\x{200B}\x{200C}' // zero-width space, ZWNJ (keep U+200D ZWJ for emojis)
+            . '\x{200E}\x{200F}' // LRM, RLM
+            . '\x{202A}-\x{202E}' // BiDi embedding/override
+            . '\x{2060}-\x{2064}' // word joiner, invisible operators
+            . '\x{2066}-\x{2069}' // BiDi isolates
+            . '\x{206A}-\x{206F}' // deprecated formatting chars
+            . '\x{FE00}-\x{FE0D}' // variation selectors 1-14 (keep U+FE0E text, U+FE0F emoji presentation)
+            . '\x{FEFF}'        // BOM / zero-width no-break space
+            . '\x{FFF0}-\x{FFF8}' // specials
+            . '\x{FFFA}-\x{FFFB}' // interlinear annotation anchors
+            . '\x{FFFC}\x{FFFD}'// object replacement, replacement character
+            . '\x{E0001}'       // language tag
+            . '\x{E0020}-\x{E007F}' // tag space..cancel tag
+            . '\x{E01F0}-\x{E0FFF}' // variation selectors supplement
+            . ']/u', '', $text) ?? $text;
+
+        // Collapse excessive newlines (3+ -> 2)
+        $text = preg_replace('/\n{3,}/', "\n\n", $text) ?? $text;
+
+        // Collapse excessive spaces on a single line (but keep indentation reasonable)
+        $text = preg_replace('/[^\S\n]{4,}/', '   ', $text) ?? $text;
+
+        // Trim each line
+        $text = implode("\n", array_map('trim', explode("\n", $text)));
+
+        // Final trim
+        $text = trim($text);
+
+        // HTML-encode for safe embedding in email HTML
+        $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+
+        return $text;
+    }
+
+    /**
      * Export all user data as a self-contained HTML file (GDPR Art. 20 data portability)
      */
     public static function exportData(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

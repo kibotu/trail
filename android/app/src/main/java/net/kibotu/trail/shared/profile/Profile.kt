@@ -74,3 +74,9 @@ data class RevertDeletionResponse(
     val success: Boolean,
     val message: String? = null
 )
+
+@Serializable
+data class FeedbackResponse(
+    val success: Boolean,
+    val message: String? = null
+)

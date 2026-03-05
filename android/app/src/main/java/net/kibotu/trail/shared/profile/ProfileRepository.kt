@@ -34,4 +34,11 @@ class ProfileRepository(private val client: HttpClient) {
     suspend fun revertDeletion(): Result<RevertDeletionResponse> = runCatching {
         client.post("api/profile/revert-deletion").body()
     }
+
+    suspend fun sendFeedback(text: String): Result<FeedbackResponse> = runCatching {
+        client.post("api/feedback") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("text" to text))
+        }.body()
+    }
 }

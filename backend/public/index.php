@@ -430,6 +430,11 @@ $app->post('/api/profile/delete', [ProfileController::class, 'requestDeletion'])
 $app->post('/api/profile/revert-deletion', [ProfileController::class, 'revertDeletion'])->add(new AuthMiddleware($config));
 $app->get('/api/profile/export', [ProfileController::class, 'exportData'])->add(new AuthMiddleware($config));
 
+// Feedback route (authenticated, tightly rate-limited)
+$app->post('/api/feedback', [ProfileController::class, 'submitFeedback'])
+    ->add(new AuthMiddleware($config))
+    ->add(new RateLimitMiddleware(3, 3600, $rateLimitEnabled));
+
 // API Token routes (authenticated)
 $app->get('/api/token', [\Trail\Controllers\ApiTokenController::class, 'getToken'])->add(new AuthMiddleware($config));
 $app->post('/api/token/regenerate', [\Trail\Controllers\ApiTokenController::class, 'regenerateToken'])->add(new AuthMiddleware($config));

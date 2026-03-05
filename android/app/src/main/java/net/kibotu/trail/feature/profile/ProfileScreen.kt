@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,11 +32,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +48,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -66,7 +68,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,7 +82,6 @@ import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
 import net.kibotu.trail.BuildConfig
-import net.kibotu.trail.R
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.shared.profile.ProfileEntry
@@ -609,6 +609,53 @@ fun ProfileScreen(
             }
         }
 
+        // ── Got Feedback? ────────────────────────────────────────────────
+        item(key = "feedback") {
+            var showFeedbackDialog by remember { mutableStateOf(false) }
+
+            SectionCard(
+                title = "Got Feedback?",
+                icon = FaIcons.CommentDots,
+                iconTint = Color(0xFF26A69A)
+            ) {
+                Text(
+                    "Bug reports, feature ideas, wild suggestions \u2014 we read every single one.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = { showFeedbackDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    FaIcon(FaIcons.PaperPlane, size = 14.dp, tint = MaterialTheme.colorScheme.onPrimary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Share Your Thoughts")
+                }
+            }
+
+            if (showFeedbackDialog) {
+                FeedbackDialog(
+                    userEmail = profile.email,
+                    themePreferences = themePreferences,
+                    isSending = profileState.isSendingFeedback,
+                    onDismiss = { showFeedbackDialog = false },
+                    onSubmit = { text ->
+                        viewModel.submitFeedback(text) {
+                            themePreferences.clearFeedbackDraft()
+                            showFeedbackDialog = false
+                            Toast.makeText(
+                                context,
+                                "Thanks! Your feedback just made a whale very happy.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                )
+            }
+        }
+
         // ── Your Data ────────────────────────────────────────────────────
         item(key = "your_data") {
             SectionCard(
@@ -749,8 +796,8 @@ fun ProfileScreen(
                                     .padding(top = 16.dp, bottom = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = painterResource(R.drawable.delete_whale),
+                                AsyncImage(
+                                    model = "${BuildConfig.API_BASE_URL}assets/delete-whale.png",
                                     contentDescription = "Are you sure you want to say goodbye?",
                                     modifier = Modifier.fillMaxWidth(0.7f),
                                     contentScale = ContentScale.FillWidth
@@ -942,6 +989,184 @@ private fun TopEntryRow(
                 fontWeight = FontWeight.SemiBold,
                 color = statColor
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FeedbackDialog(
+    userEmail: String?,
+    themePreferences: ThemePreferences,
+    isSending: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit
+) {
+    val feedbackDraft by themePreferences.feedbackDraft.collectAsState()
+    var text by remember { mutableStateOf(feedbackDraft) }
+    val maxChars = 5000
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .padding(top = 16.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = "${BuildConfig.API_BASE_URL}assets/feedback-whale.png",
+                        contentDescription = "Got Feedback?",
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        contentScale = ContentScale.FillWidth
+                    )
+                }
+
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        "Whether it\u2019s a brilliant idea, a pesky bug, or just a compliment to make our day \u2014 we\u2019re all ears (and fins).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val categories = listOf(
+                        "\uD83D\uDCA1 Feature Request" to "Feature Request: ",
+                        "\uD83D\uDC1B Bug Report" to "Bug Report: ",
+                        "\uD83D\uDC4B Just Saying Hi" to "Just wanted to say: "
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        categories.forEach { (label, prefix) ->
+                            AssistChip(
+                                onClick = {
+                                    if (!text.startsWith(prefix)) {
+                                        text = prefix
+                                        themePreferences.setFeedbackDraft(text)
+                                    }
+                                },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = {
+                            if (it.length <= maxChars) {
+                                text = it
+                                themePreferences.setFeedbackDraft(it)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("What's on your mind?") },
+                        minLines = 3,
+                        maxLines = 6,
+                        shape = RoundedCornerShape(12.dp),
+                        trailingIcon = {
+                            if (text.isNotBlank()) {
+                                IconButton(onClick = {
+                                    text = ""
+                                    themePreferences.clearFeedbackDraft()
+                                }) {
+                                    Icon(
+                                        Icons.Default.Clear,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            "${text.length} / $maxChars",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+
+                    userEmail?.let { email ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                "Sending as $email",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = { onSubmit(text) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = text.isNotBlank() && text.length >= 10 && !isSending
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                FaIcon(FaIcons.PaperPlane, size = 12.dp, tint = MaterialTheme.colorScheme.onPrimary)
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Send")
+                        }
+                    }
+                }
+            }
         }
     }
 }

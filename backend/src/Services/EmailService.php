@@ -709,6 +709,145 @@ TEXT;
     }
 
     /**
+     * Send feedback notification email to contact@kibotu.net with user's Reply-To
+     */
+    public function sendFeedbackNotification(array $user, string $feedbackText): bool
+    {
+        $rawName = $user['name'] ?? 'Unknown';
+        $rawNickname = $user['nickname'] ?? $user['name'] ?? 'Unknown';
+        $userName = htmlspecialchars($rawName, ENT_QUOTES, 'UTF-8');
+        $userEmail = $user['email'] ?? '';
+        $userEmailHtml = htmlspecialchars($userEmail, ENT_QUOTES, 'UTF-8');
+        $userNickname = htmlspecialchars($rawNickname, ENT_QUOTES, 'UTF-8');
+        $userId = (int) ($user['id'] ?? 0);
+        $submittedAt = date('M j, Y \a\t g:i A');
+        $profileUrl = $this->baseUrl . '/@' . ($user['nickname'] ?? '');
+
+        $plainFeedback = html_entity_decode($feedbackText, ENT_QUOTES, 'UTF-8');
+        $quotedFeedbackPlain = implode("\n", array_map(fn($line) => '> ' . $line, explode("\n", $plainFeedback)));
+
+        $subject = '=?UTF-8?B?' . base64_encode("Trail Feedback from @{$rawNickname}") . '?=';
+
+        // The email is structured so the TOP is user-facing (clean when quoted in a reply)
+        // and admin metadata goes BELOW the feedback (buried in the reply quote).
+
+        $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Feedback</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .feedback-content { background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 4px; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
+        .admin-section { margin-top: 32px; padding-top: 20px; border-top: 2px solid #e5e7eb; }
+        .admin-section h3 { font-size: 13px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0; }
+        .admin-meta { background-color: #f9fafb; padding: 12px 16px; border-radius: 6px; font-size: 12px; color: #6b7280; line-height: 1.8; }
+        .admin-meta strong { color: #374151; }
+        .action-button { display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>Hi {$userName},</p>
+        <p>Thanks for your feedback on Trail!</p>
+
+        <div class="feedback-content">{$feedbackText}</div>
+
+        <p>Cheers,<br>Jan</p>
+
+        <div class="admin-section">
+            <h3>Admin Info</h3>
+            <div class="admin-meta">
+                <strong>From:</strong> {$userName} (@{$userNickname})<br>
+                <strong>Email:</strong> {$userEmailHtml}<br>
+                <strong>User ID:</strong> #{$userId}<br>
+                <strong>Submitted:</strong> {$submittedAt}<br>
+                <a href="{$profileUrl}" class="action-button">View Profile &rarr;</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+        $textBody = <<<TEXT
+Hi {$rawName},
+
+Thanks for your feedback on Trail!
+
+{$quotedFeedbackPlain}
+
+Cheers,
+Jan
+
+---
+Admin Info
+From: {$rawName} (@{$rawNickname})
+Email: {$userEmail}
+User ID: #{$userId}
+Submitted: {$submittedAt}
+Profile: {$profileUrl}
+TEXT;
+
+        $replyTo = null;
+        if (!empty($userEmail) &&
+            filter_var($userEmail, FILTER_VALIDATE_EMAIL) &&
+            !preg_match('/[\r\n]/', $userEmail)) {
+            $replyTo = $userEmail;
+        }
+
+        return $this->sendEmailWithReplyTo($this->adminEmail, $subject, $htmlBody, $textBody, $replyTo);
+    }
+
+    /**
+     * Send email with custom Reply-To header
+     */
+    private function sendEmailWithReplyTo(string $to, string $subject, string $htmlBody, string $textBody, ?string $replyTo = null): bool
+    {
+        $replyToHeader = $replyTo ?? 'noreply@trail.services.kibotu.net';
+
+        $boundary = md5(uniqid((string)time()));
+
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
+            'From: Trail Feedback <noreply@trail.services.kibotu.net>',
+            'Reply-To: ' . $replyToHeader,
+            'X-Mailer: PHP/' . phpversion()
+        ];
+
+        $message = "--{$boundary}\r\n";
+        $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+        $message .= $textBody . "\r\n\r\n";
+
+        $message .= "--{$boundary}\r\n";
+        $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+        $message .= $htmlBody . "\r\n\r\n";
+
+        $message .= "--{$boundary}--";
+
+        try {
+            $result = mail($to, $subject, $message, implode("\r\n", $headers));
+
+            if (!$result) {
+                error_log("EmailService: Failed to send feedback email to {$to}");
+                return false;
+            }
+
+            error_log("EmailService: Successfully sent feedback email to {$to}");
+            return true;
+        } catch (\Throwable $e) {
+            error_log("EmailService: Exception sending feedback email: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Send email using PHP mail() function
      */
     private function sendEmail(string $to, string $subject, string $htmlBody, string $textBody): bool
