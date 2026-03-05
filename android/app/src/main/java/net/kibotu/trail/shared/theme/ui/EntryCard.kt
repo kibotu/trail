@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
@@ -522,9 +523,10 @@ fun LinkPreviewCard(
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = "Link preview image",
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
+                        .height(180.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                 )
             }

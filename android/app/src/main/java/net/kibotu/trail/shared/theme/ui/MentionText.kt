@@ -36,13 +36,13 @@ fun MentionText(
     val textColor = MaterialTheme.colorScheme.onSurface
 
     val segments = mutableListOf<TextSegment>()
-    mentionRegex.findAll(text).forEach { match ->
-        segments.add(TextSegment(match.range.first, match.range.last + 1, "mention", match.groupValues[1]))
-    }
     urlRegex.findAll(text).forEach { match ->
+        segments.add(TextSegment(match.range.first, match.range.last + 1, "url", match.value))
+    }
+    mentionRegex.findAll(text).forEach { match ->
         val overlaps = segments.any { it.start < match.range.last + 1 && match.range.first < it.end }
         if (!overlaps) {
-            segments.add(TextSegment(match.range.first, match.range.last + 1, "url", match.value))
+            segments.add(TextSegment(match.range.first, match.range.last + 1, "mention", match.groupValues[1]))
         }
     }
     segments.sortBy { it.start }
