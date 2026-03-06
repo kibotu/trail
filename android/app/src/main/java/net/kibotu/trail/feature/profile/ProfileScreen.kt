@@ -1,8 +1,10 @@
 package net.kibotu.trail.feature.profile
 
+import android.content.ClipData
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -58,6 +60,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,9 +69,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,7 +113,8 @@ fun ProfileScreen(
     val profileState by viewModel.state.collectAsState()
     val isDarkTheme by themePreferences.isDarkTheme.collectAsState()
     val showEntryTags by themePreferences.showEntryTags.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     if (profileState.isLoading) {
@@ -543,7 +547,9 @@ fun ProfileScreen(
                                 ) {
                                     OutlinedButton(
                                         onClick = {
-                                            clipboardManager.setText(AnnotatedString(embedUrl))
+                                            scope.launch {
+                                                clipboard.setClip(ClipData.newPlainText("Embed URL", embedUrl).toClipEntry())
+                                            }
                                             Toast.makeText(context, "Embed URL copied", Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.weight(1f),
@@ -555,7 +561,9 @@ fun ProfileScreen(
                                     }
                                     OutlinedButton(
                                         onClick = {
-                                            clipboardManager.setText(AnnotatedString(htmlSnippet))
+                                            scope.launch {
+                                                clipboard.setClip(ClipData.newPlainText("HTML Snippet", htmlSnippet).toClipEntry())
+                                            }
                                             Toast.makeText(context, "HTML snippet copied", Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.weight(1f),
