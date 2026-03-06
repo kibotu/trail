@@ -68,7 +68,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
-import net.kibotu.trail.shared.review.findActivity
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
 
@@ -148,14 +147,6 @@ fun ShareScreen(
                 onSuccess = {
                     timber.log.Timber.d("──── ShareScreen: entry created successfully ────")
                     inAppReviewManager.markHasPosted()
-                    val activity = context.findActivity()
-                    if (activity != null) {
-                        timber.log.Timber.d("ShareScreen: found activity, calling promptIfEligible")
-                        inAppReviewManager.promptIfEligible(activity)
-                    } else {
-                        timber.log.Timber.w("ShareScreen: findActivity() returned null! Review skipped")
-                    }
-                    timber.log.Timber.d("ShareScreen: calling onShareSuccess (navigating away)")
                     onShareSuccess()
                 },
                 onFailure = { e ->

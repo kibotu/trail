@@ -8,12 +8,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.android.play.core.review.ReviewManagerFactory
+import com.google.android.play.core.review.testing.FakeReviewManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
+import net.kibotu.trail.BuildConfig
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -48,13 +49,11 @@ class InAppReviewManager(private val context: Context) {
 
         val hasPosted = prefs[KEY_HAS_POSTED] == true
         val reviewCompleted = prefs[KEY_REVIEW_COMPLETED] == true
-        val promptCount = prefs[KEY_PROMPT_COUNT] ?: 0
         val lastTimestamp = prefs[KEY_LAST_PROMPT_TIMESTAMP] ?: 0L
         val lastDate = if (lastTimestamp > 0) DATE_FORMAT.format(Date(lastTimestamp)) else "never"
 
         Timber.d("│ hasPosted=%s", hasPosted)
         Timber.d("│ reviewCompleted=%s", reviewCompleted)
-        Timber.d("│ promptCount=%d/%d", promptCount, MAX_PROMPT_ATTEMPTS)
         Timber.d("│ lastPrompt=%s (ts=%d)", lastDate, lastTimestamp)
 
         if (reviewCompleted) {
@@ -64,12 +63,6 @@ class InAppReviewManager(private val context: Context) {
 
         if (!hasPosted) {
             Timber.d("└─→ false (user has never posted)")
-            return false
-        }
-
-        if (promptCount >= MAX_PROMPT_ATTEMPTS) {
-            context.reviewDataStore.edit { it[KEY_REVIEW_COMPLETED] = true }
-            Timber.d("└─→ false (max attempts reached, now marking completed)")
             return false
         }
 
@@ -111,8 +104,12 @@ class InAppReviewManager(private val context: Context) {
         }
 
         try {
-            Timber.d("│ Creating ReviewManager with activity context...")
-            val reviewManager = ReviewManagerFactory.create(activity)
+            Timber.d("│ Creating ReviewManager with activity context (debug=%s)...", BuildConfig.DEBUG)
+            val reviewManager = if (BuildConfig.DEBUG) {
+                FakeReviewManager(activity)
+            } else {
+                ReviewManagerFactory.create(activity)
+            }
             Timber.d("│ ReviewManager created: %s", reviewManager.javaClass.simpleName)
 
             Timber.d("│ Calling requestReviewFlow()...")
@@ -135,9 +132,7 @@ class InAppReviewManager(private val context: Context) {
     private suspend fun recordPromptAttempt() {
         context.reviewDataStore.edit { prefs ->
             prefs[KEY_LAST_PROMPT_TIMESTAMP] = System.currentTimeMillis()
-            val count = (prefs[KEY_PROMPT_COUNT] ?: 0) + 1
-            prefs[KEY_PROMPT_COUNT] = count
-            Timber.d("│ Prompt attempt #%d/%d recorded at %s", count, MAX_PROMPT_ATTEMPTS, DATE_FORMAT.format(Date()))
+            Timber.d("│ Prompt attempt recorded at %s", DATE_FORMAT.format(Date()))
         }
     }
 
@@ -147,7 +142,6 @@ class InAppReviewManager(private val context: Context) {
         Timber.d("┌─── Review State Dump ───")
         Timber.d("│ has_posted       = %s", prefs[KEY_HAS_POSTED] ?: false)
         Timber.d("│ review_completed = %s", prefs[KEY_REVIEW_COMPLETED] ?: false)
-        Timber.d("│ prompt_count     = %d/%d", prefs[KEY_PROMPT_COUNT] ?: 0, MAX_PROMPT_ATTEMPTS)
         Timber.d("│ last_prompt      = %s", if (lastTimestamp > 0) DATE_FORMAT.format(Date(lastTimestamp)) else "never")
         Timber.d("│ cooldown_ms      = %d (%dh)", PROMPT_COOLDOWN_MS, PROMPT_COOLDOWN_MS / 3600_000)
         if (lastTimestamp > 0) {
@@ -163,9 +157,7 @@ class InAppReviewManager(private val context: Context) {
         private val KEY_HAS_POSTED = booleanPreferencesKey("has_posted")
         private val KEY_LAST_PROMPT_TIMESTAMP = longPreferencesKey("last_review_prompt_timestamp")
         private val KEY_REVIEW_COMPLETED = booleanPreferencesKey("review_completed")
-        private val KEY_PROMPT_COUNT = intPreferencesKey("review_prompt_count")
         private const val PROMPT_COOLDOWN_MS = 7L * 24 * 60 * 60 * 1000 // 1 week
-        private const val MAX_PROMPT_ATTEMPTS = 12
         private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
     }
 }

@@ -77,7 +77,6 @@ import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.feature.auth.LoginScreen
 import net.kibotu.trail.feature.home.CommentState
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
-import net.kibotu.trail.shared.review.findActivity
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
@@ -120,16 +119,8 @@ fun MyFeedScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reviewEvent.collect {
-            timber.log.Timber.d("──── MyFeedScreen: reviewEvent received ────")
+            timber.log.Timber.d("──── MyFeedScreen: reviewEvent received, marking has posted ────")
             inAppReviewManager.markHasPosted()
-            val activity = context.findActivity()
-            if (activity != null) {
-                timber.log.Timber.d("MyFeedScreen: found activity, calling promptIfEligible")
-                inAppReviewManager.promptIfEligible(activity)
-            } else {
-                timber.log.Timber.w("MyFeedScreen: findActivity() returned null! Review skipped")
-            }
-            timber.log.Timber.d("MyFeedScreen: review flow complete")
         }
     }
 

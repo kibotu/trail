@@ -82,6 +82,12 @@ class MainActivity : ComponentActivity() {
                         this@MainActivity,
                         updateResultLauncher,
                     )
+                }
+            }
+
+            LaunchedEffect(authState.isLoading, authState.isLoggedIn) {
+                if (!authState.isLoading && authState.isLoggedIn) {
+                    kotlinx.coroutines.delay(3000)
                     timber.log.Timber.d("──── MainActivity: auth loaded, checking review on app start ────")
                     timber.log.Timber.d("MainActivity: isLoggedIn=%s, user=%s", authState.isLoggedIn, authState.user?.nickname)
                     inAppReviewManager.dumpState()
