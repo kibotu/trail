@@ -41,6 +41,7 @@ import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
+import net.kibotu.trail.shared.util.shareEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,7 +145,7 @@ fun HomeScreen(
                                         onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
                                         onTagClick = { tag -> onNavigateToSearch("#$tag") },
                                         onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
-                                        onShare = { viewModel.shareEntry(context, entry) },
+                                        onShare = { shareEntry(context, entry) },
                                         onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
                                         onMuteUser = { viewModel.muteUser(entry.userId) },
                                         onEditEntry = { text -> viewModel.updateEntry(entry.id, text) },
@@ -201,7 +202,7 @@ fun HomeScreen(
                                         onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
                                         onTagClick = { tag -> onNavigateToSearch("#$tag") },
                                         onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
-                                        onShare = { viewModel.shareEntry(context, entry) },
+                                        onShare = { shareEntry(context, entry) },
                                         onReport = { entry.hashId?.let { viewModel.reportEntry(it) } },
                                         onMuteUser = { viewModel.muteUser(entry.userId) },
                                         onEditEntry = { text -> viewModel.updateEntry(entry.id, text) },

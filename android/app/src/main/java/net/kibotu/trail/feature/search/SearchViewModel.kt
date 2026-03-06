@@ -1,7 +1,5 @@
 package net.kibotu.trail.feature.search
 
-import android.content.Context
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -22,7 +20,7 @@ import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
-import net.kibotu.trail.shared.util.shareEntry
+
 
 class SearchViewModel(
     private val entryRepository: EntryRepository,
@@ -57,10 +55,6 @@ class SearchViewModel(
 
     fun reportEntry(hashId: String) {
         viewModelScope.launch { entryRepository.reportEntry(hashId) }
-    }
-
-    fun shareEntry(context: Context, entry: Entry) {
-        shareEntry(context, entry)
     }
 
     class Factory : ViewModelProvider.Factory {

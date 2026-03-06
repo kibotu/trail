@@ -28,7 +28,7 @@ import net.kibotu.trail.shared.image.ImageUploadRepository
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
 import net.kibotu.trail.feature.home.CommentState
-import net.kibotu.trail.shared.util.shareEntry
+
 
 class MyFeedViewModel(
     private val entryRepository: EntryRepository,
@@ -126,10 +126,6 @@ class MyFeedViewModel(
     fun recordView(hashId: String) { viewModelScope.launch { entryRepository.recordView(hashId) } }
     fun reportEntry(hashId: String) { viewModelScope.launch { entryRepository.reportEntry(hashId) } }
     fun muteUser(userId: Int) { viewModelScope.launch { userRepository.muteUser(userId) } }
-
-    fun shareEntry(context: Context, entry: Entry) {
-        shareEntry(context, entry)
-    }
 
     class Factory(
         private val context: Context,

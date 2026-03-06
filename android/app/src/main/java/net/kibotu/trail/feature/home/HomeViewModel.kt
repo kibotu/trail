@@ -1,7 +1,5 @@
 package net.kibotu.trail.feature.home
 
-import android.content.Context
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -22,7 +20,7 @@ import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
-import net.kibotu.trail.shared.util.shareEntry
+
 
 data class CommentState(
     val comments: List<Comment> = emptyList(),
@@ -102,10 +100,6 @@ class HomeViewModel(
         viewModelScope.launch {
             userRepository.muteUser(userId)
         }
-    }
-
-    fun shareEntry(context: Context, entry: Entry) {
-        shareEntry(context, entry)
     }
 
     class Factory : ViewModelProvider.Factory {

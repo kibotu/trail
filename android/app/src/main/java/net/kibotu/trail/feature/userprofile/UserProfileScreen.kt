@@ -65,6 +65,7 @@ import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 import androidx.compose.ui.platform.LocalConfiguration
 import net.kibotu.trail.shared.util.openInCustomTab
+import net.kibotu.trail.shared.util.shareEntry
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -319,7 +320,7 @@ fun UserProfileScreen(
                             showTags = showTags,
                             onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
                             onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
-                            onShare = { viewModel.shareEntry(context, entry) },
+                            onShare = { shareEntry(context, entry) },
                             onMentionClick = { nick -> onNavigateToUser(nick) }
                         )
                     }

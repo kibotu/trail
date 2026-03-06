@@ -1,7 +1,6 @@
 package net.kibotu.trail.feature.entrydetail
 
 import android.content.Context
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -16,10 +15,11 @@ import net.kibotu.trail.shared.comment.CreateCommentRequest
 import net.kibotu.trail.shared.comment.UpdateCommentRequest
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.EntryRepository
+import net.kibotu.trail.shared.util.shareEntry as shareEntryUtil
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.user.UserRepository
-import net.kibotu.trail.shared.util.shareEntry
+
 
 data class EntryDetailState(
     val entry: Entry? = null,
@@ -124,7 +124,7 @@ class EntryDetailViewModel(
 
     fun shareEntry(context: Context) {
         val entry = state.value.entry ?: return
-        shareEntry(context, entry)
+        shareEntryUtil(context, entry)
     }
 
     class Factory(private val hashId: String) : ViewModelProvider.Factory {

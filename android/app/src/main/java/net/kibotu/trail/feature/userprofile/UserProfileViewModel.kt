@@ -1,7 +1,5 @@
 package net.kibotu.trail.feature.userprofile
 
-import android.content.Context
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -19,7 +17,7 @@ import net.kibotu.trail.shared.entry.UserEntriesPagingSource
 import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.profile.ProfileResponse
 import net.kibotu.trail.shared.user.UserRepository
-import net.kibotu.trail.shared.util.shareEntry
+
 
 data class UserProfileState(
     val profile: ProfileResponse? = null,
@@ -80,10 +78,6 @@ class UserProfileViewModel(
 
     fun addClaps(hashId: String, count: Int) {
         viewModelScope.launch { entryRepository.addClaps(hashId, count) }
-    }
-
-    fun shareEntry(context: Context, entry: Entry) {
-        shareEntry(context, entry)
     }
 
     class Factory(private val nickname: String) : ViewModelProvider.Factory {
