@@ -38,40 +38,40 @@ class AuthViewModel(
             val token = authRepository.getAuthToken()
             if (token != null) {
                 ApiClient.setAuthToken(token)
-                var nickname = authRepository.userNickname.first()
+                val nickname = authRepository.userNickname.first()
                 val name = authRepository.userName.first()
-                var userId = authRepository.userId.first()?.toIntOrNull()
+                val userId = authRepository.userId.first()?.toIntOrNull()
                 val photoUrl = authRepository.userPhotoUrl.first()
-                var isAdmin = false
 
-                var deletionRequestedAt: String? = null
-
-                profileRepository.getProfile().onSuccess { profile ->
-                    nickname = profile.nickname ?: nickname
-                    userId = profile.id
-                    isAdmin = profile.isAdmin ?: false
-                    deletionRequestedAt = profile.deletionRequestedAt
-                    profile.nickname?.let { authRepository.saveNickname(it) }
-                }
-
-                val resolvedUserId = userId
                 state.value = AuthState(
                     isLoggedIn = true,
                     isLoading = false,
-                    pendingDeletion = deletionRequestedAt != null,
-                    deletionRequestedAt = deletionRequestedAt,
-                    user = if (resolvedUserId != null && (name != null || nickname != null)) {
+                    user = if (userId != null && (name != null || nickname != null)) {
                         AuthUser(
-                            id = resolvedUserId,
+                            id = userId,
                             email = "",
                             name = name ?: nickname ?: "",
                             nickname = nickname,
-                            isAdmin = isAdmin,
+                            isAdmin = false,
                             gravatarHash = "",
                             gravatarUrl = photoUrl ?: ""
                         )
                     } else null
                 )
+
+                profileRepository.getProfile().onSuccess { profile ->
+                    val freshNickname = profile.nickname ?: nickname
+                    freshNickname?.let { authRepository.saveNickname(it) }
+                    state.value = state.value.copy(
+                        pendingDeletion = profile.deletionRequestedAt != null,
+                        deletionRequestedAt = profile.deletionRequestedAt,
+                        user = state.value.user?.copy(
+                            id = profile.id,
+                            nickname = freshNickname,
+                            isAdmin = profile.isAdmin ?: false
+                        )
+                    )
+                }
             } else {
                 state.value = AuthState(isLoggedIn = false, isLoading = false)
             }

@@ -104,13 +104,24 @@ fun TrailNavigation(
         return
     }
 
+    var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
+    val pendingText by pendingSharedText.collectAsState()
+
+    LaunchedEffect(pendingText, authState.isLoading) {
+        if (authState.isLoading) return@LaunchedEffect
+        pendingText?.let { text ->
+            sharedTextForScreen = text
+            onConsumeSharedText()
+        }
+    }
+
     val sessionKey = authState.user?.id ?: 0
 
     key(sessionKey) {
         TrailNavigationContent(
             themePreferences = themePreferences,
-            pendingSharedText = pendingSharedText,
-            onConsumeSharedText = onConsumeSharedText,
+            sharedTextForScreen = sharedTextForScreen,
+            onSharedTextConsumed = { sharedTextForScreen = null },
             modifier = modifier
         )
     }
@@ -119,8 +130,8 @@ fun TrailNavigation(
 @Composable
 private fun TrailNavigationContent(
     themePreferences: ThemePreferences,
-    pendingSharedText: StateFlow<String?>,
-    onConsumeSharedText: () -> Unit,
+    sharedTextForScreen: String?,
+    onSharedTextConsumed: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -139,14 +150,9 @@ private fun TrailNavigationContent(
     var unreadCount by remember { mutableIntStateOf(0) }
 
     val haptic = LocalHapticFeedback.current
-    var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
-    val pendingText by pendingSharedText.collectAsState()
 
-    LaunchedEffect(pendingText, authState.isLoading) {
-        if (authState.isLoading) return@LaunchedEffect
-        pendingText?.let { text ->
-            sharedTextForScreen = text
-            onConsumeSharedText()
+    LaunchedEffect(sharedTextForScreen) {
+        if (sharedTextForScreen != null) {
             navController.navigate(Routes.SHARE) {
                 launchSingleTop = true
             }
@@ -310,7 +316,7 @@ private fun TrailNavigationContent(
                 ShareScreen(
                     initialText = sharedTextForScreen ?: "",
                     onShareSuccess = {
-                        sharedTextForScreen = null
+                        onSharedTextConsumed()
                         navController.navigate(Routes.MY_FEED) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 inclusive = false
@@ -320,7 +326,7 @@ private fun TrailNavigationContent(
                         }
                     },
                     onBack = {
-                        sharedTextForScreen = null
+                        onSharedTextConsumed()
                         navController.popBackStack()
                     }
                 )

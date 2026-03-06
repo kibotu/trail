@@ -130,11 +130,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSharedContent(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
-                pendingSharedText.value = text
+        when (intent?.action) {
+            Intent.ACTION_SEND -> {
+                if (intent.type == "text/plain") {
+                    intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
+                        pendingSharedText.value = text
+                    }
+                    intent.action = null
+                }
             }
-            intent.action = null
+            Intent.ACTION_VIEW -> {
+                intent.data?.toString()?.let { url ->
+                    pendingSharedText.value = url
+                }
+                intent.action = null
+            }
         }
     }
 }
