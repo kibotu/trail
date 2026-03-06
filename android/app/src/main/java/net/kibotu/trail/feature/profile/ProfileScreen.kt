@@ -69,9 +69,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -548,7 +548,7 @@ fun ProfileScreen(
                                     OutlinedButton(
                                         onClick = {
                                             scope.launch {
-                                                clipboard.setClip(ClipData.newPlainText("Embed URL", embedUrl).toClipEntry())
+                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Embed URL", embedUrl)))
                                             }
                                             Toast.makeText(context, "Embed URL copied", Toast.LENGTH_SHORT).show()
                                         },
@@ -562,7 +562,7 @@ fun ProfileScreen(
                                     OutlinedButton(
                                         onClick = {
                                             scope.launch {
-                                                clipboard.setClip(ClipData.newPlainText("HTML Snippet", htmlSnippet).toClipEntry())
+                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("HTML Snippet", htmlSnippet)))
                                             }
                                             Toast.makeText(context, "HTML snippet copied", Toast.LENGTH_SHORT).show()
                                         },
