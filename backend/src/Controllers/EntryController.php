@@ -331,6 +331,8 @@ class EntryController
             }
         }
 
+        AdminController::maybeQueueWorkflowTrigger($db, $config);
+
         // Fetch entry with images for response
         $entryWithImages = $entryModel->findByIdWithImages($entryId, $userId);
 

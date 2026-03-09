@@ -6,6 +6,17 @@
     let settingsOpen = false;
     let hasToken = false;
 
+    function timeAgo(unixTimestamp) {
+        const seconds = Math.floor(Date.now() / 1000) - unixTimestamp;
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + ' min ago';
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours + 'h ago';
+        const days = Math.floor(hours / 24);
+        return days + 'd ago';
+    }
+
     function init() {
         loadGithubSettings();
     }
@@ -23,9 +34,20 @@
             const triggerBtn = document.getElementById('btn-trigger-ai');
             const repoInput = document.getElementById('github-repo');
             const tokenInput = document.getElementById('github-token');
+            const lastRunEl = document.getElementById('ai-scripts-last-run');
 
             if (data.repo) {
                 repoInput.value = data.repo;
+            }
+
+            if (lastRunEl) {
+                if (data.last_triggered) {
+                    lastRunEl.textContent = 'Last run: ' + timeAgo(data.last_triggered);
+                    lastRunEl.title = new Date(data.last_triggered * 1000).toLocaleString();
+                } else {
+                    lastRunEl.textContent = 'Never triggered';
+                    lastRunEl.title = '';
+                }
             }
 
             if (hasToken) {

@@ -343,6 +343,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     </button>
                     <div class="ai-scripts-details">
                         <span class="ai-scripts-workflow"><i class="fa-solid fa-code-branch"></i> ai-scripts.yml</span>
+                        <span class="ai-scripts-last-run" id="ai-scripts-last-run"><i class="fa-solid fa-clock"></i> ...</span>
                     </div>
                     <button onclick="toggleGithubSettings()" class="btn-github-settings">
                         <i class="fa-solid fa-gear"></i> Settings

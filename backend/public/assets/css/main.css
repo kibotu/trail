@@ -5744,6 +5744,13 @@ main {
     font-family: 'IBM Plex Mono', monospace;
 }
 
+.page-admin-dashboard .ai-scripts-last-run {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: default;
+}
+
 .page-admin-dashboard .btn-github-settings {
     width: 100%;
     padding: 0.3rem 0.75rem;

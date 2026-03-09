@@ -1167,10 +1167,13 @@ class AdminController
             $masked = str_repeat('*', strlen($token));
         }
 
+        $lastTriggered = self::getSetting($db, 'github_last_triggered');
+
         $response->getBody()->write(json_encode([
             'has_token' => !empty($token),
             'masked_token' => $masked,
             'repo' => $repo,
+            'last_triggered' => $lastTriggered ? (int) $lastTriggered : null,
         ]));
 
         return $response->withHeader('Content-Type', 'application/json');
@@ -1305,6 +1308,73 @@ class AdminController
             error_log("GitHub workflow trigger error: " . $e->getMessage());
             $response->getBody()->write(json_encode(['success' => false, 'error' => $e->getMessage()]));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Public entry point for automated workflow trigger (called from EntryController).
+     * Intentionally opaque -- reveals nothing about what it does.
+     */
+    public static function maybeQueueWorkflowTrigger(\PDO $db, array $config): void
+    {
+        try {
+            self::triggerWorkflowIfDue($db, $config);
+        } catch (\Throwable) {
+            // Silently swallow -- never affect the caller
+        }
+    }
+
+    private static function triggerWorkflowIfDue(\PDO $db, array $config): void
+    {
+        $lastTriggered = self::getSetting($db, 'github_last_triggered') ?? '0';
+        if ((time() - (int) $lastTriggered) < 3600) {
+            return;
+        }
+
+        $repo = self::getSetting($db, 'github_repo') ?? '';
+        $encryptedToken = self::getSetting($db, 'github_token') ?? '';
+        if ($repo === '' || $encryptedToken === '') {
+            return;
+        }
+
+        $token = self::decrypt($encryptedToken, self::getEncryptionKey($config));
+        if ($token === null || $token === '') {
+            return;
+        }
+
+        self::setSetting($db, 'github_last_triggered', (string) time());
+
+        $workflow = self::ALLOWED_WORKFLOWS[0];
+        $url = "https://api.github.com/repos/" . urlencode(explode('/', $repo)[0])
+             . "/" . urlencode(explode('/', $repo)[1])
+             . "/actions/workflows/" . urlencode($workflow) . "/dispatches";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$token}",
+                "Accept: application/vnd.github+json",
+                "Content-Type: application/json",
+                "User-Agent: Trail-Admin",
+                "X-GitHub-Api-Version: 2022-11-28",
+            ],
+            CURLOPT_POSTFIELDS     => json_encode(['ref' => 'main']),
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+        ]);
+
+        unset($token);
+
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        unset($result);
+
+        if ($httpCode !== 204) {
+            self::setSetting($db, 'github_last_triggered', $lastTriggered);
+            error_log("Auto-trigger AI scripts: GitHub API returned HTTP {$httpCode}");
         }
     }
 
