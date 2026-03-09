@@ -730,6 +730,11 @@ $app->group('/api/admin', function ($group) {
     
     $group->put('/entries/tags', [TagController::class, 'batchSetTags']);
     
+    // GitHub Actions routes
+    $group->get('/github/token', [AdminController::class, 'getGithubToken']);
+    $group->post('/github/token', [AdminController::class, 'saveGithubToken']);
+    $group->post('/github/trigger', [AdminController::class, 'triggerGithubWorkflow']);
+    
     // Tag management routes
     $group->get('/tags', [TagController::class, 'adminListTags']);
     $group->put('/tags/{id}', [TagController::class, 'adminUpdateTag']);

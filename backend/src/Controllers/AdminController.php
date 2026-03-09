@@ -1076,6 +1076,238 @@ class AdminController
         }
     }
 
+    private static bool $settingsTableChecked = false;
+
+    /**
+     * Ensure trail_admin_settings table exists (runs once per request)
+     */
+    private static function ensureSettingsTable(\PDO $db): void
+    {
+        if (self::$settingsTableChecked) {
+            return;
+        }
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS trail_admin_settings (
+                setting_key VARCHAR(100) PRIMARY KEY,
+                setting_value TEXT NOT NULL DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        self::$settingsTableChecked = true;
+    }
+
+    private static function getEncryptionKey(array $config): string
+    {
+        return hash('sha256', $config['app']['encryption_key'] ?? '', true);
+    }
+
+    private static function encrypt(string $plaintext, string $key): string
+    {
+        $iv = random_bytes(16);
+        $encrypted = openssl_encrypt($plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+        return base64_encode($iv . $encrypted);
+    }
+
+    private static function decrypt(string $ciphertext, string $key): ?string
+    {
+        $raw = base64_decode($ciphertext, true);
+        if ($raw === false || strlen($raw) < 17) {
+            return null;
+        }
+        $iv = substr($raw, 0, 16);
+        $encrypted = substr($raw, 16);
+        $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+        return $decrypted === false ? null : $decrypted;
+    }
+
+    /**
+     * Get an admin setting from the database
+     */
+    private static function getSetting(\PDO $db, string $key): ?string
+    {
+        self::ensureSettingsTable($db);
+        $stmt = $db->prepare("SELECT setting_value FROM trail_admin_settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+        return $row ? $row['setting_value'] : null;
+    }
+
+    /**
+     * Set an admin setting in the database
+     */
+    private static function setSetting(\PDO $db, string $key, string $value): void
+    {
+        self::ensureSettingsTable($db);
+        $stmt = $db->prepare("
+            INSERT INTO trail_admin_settings (setting_key, setting_value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+        ");
+        $stmt->execute([$key, $value]);
+    }
+
+    /**
+     * Get GitHub token (masked for display)
+     */
+    public static function getGithubToken(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+
+        $encryptedToken = self::getSetting($db, 'github_token') ?? '';
+        $token = '';
+        if ($encryptedToken !== '') {
+            $token = self::decrypt($encryptedToken, self::getEncryptionKey($config)) ?? '';
+        }
+        $repo = self::getSetting($db, 'github_repo') ?? '';
+
+        $masked = '';
+        if (strlen($token) > 8) {
+            $masked = substr($token, 0, 4) . str_repeat('*', strlen($token) - 8) . substr($token, -4);
+        } elseif (strlen($token) > 0) {
+            $masked = str_repeat('*', strlen($token));
+        }
+
+        $response->getBody()->write(json_encode([
+            'has_token' => !empty($token),
+            'masked_token' => $masked,
+            'repo' => $repo,
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Save GitHub token and repo
+     */
+    public static function saveGithubToken(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $data = json_decode((string) $request->getBody(), true);
+
+        if (!is_array($data)) {
+            $response->getBody()->write(json_encode(['success' => false, 'error' => 'Invalid JSON body']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+
+        if (isset($data['token'])) {
+            $token = trim($data['token']);
+            if (strlen($token) > 0 && strlen($token) < 10) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'Token seems too short']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+            if ($token === '') {
+                self::setSetting($db, 'github_token', '');
+            } else {
+                self::setSetting($db, 'github_token', self::encrypt($token, self::getEncryptionKey($config)));
+            }
+        }
+
+        if (isset($data['repo'])) {
+            $repo = trim($data['repo']);
+            if (!empty($repo) && !preg_match('#^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$#', $repo)) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'Repo must be in owner/repo format']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+            self::setSetting($db, 'github_repo', $repo);
+        }
+
+        $response->getBody()->write(json_encode(['success' => true, 'message' => 'GitHub settings saved']));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private const ALLOWED_WORKFLOWS = ['ai-scripts.yml'];
+
+    /**
+     * Trigger a GitHub Actions workflow via workflow_dispatch
+     */
+    public static function triggerGithubWorkflow(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            $db = Database::getInstance($config);
+
+            $encryptedToken = self::getSetting($db, 'github_token') ?? '';
+            $token = '';
+            if ($encryptedToken !== '') {
+                $token = self::decrypt($encryptedToken, self::getEncryptionKey($config)) ?? '';
+            }
+            $repo = self::getSetting($db, 'github_repo') ?? '';
+
+            if (empty($token)) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'GitHub token not configured']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+
+            if (empty($repo)) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'GitHub repo not configured']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+
+            $data = json_decode((string) $request->getBody(), true);
+            $workflow = $data['workflow'] ?? 'ai-scripts.yml';
+            $ref = $data['ref'] ?? 'main';
+
+            if (!in_array($workflow, self::ALLOWED_WORKFLOWS, true)) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'Workflow not allowed']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+
+            if (!preg_match('/^[a-zA-Z0-9._\/-]+$/', $ref)) {
+                $response->getBody()->write(json_encode(['success' => false, 'error' => 'Invalid branch reference']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+
+            $url = "https://api.github.com/repos/" . urlencode(explode('/', $repo)[0])
+                 . "/" . urlencode(explode('/', $repo)[1])
+                 . "/actions/workflows/" . urlencode($workflow) . "/dispatches";
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    "Authorization: Bearer {$token}",
+                    "Accept: application/vnd.github+json",
+                    "Content-Type: application/json",
+                    "User-Agent: Trail-Admin",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                ],
+                CURLOPT_POSTFIELDS => json_encode(['ref' => $ref]),
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_CONNECTTIMEOUT => 10,
+            ]);
+
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if (!empty($curlError)) {
+                throw new \RuntimeException("cURL error: {$curlError}");
+            }
+
+            if ($httpCode === 204) {
+                $response->getBody()->write(json_encode([
+                    'success' => true,
+                    'message' => "Workflow '{$workflow}' triggered successfully on branch '{$ref}'",
+                ]));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
+
+            $errorBody = json_decode($result, true);
+            $errorMsg = $errorBody['message'] ?? "HTTP {$httpCode}";
+            $response->getBody()->write(json_encode(['success' => false, 'error' => "GitHub API: {$errorMsg}"]));
+            return $response->withStatus(502)->withHeader('Content-Type', 'application/json');
+
+        } catch (\Throwable $e) {
+            error_log("GitHub workflow trigger error: " . $e->getMessage());
+            $response->getBody()->write(json_encode(['success' => false, 'error' => $e->getMessage()]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
     /**
      * Get short link statistics
      */

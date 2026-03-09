@@ -5631,6 +5631,277 @@ main {
     border-width: 1px;
 }
 
+/* Stat card for AI Scripts */
+.page-admin-dashboard .stat-card.ai-scripts {
+    border-color: rgba(139, 92, 246, 0.35);
+    border-width: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.page-admin-dashboard .stat-card.ai-scripts::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #8b5cf6, #6366f1, #8b5cf6);
+    background-size: 200% 100%;
+    animation: ai-shimmer 3s linear infinite;
+}
+
+@keyframes ai-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.page-admin-dashboard .stat-card.ai-scripts > .stat-label {
+    color: #a78bfa;
+}
+
+.page-admin-dashboard .ai-scripts-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.page-admin-dashboard .ai-scripts-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.page-admin-dashboard .ai-scripts-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.page-admin-dashboard .ai-scripts-status-dot.configured {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.page-admin-dashboard .ai-scripts-status-dot.not-configured {
+    background: var(--warning);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.page-admin-dashboard .ai-scripts-status-dot.error {
+    background: var(--error);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.page-admin-dashboard .btn-trigger-ai {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.page-admin-dashboard .btn-trigger-ai:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6d28d9, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.page-admin-dashboard .btn-trigger-ai:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-admin-dashboard .ai-scripts-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.page-admin-dashboard .ai-scripts-workflow {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+.page-admin-dashboard .btn-github-settings {
+    width: 100%;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.page-admin-dashboard .btn-github-settings:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    color: var(--text-secondary);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.page-admin-dashboard .ai-scripts-settings {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.page-admin-dashboard .ai-scripts-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.page-admin-dashboard .ai-scripts-form-group label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.page-admin-dashboard .ai-scripts-form-group input {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.8125rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: 'IBM Plex Mono', 'SF Mono', monospace;
+}
+
+.page-admin-dashboard .ai-scripts-form-group input:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.page-admin-dashboard .ai-scripts-form-group input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.page-admin-dashboard .token-input-wrapper {
+    position: relative;
+    display: flex;
+}
+
+.page-admin-dashboard .token-input-wrapper input {
+    padding-right: 2.5rem;
+}
+
+.page-admin-dashboard .btn-toggle-token {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.page-admin-dashboard .btn-toggle-token:hover {
+    color: var(--text-secondary);
+}
+
+.page-admin-dashboard .token-hint {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.page-admin-dashboard .token-hint code {
+    background: var(--bg-tertiary);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    color: #a78bfa;
+}
+
+.page-admin-dashboard .ai-scripts-form-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.page-admin-dashboard .btn-save-github {
+    flex: 1;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.page-admin-dashboard .btn-save-github:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.page-admin-dashboard .btn-save-github:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.page-admin-dashboard .btn-clear-github {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: var(--error);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-admin-dashboard .btn-clear-github:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--error);
+}
+
 /* Duplicate group cards */
 .page-admin-dashboard .duplicate-group-card {
     background: var(--bg-secondary);

@@ -331,6 +331,48 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                 </div>
             </div>
             <?php endif; ?>
+            <div class="stat-card ai-scripts" id="ai-scripts-card">
+                <div class="stat-label"><i class="fa-solid fa-robot"></i> AI Scripts</div>
+                <div class="ai-scripts-content">
+                    <div class="ai-scripts-status" id="ai-scripts-status">
+                        <span class="ai-scripts-status-dot" id="ai-scripts-status-dot"></span>
+                        <span id="ai-scripts-status-text">Checking...</span>
+                    </div>
+                    <button onclick="triggerAiScripts()" id="btn-trigger-ai" class="btn-trigger-ai" disabled>
+                        <i class="fa-solid fa-play"></i> Run AI Scripts
+                    </button>
+                    <div class="ai-scripts-details">
+                        <span class="ai-scripts-workflow"><i class="fa-solid fa-code-branch"></i> ai-scripts.yml</span>
+                    </div>
+                    <button onclick="toggleGithubSettings()" class="btn-github-settings">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </button>
+                </div>
+                <div class="ai-scripts-settings" id="ai-scripts-settings" style="display: none;">
+                    <div class="ai-scripts-form-group">
+                        <label for="github-repo"><i class="fa-solid fa-code-fork"></i> Repository</label>
+                        <input type="text" id="github-repo" placeholder="owner/repo" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="ai-scripts-form-group">
+                        <label for="github-token"><i class="fa-solid fa-key"></i> GitHub Token (PAT)</label>
+                        <div class="token-input-wrapper">
+                            <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+                            <button type="button" onclick="toggleTokenVisibility()" class="btn-toggle-token" title="Show/hide token">
+                                <i class="fa-solid fa-eye" id="token-eye-icon"></i>
+                            </button>
+                        </div>
+                        <div class="token-hint" id="token-hint">Requires <code>repo</code> scope for workflow dispatch</div>
+                    </div>
+                    <div class="ai-scripts-form-actions">
+                        <button onclick="saveGithubSettings()" class="btn-save-github" id="btn-save-github">
+                            <i class="fa-solid fa-floppy-disk"></i> Save
+                        </button>
+                        <button onclick="clearGithubToken()" class="btn-clear-github" title="Remove token">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="section-header">
@@ -515,5 +557,6 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/assets/js/admin-broken-links.js"></script>
     <script src="/assets/js/admin-tags.js"></script>
     <script src="/assets/js/admin-short-links.js"></script>
+    <script src="/assets/js/admin-ai-scripts.js"></script>
 </body>
 </html>
