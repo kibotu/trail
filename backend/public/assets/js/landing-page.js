@@ -266,8 +266,6 @@
 
     if (entriesContainer && loadingElement && endMessage) {
         const infiniteScroll = new InfiniteScroll(async () => {
-            removeSkeletonCards(entriesContainer);
-
             const result = await entriesManager.loadEntries('/api/entries', {
                 cursor: nextCursor,
                 limit: 100,
@@ -330,8 +328,6 @@
             entriesContainer.querySelectorAll('.entry-card').forEach(hydrateEntryCard);
             infiniteScroll.start();
         } else {
-            loadingElement.style.display = 'none';
-            showSkeletonCards(entriesContainer, 3);
             infiniteScroll.start();
         }
 
@@ -349,8 +345,6 @@
                     
                     entriesContainer.innerHTML = '';
                     nextCursor = null;
-
-                    showSkeletonCards(entriesContainer, 3);
                     
                     infiniteScroll.reset();
                     infiniteScroll.loadMore();

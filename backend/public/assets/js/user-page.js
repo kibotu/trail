@@ -31,10 +31,6 @@
 
     if (!entriesContainer || !loadingElement || !endMessage) return;
 
-    // Show skeleton placeholders while entries load (hide the spinner)
-    loadingElement.style.display = 'none';
-    showSkeletonCards(entriesContainer, 3);
-
     // Initialize profile manager
     const userProfileManager = new UserProfileManager({
         nickname: nickname,
@@ -53,8 +49,6 @@
 
     // Setup infinite scroll
     const infiniteScroll = new InfiniteScroll(async () => {
-        removeSkeletonCards(entriesContainer);
-
         const result = await entriesManager.loadEntries(`/api/users/${nickname}/entries`, {
             cursor: nextCursor,
             limit: 100,
@@ -117,13 +111,14 @@
         searchManager = new SearchManager({
             userNickname: nickname,
             onSearch: (query) => {
+                // Update current search query
                 currentSearchQuery = query;
-
+                
+                // Clear existing entries
                 entriesContainer.innerHTML = '';
                 nextCursor = null;
-
-                showSkeletonCards(entriesContainer, 3);
-
+                
+                // Reset and reload with search
                 infiniteScroll.reset();
                 infiniteScroll.loadMore();
             }
