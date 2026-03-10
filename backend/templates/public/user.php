@@ -57,7 +57,7 @@
     <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
-    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/main.bundle.css">
 </head>
 <body class="page-user"
       data-nickname="<?= htmlspecialchars($nickname ?? '') ?>"

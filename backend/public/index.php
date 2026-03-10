@@ -101,9 +101,13 @@ $app->get('/', function ($request, $response) use ($config) {
     if (file_exists($landingPage)) {
         require_once __DIR__ . '/helpers/session.php';
         
-        // Check if user is logged in
-        $db = \Trail\Database\Database::getInstance($config);
-        $session = getAuthenticatedUser($db);
+        // Only hit the DB for session validation when a session cookie exists
+        $db = null;
+        $session = null;
+        if (isset($_COOKIE[SESSION_COOKIE_NAME])) {
+            $db = \Trail\Database\Database::getInstance($config);
+            $session = getAuthenticatedUser($db);
+        }
         $isLoggedIn = $session !== null;
 
         // Redirect to blocker if deletion is pending
@@ -125,6 +129,70 @@ $app->get('/', function ($request, $response) use ($config) {
             $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
         }
         
+        // SSR: fetch first page of entries so the browser renders content immediately
+        $initialEntries = [];
+        $hasMoreEntries = false;
+        $nextCursor = null;
+        try {
+            $db = $db ?? \Trail\Database\Database::getInstance($config);
+            $entryModel = new \Trail\Models\Entry($db);
+            $userModel = new \Trail\Models\User($db);
+            $hashSalt = \Trail\Config\Config::getEntryHashSalt($config);
+            $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+            $nicknameSalt = \Trail\Config\Config::getNicknameSalt($config);
+
+            $ssrLimit = 20;
+            $initialEntries = $entryModel->getAllWithImages($ssrLimit, null, null, null, [], $userId ? (int) $userId : null);
+            $hasMoreEntries = count($initialEntries) === $ssrLimit;
+
+            foreach ($initialEntries as &$ssrEntry) {
+                // Avatar URL
+                if (!empty($ssrEntry['photo_url'])) {
+                    $ssrEntry['avatar_url'] = $ssrEntry['photo_url'];
+                } elseif (!empty($ssrEntry['gravatar_hash'])) {
+                    $ssrEntry['avatar_url'] = "https://www.gravatar.com/avatar/{$ssrEntry['gravatar_hash']}?s=96&d=mp";
+                } elseif (!empty($ssrEntry['user_email'])) {
+                    $ssrEntry['avatar_url'] = "https://www.gravatar.com/avatar/" . md5(strtolower(trim($ssrEntry['user_email']))) . "?s=96&d=mp";
+                } else {
+                    $ssrEntry['avatar_url'] = "https://www.gravatar.com/avatar/00000000000000000000000000000000?s=96&d=mp";
+                }
+
+                // Hash ID for permalink
+                try {
+                    $ssrEntry['hash_id'] = $hashIdService->encode((int) $ssrEntry['id']);
+                } catch (\Throwable $e) {
+                    $ssrEntry['hash_id'] = (string) $ssrEntry['id'];
+                }
+
+                // Nickname generation
+                if (empty($ssrEntry['user_nickname']) && !empty($ssrEntry['google_id'])) {
+                    $ssrEntry['user_nickname'] = $userModel->getOrGenerateNickname(
+                        (int) $ssrEntry['user_id'],
+                        $ssrEntry['google_id'],
+                        $nicknameSalt
+                    );
+                }
+
+                // can_edit flag
+                $ssrEntry['can_edit'] = $userId !== null &&
+                    ($isAdmin || (int) $ssrEntry['user_id'] === (int) $userId);
+
+                // Strip sensitive fields
+                unset($ssrEntry['user_email'], $ssrEntry['google_id']);
+            }
+            unset($ssrEntry);
+
+            if ($hasMoreEntries && !empty($initialEntries)) {
+                $lastEntry = end($initialEntries);
+                $nextCursor = $lastEntry['created_at'];
+            }
+        } catch (\Throwable $e) {
+            error_log('SSR entry fetch failed: ' . $e->getMessage());
+            $initialEntries = [];
+            $hasMoreEntries = false;
+            $nextCursor = null;
+        }
+
         ob_start();
         include $landingPage;
         $html = ob_get_clean();

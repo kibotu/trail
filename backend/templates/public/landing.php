@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <meta name="description" content="Trail is a minimal link journal for sharing and discovering interesting links, thoughts, and updates.">
     <title>Trail - Public Entries</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="preload" href="/assets/fonts/inter/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/assets/fonts/inter/Inter-Medium.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/assets/dist/landing.bundle.js" as="script">
     <link rel="stylesheet" href="/assets/fonts/fonts.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
-    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
-    <link rel="stylesheet" href="/assets/css/main.css">
-    <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
-    <link rel="stylesheet" href="/assets/css/notifications.css">
-    <?php endif; ?>
+    <link rel="stylesheet" href="/assets/dist/main.bundle.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+        <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+        <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
+    </noscript>
 </head>
 <body class="page-landing" 
       data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
@@ -138,7 +138,11 @@
         <?php endif; ?>
         
         <div class="entries-container" id="entriesContainer">
-            <!-- Entries will be loaded here -->
+<?php if (!empty($initialEntries)): ?>
+<?php   foreach ($initialEntries as $entry): ?>
+            <?php include __DIR__ . '/_entry-card.php'; ?>
+<?php   endforeach; ?>
+<?php endif; ?>
         </div>
         <div class="loading" id="loading" style="display: none;">
             <div class="loading-spinner"></div>
@@ -149,6 +153,19 @@
         </div>
     </main>
 
+    <script>
+    window.appConfig = <?= json_encode([
+        'max_text_length' => \Trail\Config\Config::getMaxTextLength($config),
+        'max_images_per_entry' => \Trail\Config\Config::getMaxImagesPerEntry($config),
+    ], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+<?php if (!empty($initialEntries)): ?>
+    window.__SSR_ENTRIES__ = {
+        nextCursor: <?= json_encode($nextCursor, JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+        hasMore: <?= $hasMoreEntries ? 'true' : 'false' ?>,
+        count: <?= count($initialEntries) ?>
+    };
+<?php endif; ?>
+    </script>
     <script src="/assets/dist/landing.bundle.js" defer></script>
 
     <footer class="site-footer">
