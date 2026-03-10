@@ -1418,6 +1418,67 @@ async function muteUser(userId) {
     }
 }
 
+/**
+ * Create a single skeleton placeholder card that mirrors entry-card layout.
+ * @returns {HTMLElement} Skeleton card DOM element
+ */
+function createSkeletonCard() {
+    const card = document.createElement('div');
+    card.className = 'entry-card skeleton-card';
+    card.setAttribute('aria-hidden', 'true');
+
+    card.innerHTML = `
+        <div class="entry-header">
+            <div class="skeleton-bone skeleton-avatar"></div>
+            <div class="skeleton-header-lines">
+                <div class="skeleton-bone skeleton-name"></div>
+                <div class="skeleton-bone skeleton-timestamp"></div>
+            </div>
+        </div>
+        <div class="entry-body">
+            <div class="skeleton-body">
+                <div class="skeleton-bone skeleton-text-line full"></div>
+                <div class="skeleton-bone skeleton-text-line short"></div>
+                <div class="skeleton-bone skeleton-text-line shorter"></div>
+            </div>
+            <div class="skeleton-footer">
+                <div class="skeleton-bone skeleton-action"></div>
+                <div class="skeleton-bone skeleton-action"></div>
+                <div class="skeleton-bone skeleton-action"></div>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Insert skeleton placeholder cards into a container.
+ * @param {HTMLElement} container - The entries container
+ * @param {number} [count=3] - Number of skeleton cards to show
+ */
+function showSkeletonCards(container, count) {
+    if (!container) return;
+    count = count || 3;
+
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+        fragment.appendChild(createSkeletonCard());
+    }
+    container.appendChild(fragment);
+}
+
+/**
+ * Remove all skeleton cards from a container.
+ * @param {HTMLElement} container - The entries container
+ */
+function removeSkeletonCards(container) {
+    if (!container) return;
+    container.querySelectorAll('.skeleton-card').forEach(function(el) {
+        el.remove();
+    });
+}
+
 // Export functions for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -1440,6 +1501,9 @@ if (typeof module !== 'undefined' && module.exports) {
         shareEntryNative,
         reportEntry,
         muteUser,
-        viewTrackingObserver
+        viewTrackingObserver,
+        createSkeletonCard,
+        showSkeletonCards,
+        removeSkeletonCards
     };
 }
