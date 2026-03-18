@@ -70,8 +70,8 @@ data class CreateEntryRequest(
 
 @Serializable
 data class CreateEntryResponse(
-    val id: Int,
-    @SerialName("created_at") val createdAt: String
+    val id: Int? = null,
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable
