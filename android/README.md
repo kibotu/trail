@@ -186,8 +186,11 @@ cd android
 # App bundle for Play Store
 ./gradlew bundleRelease
 
+```
 # Release with specific version
-VERSION=1.2.3 && ./gradlew bundleRelease \
+
+```sh
+VERSION=1.2.8 && ./gradlew bundleRelease \
   -PversionName=$VERSION \
   -PversionCode=$(($(echo $VERSION | awk -F. '{print $1*10000000+$2*100000+$3*1000}')))
 ```
