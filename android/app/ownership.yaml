@@ -1,0 +1,41 @@
+- identifier: :app
+  owners: kibotu
+
+- identifier: "net.kibotu*"
+  owner: kibotu
+
+- identifier: "com.google.*"
+  owner: google
+
+- identifier: "androidx.*"
+  owner: google
+
+- identifier: "org.jetbrains*"
+  owner: jetbrains
+
+- identifier: "com.jakewharton*"
+  owner: jakewharton
+
+- identifier: "com.squareup*"
+  owner: jakewharton
+
+- identifier: "com.github.Gurupreet*"
+  owner: fontawesome
+
+- identifier: "io.coil-kt.coil3*"
+  owner: coil
+
+- identifier: "com.caverock*"
+  owner: coil
+
+- identifier: "dev.chrisbanes*"
+  owner: chrisbanes
+
+- identifier: "io.ktor*"
+  owner: ktor
+
+- identifier: "org.slf4j*"
+  owner: slf4j
+
+- identifier: "javax.inject*"
+  owner: google

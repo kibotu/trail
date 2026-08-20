@@ -158,8 +158,7 @@ kotlin {
         allWarningsAsErrors = false
         verbose = true
         freeCompilerArgs.addAll(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-Xannotation-default-target=param-property",
+            "-opt-in=kotlin.RequiresOptIn"
         )
     }
 }
@@ -175,6 +174,7 @@ ruler {
     locale.set("en")
     screenDensity.set(480)
     sdkVersion.set(36)
+    ownershipFile.set(project.file("ownership.yaml"))
 }
 
 // Clean generated baseline profile files to ensure fresh generation

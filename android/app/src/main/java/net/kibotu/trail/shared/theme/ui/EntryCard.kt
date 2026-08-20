@@ -307,7 +307,7 @@ fun EntryCard(
                 Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     LinkPreviewCard(
                         entry = entry,
-                        onClick = { entry.previewUrl?.let { context.openInCustomTab(it) } }
+                        onClick = { context.openInCustomTab(entry.previewUrl) }
                     )
                 }
             }

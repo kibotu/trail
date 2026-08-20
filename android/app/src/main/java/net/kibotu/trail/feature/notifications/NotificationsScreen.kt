@@ -36,7 +36,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -122,20 +121,13 @@ fun NotificationsScreen(
                             )
                             .staggeredFadeIn(index)
 
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { value ->
-                                if (value == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.deleteNotification(notification.id)
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
-                        )
+                        val dismissState = rememberSwipeToDismissBoxState()
 
                         SwipeToDismissBox(
                             state = dismissState,
                             modifier = itemModifier,
+                            enableDismissFromStartToEnd = false,
+                            onDismiss = { viewModel.deleteNotification(notification.id) },
                             backgroundContent = {
                                 Box(
                                     modifier = Modifier
@@ -151,8 +143,7 @@ fun NotificationsScreen(
                                         tint = MaterialTheme.colorScheme.onError
                                     )
                                 }
-                            },
-                            enableDismissFromStartToEnd = false
+                            }
                         ) {
                             Card(
                                 modifier = Modifier

@@ -32,6 +32,7 @@ android {
     // ./gradlew :app:generateBaselineProfile
     testOptions.animationsDisabled = true
     testOptions.managedDevices.allDevices {
+        @Suppress("UnstableApiUsage")
         create<ManagedVirtualDevice>("pixel6Api35") {
             device = "Pixel 6"
             apiLevel = 35
