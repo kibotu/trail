@@ -39,6 +39,7 @@ splashScreen = "1.2.0"
 splashScreenCompose = "1.2.0"
 timber = "5.0.1"
 uiautomator = "2.4.0"
+ruler = "3.1.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -108,4 +109,5 @@ firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 play-services = { id = "com.google.gms.google-services", version.ref = "playservices" }
+ruler = { id = "net.kibotu.ruler", version.ref = "ruler" }
 

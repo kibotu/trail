@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "net.kibotu.baselineprofile"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         minSdk = 28
-        targetSdk = 36
+        targetSdk = 37
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -65,7 +65,7 @@ androidComponents {
         val artifactsLoader = v.artifacts.getBuiltArtifactsLoader()
         v.instrumentationRunnerArguments.put(
             "targetAppId",
-            v.testedApks.map { artifactsLoader.load(it)?.applicationId }
+            @Suppress("UnstableApiUsage") v.testedApks.map { artifactsLoader.load(it)?.applicationId }
         )
     }
 }

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.play.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.baselineprofile)
+    alias(libs.plugins.ruler)
 }
 
 // Load local.properties for Mapbox token and signing configs
@@ -167,6 +168,13 @@ baselineProfile {
     automaticGenerationDuringBuild = true
     saveInSrc = true
     mergeIntoMain = true
+}
+
+ruler {
+    abi.set("arm64-v8a")
+    locale.set("en")
+    screenDensity.set(480)
+    sdkVersion.set(36)
 }
 
 // Clean generated baseline profile files to ensure fresh generation
