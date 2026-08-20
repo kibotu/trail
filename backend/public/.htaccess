@@ -128,7 +128,10 @@ ServerSignature Off
 # ============================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
+
+    # Google OAuth callback legitimately contains https:// in the query string (iss, scope params)
+    RewriteRule ^admin/callback\.php$ - [L]
+
     # Block bad user agents (excluding empty user agents to avoid blocking legitimate traffic)
     # Uncomment the following lines if you want stricter bot blocking:
     # RewriteCond %{HTTP_USER_AGENT} (libwww-perl|wget|python|nikto|scan|winhttp|clshttp|loader) [NC,OR]
