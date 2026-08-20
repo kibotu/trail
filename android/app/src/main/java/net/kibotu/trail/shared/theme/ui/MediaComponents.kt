@@ -1,16 +1,19 @@
 package net.kibotu.trail.shared.theme.ui
 
 import android.app.Activity
+import android.graphics.Bitmap
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -46,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -63,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -70,26 +75,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.get
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.compose.ui.window.DialogProperties
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import androidx.compose.ui.platform.LocalConfiguration
+import coil3.BitmapImage
+import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import net.kibotu.trail.shared.entry.MediaItemData
 import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Displays a gallery of media items (images, GIFs, videos).
@@ -308,7 +317,7 @@ fun SvgImage(
         )
     } else {
         val context = LocalContext.current
-        val imageLoader = remember { coil3.SingletonImageLoader.get(context) }
+        val imageLoader = remember { SingletonImageLoader.get(context) }
         val painter = rememberAsyncImagePainter(
             model = ImageRequest.Builder(context)
                 .data(url)
@@ -316,7 +325,7 @@ fun SvgImage(
                 .build(),
             imageLoader = imageLoader,
             onSuccess = { state ->
-                val bitmap = (state.result.image as? coil3.BitmapImage)?.bitmap
+                val bitmap = (state.result.image as? BitmapImage)?.bitmap
                 if (bitmap != null && isBitmapBlank(bitmap)) {
                     Timber.d("SVG rendered blank via Coil, falling back to WebView: %s", url)
                     useWebView = true
@@ -331,8 +340,9 @@ fun SvgImage(
         )
 
         val intrinsicSize = painter.intrinsicSize
+        val value = painter.state.collectAsState().value
         val aspectModifier = if (
-            painter.state is AsyncImagePainter.State.Success &&
+            value is AsyncImagePainter.State.Success &&
             intrinsicSize.width > 0 && intrinsicSize.height > 0 &&
             intrinsicSize.width.isFinite() && intrinsicSize.height.isFinite()
         ) {
@@ -341,7 +351,7 @@ fun SvgImage(
             modifier
         }
 
-        androidx.compose.foundation.Image(
+        Image(
             painter = painter,
             contentDescription = contentDescription,
             contentScale = ContentScale.Fit,
@@ -359,7 +369,7 @@ fun SvgImage(
  * Checks if a bitmap is effectively blank (all pixels are transparent or white).
  * Samples a grid of pixels for performance.
  */
-private fun isBitmapBlank(bitmap: android.graphics.Bitmap): Boolean {
+private fun isBitmapBlank(bitmap: Bitmap): Boolean {
     val w = bitmap.width
     val h = bitmap.height
     if (w == 0 || h == 0) return true
@@ -367,7 +377,7 @@ private fun isBitmapBlank(bitmap: android.graphics.Bitmap): Boolean {
     val step = maxOf(1, minOf(w, h) / 10)
     for (y in 0 until h step step) {
         for (x in 0 until w step step) {
-            val pixel = bitmap.getPixel(x, y)
+            val pixel = bitmap[x, y]
             val alpha = (pixel ushr 24) and 0xFF
             if (alpha == 0) continue
             val r = (pixel ushr 16) and 0xFF
@@ -397,7 +407,7 @@ private fun SvgWebView(
     ) {
         AndroidView(
             factory = { ctx ->
-                android.webkit.WebView(ctx).apply {
+                WebView(ctx).apply {
                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     settings.apply {
                         loadWithOverviewMode = true
@@ -519,7 +529,7 @@ fun VideoPlayer(
                 currentPositionMs = exoPlayer.currentPosition
                 durationMs = exoPlayer.duration.coerceAtLeast(0L)
             }
-            kotlinx.coroutines.delay(250)
+            delay(250.milliseconds)
         }
         currentPositionMs = exoPlayer.currentPosition
         durationMs = exoPlayer.duration.coerceAtLeast(0L)
@@ -528,7 +538,7 @@ fun VideoPlayer(
     // Auto-hide controls only while playing (paused keeps them visible, matching web)
     LaunchedEffect(controlOverlayTrigger) {
         if (showControlOverlay && isPlaying) {
-            kotlinx.coroutines.delay(2500)
+            delay(2500.milliseconds)
             showControlOverlay = false
         }
     }
@@ -1054,7 +1064,7 @@ private fun FullscreenSvgViewer(
         ) {
             AndroidView(
                 factory = { ctx ->
-                    android.webkit.WebView(ctx).apply {
+                    WebView(ctx).apply {
                         setBackgroundColor(android.graphics.Color.BLACK)
                         settings.apply {
                             loadWithOverviewMode = true

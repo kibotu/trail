@@ -20,7 +20,7 @@ val localProperties = Properties().apply {
 android {
     namespace = "net.kibotu.trail"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -28,7 +28,7 @@ android {
     defaultConfig {
         applicationId = "net.kibotu.trail"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 37
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?) ?: "1.0"
 
@@ -159,7 +159,6 @@ kotlin {
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-Xannotation-default-target=param-property",
-            "-Xexplicit-backing-fields",
         )
     }
 }
