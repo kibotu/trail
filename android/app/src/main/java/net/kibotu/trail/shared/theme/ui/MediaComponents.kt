@@ -1,9 +1,15 @@
 package net.kibotu.trail.shared.theme.ui
 
 import android.app.Activity
+import android.app.DownloadManager
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Environment
 import android.view.ViewGroup
+import android.webkit.URLUtil
 import android.webkit.WebView
+import android.webkit.MimeTypeMap
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -37,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Pause
@@ -45,6 +52,8 @@ import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +65,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +105,7 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.entry.MediaItemData
 import timber.log.Timber
 import kotlin.math.abs
@@ -635,6 +646,7 @@ fun VideoPlayer(
                     isFullscreen = true,
                     currentPositionMs = currentPositionMs,
                     durationMs = durationMs,
+                    url = url,
                     onPlayStateChange = onPlayStateChange,
                     onMuteToggle = onMuteToggle,
                     onFullscreenToggle = { isFullscreen = false },
@@ -657,6 +669,7 @@ fun VideoPlayer(
         isFullscreen = false,
         currentPositionMs = currentPositionMs,
         durationMs = durationMs,
+        url = url,
         onPlayStateChange = onPlayStateChange,
         onMuteToggle = onMuteToggle,
         onFullscreenToggle = { isFullscreen = true },
@@ -774,6 +787,7 @@ private fun VideoPlayerContent(
     isFullscreen: Boolean,
     currentPositionMs: Long,
     durationMs: Long,
+    url: String,
     onPlayStateChange: (Boolean) -> Unit,
     onMuteToggle: () -> Unit,
     onFullscreenToggle: () -> Unit,
@@ -783,6 +797,9 @@ private fun VideoPlayerContent(
     onSeekEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     Box(
         modifier = modifier
             .background(Color.Black)
@@ -922,6 +939,25 @@ private fun VideoPlayerContent(
                             )
                         }
 
+                        // Download (fullscreen only)
+                        if (isFullscreen) {
+                            IconButton(
+                                onClick = {
+                                    downloadMedia(context, url)?.let { name ->
+                                        scope.launch { snackbarHostState.showSnackbar("Downloading $name") }
+                                    }
+                                },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Download,
+                                    contentDescription = "Download",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
                         // Fullscreen
                         IconButton(
                             onClick = onFullscreenToggle,
@@ -940,6 +976,11 @@ private fun VideoPlayerContent(
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -951,6 +992,9 @@ private fun FullscreenImageViewer(
     url: String,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -1044,23 +1088,51 @@ private fun FullscreenImageViewer(
                     }
             )
 
-            IconButton(
-                onClick = onDismiss,
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .systemBarsPadding()
-                    .padding(end = 16.dp)
-                    .size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                    .padding(end = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val buttonColors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f)
                 )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+
+                IconButton(
+                    onClick = {
+                        downloadMedia(context, url)?.let { name ->
+                            scope.launch { snackbarHostState.showSnackbar("Downloading $name") }
+                        }
+                    },
+                    modifier = Modifier.size(40.dp),
+                    colors = buttonColors
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Download,
+                        contentDescription = "Download",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(40.dp),
+                    colors = buttonColors
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
@@ -1082,6 +1154,9 @@ private fun FullscreenSvgViewer(
     url: String,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -1116,25 +1191,84 @@ private fun FullscreenSvgViewer(
                 modifier = Modifier.fillMaxSize()
             )
 
-            IconButton(
-                onClick = onDismiss,
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(
+                    .systemBarsPadding()
+                    .padding(end = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val buttonColors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f)
                 )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+
+                IconButton(
+                    onClick = {
+                        downloadMedia(context, url)?.let { name ->
+                            scope.launch { snackbarHostState.showSnackbar("Downloading $name") }
+                        }
+                    },
+                    modifier = Modifier.size(40.dp),
+                    colors = buttonColors
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Download,
+                        contentDescription = "Download",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(40.dp),
+                    colors = buttonColors
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
+}
+
+/**
+ * Enqueues a media download via [DownloadManager].
+ * Accepts only http/https URLs; derives filename and MIME type from the URL.
+ */
+private fun downloadMedia(context: Context, url: String): String? {
+    val uri = Uri.parse(url)
+    val scheme = uri.scheme?.lowercase()
+    if (scheme != "http" && scheme != "https") return null
+
+    val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+        MimeTypeMap.getFileExtensionFromUrl(url)
+    ) ?: "application/octet-stream"
+
+    val cleanUrl = url.substringBefore("#").substringBefore("?")
+    val filename = URLUtil.guessFileName(cleanUrl, null, mimeType)
+
+    val request = DownloadManager.Request(uri)
+        .setTitle(filename)
+        .setDescription("Downloading…")
+        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+        .setAllowedOverMetered(true)
+        .setAllowedOverRoaming(true)
+
+    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    val id = downloadManager.enqueue(request)
+    Timber.d("Enqueued download $id for $filename")
+    return filename
 }
 
 /**
