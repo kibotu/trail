@@ -143,7 +143,16 @@ Versions intentionally omitted — they go stale fast. See [`gradle/libs.version
 
 ## Configure
 
-Create `local.properties` in this directory:
+`local.properties` is gitignored — secrets stay out of version control.
+
+**One-liner setup:**
+
+```bash
+cp local.properties.template local.properties
+# then edit local.properties with your values
+```
+
+Or create it manually:
 
 ```properties
 # Required: Your backend URL
@@ -155,19 +164,21 @@ DEBUG_STORE_PASSWORD=your_password
 DEBUG_KEYSTORE_ALIAS=debug
 DEBUG_KEY_PASSWORD=your_password
 
-# Release signing
-RELEASE_KEYSTORE_PATH=certificates/release.jks
+# Release signing (paths are relative to app/)
+RELEASE_KEYSTORE_PATH=certificates/store.jks
 RELEASE_STORE_PASSWORD=your_password
 RELEASE_KEYSTORE_ALIAS=release
 RELEASE_KEY_PASSWORD=your_password
 ```
 
+> **Note:** Keystore paths in `local.properties` are resolved relative to `app/`, not the project root. So `certificates/store.jks` points to `app/certificates/store.jks`.
+
 Also update `app/src/main/res/values/strings.xml` → `default_web_client_id` with your Google OAuth Web Client ID from Cloud Console → Credentials.
 
-Generate keystores if you don't have them:
+Generate a debug keystore if you don't have one:
 
 ```bash
-keytool -genkey -v -keystore certificates/debug.jks \
+keytool -genkey -v -keystore app/certificates/debug.jks \
   -alias debug -keyalg RSA -keysize 2048 -validity 10000
 ```
 
@@ -196,6 +207,34 @@ VERSION=2.0.1 && ./gradlew bundleRelease \
 ```
 
 APKs land in `app/build/outputs/apk/`, bundles in `app/build/outputs/bundle/`.
+
+### Installing a release AAB on a device
+
+`adb install` doesn't accept `.aab` files directly. Use `bundletool` to generate and install APKs:
+
+```bash
+# Install bundletool (macOS)
+brew install bundletool
+
+# Generate universal APK signed with release keystore
+bundletool build-apks \
+  --bundle=app/build/outputs/bundle/release/app-release.aab \
+  --output=/tmp/output.apks \
+  --mode=universal \
+  --ks=app/certificates/store.jks \
+  --ks-key-alias=release \
+  --ks-pass=pass:YOUR_STORE_PASSWORD \
+  --key-pass=pass:YOUR_KEY_PASSWORD
+
+# Install on connected device
+bundletool install-apks --apks=/tmp/output.apks
+```
+
+Or skip the AAB entirely and install a debug APK:
+
+```bash
+./gradlew installDebug
+```
 
 Self-hosters: you can distribute APKs directly — no Play Store required. Consider [Obtainium](https://github.com/ImranR98/Obtainium) for update management.
 

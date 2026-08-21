@@ -1,0 +1,14 @@
+# Required: Your backend URL
+API_BASE_URL=https://your-trail-instance.example.com/
+
+# Debug signing
+DEBUG_KEYSTORE_PATH=certificates/debug.jks
+DEBUG_STORE_PASSWORD=your_password
+DEBUG_KEYSTORE_ALIAS=debug
+DEBUG_KEY_PASSWORD=your_password
+
+# Release signing (paths are relative to app/)
+RELEASE_KEYSTORE_PATH=certificates/store.jks
+RELEASE_STORE_PASSWORD=your_password
+RELEASE_KEYSTORE_ALIAS=release
+RELEASE_KEY_PASSWORD=your_password
