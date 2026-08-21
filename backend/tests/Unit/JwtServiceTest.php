@@ -80,4 +80,43 @@ class JwtServiceTest extends TestCase
         $payload = $service->verify($jwt);
         $this->assertNull($payload);
     }
+
+    public function testVerifyIgnoringExpiryOfExpiredJwt(): void
+    {
+        $expiredConfig = [
+            'jwt' => [
+                'secret' => 'test_secret_key',
+                'expiry_hours' => -1, // Expired
+            ],
+        ];
+
+        $service = new JwtService($expiredConfig);
+        $jwt = $service->generate(7, 'expired@example.com', true);
+
+        $payload = $service->verifyIgnoringExpiry($jwt);
+
+        $this->assertIsArray($payload);
+        $this->assertEquals(7, $payload['user_id']);
+        $this->assertEquals('expired@example.com', $payload['email']);
+        $this->assertTrue($payload['is_admin']);
+    }
+
+    public function testVerifyIgnoringExpiryOfValidJwt(): void
+    {
+        $service = new JwtService($this->config);
+        $jwt = $service->generate(1, 'test@example.com');
+
+        $payload = $service->verifyIgnoringExpiry($jwt);
+
+        $this->assertIsArray($payload);
+        $this->assertEquals(1, $payload['user_id']);
+    }
+
+    public function testVerifyIgnoringExpiryOfInvalidJwt(): void
+    {
+        $service = new JwtService($this->config);
+
+        $this->assertNull($service->verifyIgnoringExpiry('invalid.jwt.token'));
+        $this->assertNull($service->verifyIgnoringExpiry(''));
+    }
 }

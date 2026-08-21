@@ -42,6 +42,23 @@ class JwtService
     }
 
     /**
+     * Verify a JWT's signature, ignoring its expiry.
+     * Returns the payload of an expired token (signature still valid),
+     * or null when the token is malformed or the signature is wrong.
+     */
+    public function verifyIgnoringExpiry(string $token): ?array
+    {
+        try {
+            $decoded = JWT::decode($token, new Key($this->secret, 'HS256'));
+            return (array) $decoded;
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return (array) $e->getPayload();
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Check if JWT should be refreshed based on age.
      * Returns true if the token is older than 18 hours.
      * 

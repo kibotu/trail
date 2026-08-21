@@ -108,6 +108,7 @@ class CsrfMiddleware implements MiddlewareInterface
         $skipPaths = [
             '/api/auth/google',
             '/api/auth/dev',
+            '/api/auth/refresh',
             '/api/auth/logout',
             // View tracking is anonymous, no session side-effects
             '/api/entries/',  // matched more specifically below
@@ -116,7 +117,7 @@ class CsrfMiddleware implements MiddlewareInterface
         ];
 
         // Exact path matches
-        if (in_array($path, ['/api/auth/google', '/api/auth/dev', '/api/auth/logout'], true)) {
+        if (in_array($path, ['/api/auth/google', '/api/auth/dev', '/api/auth/refresh', '/api/auth/logout'], true)) {
             return true;
         }
 

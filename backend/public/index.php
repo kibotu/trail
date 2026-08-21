@@ -473,6 +473,8 @@ $app->get('/api/config', function ($request, $response) use ($config) {
 $rateLimitEnabled = $config['security']['rate_limit']['enabled'] ?? true;
 $app->post('/api/auth/google', [AuthController::class, 'googleAuth'])
     ->add(new RateLimitMiddleware(5, 300, $rateLimitEnabled)); // 5 attempts per 5 minutes
+$app->post('/api/auth/refresh', [AuthController::class, 'refresh'])
+    ->add(new RateLimitMiddleware(5, 300, $rateLimitEnabled)); // 5 attempts per 5 minutes
 $app->post('/api/auth/dev', [AuthController::class, 'devAuth']) // Development only
     ->add(new RateLimitMiddleware(10, 60, $rateLimitEnabled)); // 10 attempts per minute (dev only)
 

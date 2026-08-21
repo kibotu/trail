@@ -114,6 +114,58 @@ class AuthController
     }
 
     /**
+     * Refresh - Re-issue the JWT sent in the Authorization header.
+     * The token's expiry is ignored (its signature must still be valid);
+     * tokens older than 30 days match the web session lifetime.
+     */
+    public static function refresh(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+
+        $authHeader = $request->getHeaderLine('Authorization');
+        if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            $response->getBody()->write(json_encode(['error' => 'Missing token']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $jwtService = new JwtService($config);
+        $payload = $jwtService->verifyIgnoringExpiry($matches[1]);
+
+        $maxAge = 30 * 86400; // days, matches web session lifetime
+        if (!$payload || !isset($payload['user_id'], $payload['iat']) || ($payload['iat'] < time() - $maxAge)) {
+            $response->getBody()->write(json_encode(['error' => 'Invalid or expired token']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $db = Database::getInstance($config);
+        $userModel = new User($db);
+        $user = $userModel->findById((int) $payload['user_id']);
+
+        if (!$user) {
+            $response->getBody()->write(json_encode(['error' => 'User not found']));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $jwt = $jwtService->generate((int) $user['id'], $user['email'], (bool) $user['is_admin']);
+
+        $responseData = [
+            'token' => $jwt,
+            'user' => [
+                'id' => (int) $user['id'],
+                'email' => $user['email'],
+                'name' => $user['name'],
+                'nickname' => $user['nickname'] ?? null,
+                'gravatar_hash' => $user['gravatar_hash'],
+                'gravatar_url' => GravatarService::generateUrl($user['gravatar_hash']),
+                'is_admin' => (bool) $user['is_admin'],
+            ],
+        ];
+
+        $response->getBody()->write(json_encode($responseData));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * Dev Auth - Generate JWT for testing (development mode only)
      */
     public static function devAuth(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
