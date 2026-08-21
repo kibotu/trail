@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import net.kibotu.trail.shared.auth.AuthRepository
 import net.kibotu.trail.shared.auth.AuthUser
 import net.kibotu.trail.shared.network.ApiClient
+import net.kibotu.trail.shared.profile.ProfileCache
 import net.kibotu.trail.shared.profile.ProfileRepository
 import net.kibotu.trail.shared.storage.TokenManager
 
@@ -27,7 +28,8 @@ data class AuthState(
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val profileCache: ProfileCache
 ) : ViewModel() {
 
     val state: StateFlow<AuthState>
@@ -119,6 +121,7 @@ class AuthViewModel(
 
     fun logout() {
         viewModelScope.launch {
+            profileCache.clear()
             authRepository.logout()
             state.value = AuthState(isLoggedIn = false, isLoading = false)
         }
@@ -154,11 +157,12 @@ class AuthViewModel(
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val tokenManager = TokenManager(context)
-            val client = ApiClient.client
-            val authRepository = AuthRepository(client, tokenManager)
-            val profileRepository = ProfileRepository(client)
-            return AuthViewModel(authRepository, profileRepository) as T
+        val tokenManager = TokenManager(context)
+        val client = ApiClient.client
+        val profileCache = ProfileCache(context)
+        val authRepository = AuthRepository(client, tokenManager)
+        val profileRepository = ProfileRepository(client, profileCache)
+        return AuthViewModel(authRepository, profileRepository, profileCache) as T
         }
     }
 }

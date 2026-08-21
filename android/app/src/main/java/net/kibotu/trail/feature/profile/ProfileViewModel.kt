@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import net.kibotu.trail.shared.network.ApiClient
+import net.kibotu.trail.shared.profile.ProfileCache
 import net.kibotu.trail.shared.profile.ProfileRepository
 import net.kibotu.trail.shared.profile.ProfileResponse
 import net.kibotu.trail.shared.profile.UpdateProfileRequest
@@ -29,7 +30,8 @@ data class ProfileScreenState(
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val profileCache: ProfileCache
 ) : ViewModel() {
 
     val state: StateFlow<ProfileScreenState>
@@ -42,10 +44,15 @@ class ProfileViewModel(
 
     fun loadProfile() {
         viewModelScope.launch {
-            state.value = state.value.copy(isLoading = true)
+            // Show the cached profile immediately so the tab renders without a network round-trip.
+            val cached = profileCache.load()
+            if (cached != null) {
+                state.value = state.value.copy(profile = cached, error = null, isLoading = false)
+            }
+            // Refresh in the background; falls back to the cache when offline.
             profileRepository.getProfile().fold(
-                onSuccess = { state.value = state.value.copy(profile = it, isLoading = false) },
-                onFailure = { state.value = state.value.copy(error = it.message, isLoading = false) }
+                onSuccess = { state.value = state.value.copy(profile = it, error = null, isLoading = false) },
+                onFailure = { state.value = state.value.copy(isLoading = false, error = it.message) }
             )
         }
     }
@@ -132,7 +139,12 @@ class ProfileViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val client = ApiClient.client
-            return ProfileViewModel(ProfileRepository(client), UserRepository(client)) as T
+            val profileCache = ProfileCache(context)
+            return ProfileViewModel(
+                ProfileRepository(client, profileCache),
+                UserRepository(client),
+                profileCache
+            ) as T
         }
     }
 }

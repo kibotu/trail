@@ -10,10 +10,25 @@ import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-class ProfileRepository(private val client: HttpClient) {
+class ProfileRepository(private val client: HttpClient, private val profileCache: ProfileCache? = null) {
 
-    suspend fun getProfile(): Result<ProfileResponse> = runCatching {
-        client.get("api/profile").body()
+    /**
+     * Network-first. When offline, returns the last cached profile (if any) so the screen can render.
+     */
+    suspend fun getProfile(): Result<ProfileResponse> {
+        val cache = profileCache ?: return runCatching { client.get("api/profile").body() }
+        val network: Result<ProfileResponse> = runCatching { client.get("api/profile").body() }
+        return when {
+            network.isSuccess -> {
+                val profile = network.getOrThrow()
+                cache.save(profile)
+                Result.success(profile)
+            }
+            else -> {
+                val error = network.exceptionOrNull() ?: IllegalStateException("Failed to load profile")
+                cache.load()?.let { Result.success(it) } ?: Result.failure(error)
+            }
+        }
     }
 
     suspend fun updateProfile(request: UpdateProfileRequest): Result<UpdateProfileResponse> = runCatching {

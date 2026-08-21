@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -125,12 +126,19 @@ fun MediaGallery(
             media.forEach { item ->
                 val hasDimensions = item.width != null && item.height != null && item.height!! > 0
                 val itemModifier = if (hasDimensions) {
-                    val ratio = (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
-                    Modifier.fillMaxWidth().aspectRatio(ratio)
+                    val ratio =
+                        (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(ratio)
                 } else if (item.isSvg) {
-                    Modifier.fillMaxWidth().height(200.dp)
+                    Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
                 } else {
-                    Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
                 }
                 Box(
                     modifier = Modifier
@@ -158,12 +166,21 @@ fun MediaGallery(
                 val item = media[index]
                 val hasDimensions = item.width != null && item.height != null && item.height!! > 0
                 val itemModifier = if (hasDimensions) {
-                    val ratio = (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
-                    Modifier.height(galleryHeight).aspectRatio(ratio).clip(RoundedCornerShape(12.dp))
+                    val ratio =
+                        (item.width!!.toFloat() / item.height!!.toFloat()).coerceIn(0.5f, 2f)
+                    Modifier
+                        .height(galleryHeight)
+                        .aspectRatio(ratio)
+                        .clip(RoundedCornerShape(12.dp))
                 } else if (item.isSvg) {
-                    Modifier.height(galleryHeight).clip(RoundedCornerShape(12.dp))
+                    Modifier
+                        .height(galleryHeight)
+                        .clip(RoundedCornerShape(12.dp))
                 } else {
-                    Modifier.height(galleryHeight).aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp))
+                    Modifier
+                        .height(galleryHeight)
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(12.dp))
                 }
                 MediaItemView(
                     item = item,
@@ -205,6 +222,7 @@ fun MediaItemView(
                 modifier = modifier
             )
         }
+
         item.isGif -> {
             GifImage(
                 url = fullUrl,
@@ -213,6 +231,7 @@ fun MediaItemView(
                 modifier = modifier
             )
         }
+
         item.isSvg -> {
             SvgImage(
                 url = fullUrl,
@@ -222,6 +241,7 @@ fun MediaItemView(
                 modifier = modifier
             )
         }
+
         else -> {
             StaticImage(
                 url = fullUrl,
@@ -333,7 +353,11 @@ fun SvgImage(
                 }
             },
             onError = { state ->
-                Timber.w(state.result.throwable, "SVG failed to load via Coil, falling back to WebView: %s", url)
+                Timber.w(
+                    state.result.throwable,
+                    "SVG failed to load via Coil, falling back to WebView: %s",
+                    url
+                )
                 useWebView = true
                 onWebViewFallback?.invoke(true)
             }
@@ -726,7 +750,10 @@ private fun VideoSeekBar(
             drawCircle(
                 color = Color.White,
                 radius = thumbRadiusPx,
-                center = Offset(filledWidth.coerceIn(thumbRadiusPx, size.width - thumbRadiusPx), trackHeightPx / 2f)
+                center = Offset(
+                    filledWidth.coerceIn(thumbRadiusPx, size.width - thumbRadiusPx),
+                    trackHeightPx / 2f
+                )
             )
         }
     }
@@ -868,7 +895,11 @@ private fun VideoPlayerContent(
                         // Timestamp
                         if (durationMs > 0) {
                             Text(
-                                text = "${formatDuration(currentPositionMs)} / ${formatDuration(durationMs)}",
+                                text = "${formatDuration(currentPositionMs)} / ${
+                                    formatDuration(
+                                        durationMs
+                                    )
+                                }",
                                 color = Color.White.copy(alpha = 0.9f),
                                 fontSize = if (isFullscreen) 13.sp else 11.sp,
                                 fontWeight = FontWeight.Medium,
@@ -894,7 +925,9 @@ private fun VideoPlayerContent(
                         // Fullscreen
                         IconButton(
                             onClick = onFullscreenToggle,
-                            modifier = Modifier.size(if (isFullscreen) 40.dp else 28.dp)
+                            modifier = Modifier
+                                .systemBarsPadding()
+                                .size(if (isFullscreen) 40.dp else 28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
@@ -1015,7 +1048,8 @@ private fun FullscreenImageViewer(
                 onClick = onDismiss,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                    .systemBarsPadding()
+                    .padding(end = 16.dp)
                     .size(40.dp),
                 colors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Black.copy(alpha = 0.5f)
