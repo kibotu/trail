@@ -22,7 +22,9 @@ import java.util.Locale
 
 private val Context.reviewDataStore: DataStore<Preferences> by preferencesDataStore(name = "review_prefs")
 
-class InAppReviewManager(private val context: Context) {
+class InAppReviewManager(context: Context) {
+
+    private val context = context.applicationContext
 
     init {
         Timber.d("┌─── InAppReviewManager created ───")

@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "trail_prefs")
 
-class TokenManager(private val context: Context) {
+class TokenManager(context: Context) {
+    private val context = context.applicationContext
+
     companion object {
         private val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")

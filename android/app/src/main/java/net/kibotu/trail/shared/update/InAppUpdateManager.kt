@@ -24,9 +24,10 @@ import kotlinx.coroutines.tasks.await
 private val Context.updateDataStore: DataStore<Preferences>
     by preferencesDataStore(name = "update_prefs")
 
-class InAppUpdateManager(private val context: Context) {
+class InAppUpdateManager(context: Context) {
 
-    private val appUpdateManager = AppUpdateManagerFactory.create(context)
+    private val context = context.applicationContext
+    private val appUpdateManager = AppUpdateManagerFactory.create(this.context)
 
     private val installStateListener = InstallStateUpdatedListener { state ->
         when (state.installStatus) {

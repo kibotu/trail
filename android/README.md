@@ -190,7 +190,7 @@ cd android
 # Release with specific version
 
 ```sh
-VERSION=1.2.8 && ./gradlew bundleRelease \
+VERSION=2.0.0 && ./gradlew bundleRelease \
   -PversionName=$VERSION \
   -PversionCode=$(($(echo $VERSION | awk -F. '{print $1*10000000+$2*100000+$3*1000}')))
 ```

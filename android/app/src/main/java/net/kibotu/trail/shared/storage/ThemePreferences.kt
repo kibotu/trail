@@ -18,8 +18,9 @@ import kotlinx.coroutines.launch
 
 private val Context.themeDataStore: DataStore<Preferences> by preferencesDataStore(name = "theme_prefs")
 
-class ThemePreferences(private val context: Context) {
+class ThemePreferences(context: Context) {
 
+    private val context = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val isDarkTheme: StateFlow<Boolean>
