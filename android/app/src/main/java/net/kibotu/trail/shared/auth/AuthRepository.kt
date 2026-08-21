@@ -19,6 +19,31 @@ class AuthRepository(
             setBody(GoogleAuthRequest(idToken))
         }.body()
 
+        storeAuth(response)
+        response
+    }
+
+    /**
+     * Re-issues the stored JWT (sent via the Authorization header).
+     * Returns whether the user is still logged in:
+     * - server rejects the token (401) → logged out locally
+     * - network / server error → token kept, retried next start or resume
+     */
+    suspend fun refreshAuthTokenIfNeeded(): Boolean {
+        val token = getAuthToken() ?: return false
+        val response = runCatching { client.post("api/auth/refresh") }.getOrNull() ?: return true
+        val refreshed = runCatching {
+            val body: AuthResponse = response.body()
+            storeAuth(body)
+        }.isSuccess
+        return when {
+            refreshed -> true
+            response.status.value == 401 -> { logout(); false }
+            else -> true
+        }
+    }
+
+    private suspend fun storeAuth(response: AuthResponse) {
         tokenManager.saveAuthToken(
             token = response.token,
             email = response.user.email,
@@ -28,8 +53,6 @@ class AuthRepository(
             photoUrl = response.user.gravatarUrl
         )
         ApiClient.setAuthToken(response.token)
-
-        response
     }
 
     suspend fun getAuthToken(): String? = tokenManager.getAuthToken()

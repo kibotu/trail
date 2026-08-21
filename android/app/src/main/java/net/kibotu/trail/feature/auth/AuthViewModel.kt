@@ -38,6 +38,10 @@ class AuthViewModel(
             val token = authRepository.getAuthToken()
             if (token != null) {
                 ApiClient.setAuthToken(token)
+                if (!authRepository.refreshAuthTokenIfNeeded()) {
+                    state.value = AuthState(isLoggedIn = false, isLoading = false)
+                    return@launch
+                }
                 val nickname = authRepository.userNickname.first()
                 val name = authRepository.userName.first()
                 val userId = authRepository.userId.first()?.toIntOrNull()
@@ -117,6 +121,19 @@ class AuthViewModel(
         viewModelScope.launch {
             authRepository.logout()
             state.value = AuthState(isLoggedIn = false, isLoading = false)
+        }
+    }
+
+    private var isRefreshing = false
+
+    /** Refreshes the stored token if it is near expiry. Safe to call repeatedly. */
+    fun refreshAuthTokenIfNeeded() {
+        if (isRefreshing || !state.value.isLoggedIn) return
+        isRefreshing = true
+        viewModelScope.launch {
+            val stillLoggedIn = authRepository.refreshAuthTokenIfNeeded()
+            isRefreshing = false
+            if (!stillLoggedIn) logout()
         }
     }
 

@@ -12,10 +12,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.kibotu.splashscreen.SplashScreenDecorator
@@ -93,6 +97,21 @@ class MainActivity : ComponentActivity() {
                     inAppReviewManager.dumpState()
                     inAppReviewManager.promptIfEligible(this@MainActivity)
                 }
+            }
+
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = object : DefaultLifecycleObserver {
+                    override fun onCreate(owner: LifecycleOwner) {}
+                    override fun onStart(owner: LifecycleOwner) {
+                        authViewModel.refreshAuthTokenIfNeeded()
+                    }
+                    override fun onPause(owner: LifecycleOwner) {}
+                    override fun onStop(owner: LifecycleOwner) {}
+                    override fun onDestroy(owner: LifecycleOwner) {}
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
             val windowSizeClass = calculateWindowSizeClass(this@MainActivity)

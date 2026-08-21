@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -42,15 +44,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import kotlinx.coroutines.flow.StateFlow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.flow.StateFlow
 import net.kibotu.trail.feature.auth.DeletionBlockerScreen
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
-import net.kibotu.trail.shared.network.ApiClient
-import net.kibotu.trail.shared.notification.NotificationRepository
 import net.kibotu.trail.feature.entrydetail.EntryDetailScreen
 import net.kibotu.trail.feature.home.HomeScreen
 import net.kibotu.trail.feature.myfeed.MyFeedScreen
@@ -59,15 +60,14 @@ import net.kibotu.trail.feature.profile.ProfileScreen
 import net.kibotu.trail.feature.search.SearchScreen
 import net.kibotu.trail.feature.share.ShareScreen
 import net.kibotu.trail.feature.userprofile.UserProfileScreen
+import net.kibotu.trail.shared.network.ApiClient
+import net.kibotu.trail.shared.notification.NotificationRepository
 import net.kibotu.trail.shared.storage.ThemePreferences
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.FloatingTabBar
 import net.kibotu.trail.shared.theme.ui.FloatingTabBarDefaults
 import net.kibotu.trail.shared.theme.ui.rememberFloatingTabBarScrollConnection
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import java.net.URLEncoder
 
 object Routes {
