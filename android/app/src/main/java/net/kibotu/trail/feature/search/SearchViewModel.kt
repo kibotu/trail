@@ -7,8 +7,12 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +34,11 @@ class SearchViewModel(
     val query: StateFlow<String>
         field = MutableStateFlow("")
 
+    // IO scope ensures flatMapLatest cancels old Pager flows (and their in-flight Ktor calls)
+    // on a background thread. If we used viewModelScope (Main), Ktor's OkHttp cleanup handler
+    // would drain the chunked response body on Main → NetworkOnMainThreadException.
+    private val searchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val searchResults: Flow<PagingData<Entry>> = query
         .debounce(300)
@@ -39,7 +48,12 @@ class SearchViewModel(
                 pagingSourceFactory = { EntriesPagingSource(entryRepository, query = q.ifBlank { null }) }
             ).flow
         }
-        .cachedIn(viewModelScope)
+        .cachedIn(searchScope)
+
+    override fun onCleared() {
+        super.onCleared()
+        searchScope.cancel()
+    }
 
     fun updateQuery(newQuery: String) {
         query.value = newQuery
