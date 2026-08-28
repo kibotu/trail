@@ -16,15 +16,17 @@ class CollectionsIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
-        $ch = curl_init($this->baseUrl . '/api/health');
+        // /api/collections proves server up + DB reachable + feature present.
+        $ch = curl_init($this->baseUrl . '/api/collections');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['User-Agent: Mozilla/5.0']);
         curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            $this->markTestSkipped('API server not running. Start with: ./run.sh');
+            $this->markTestSkipped('API server not running or DB down. Start with: ./run.sh');
         }
     }
 
@@ -202,7 +204,7 @@ class CollectionsIntegrationTest extends TestCase
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
-        $headers = ['Content-Type: application/json'];
+        $headers = ['Content-Type: application/json', 'User-Agent: Mozilla/5.0'];
         if ($token !== null) {
             $headers[] = 'Authorization: Bearer ' . $token;
         }

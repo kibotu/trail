@@ -48,7 +48,8 @@ class ViewController
         }
 
         $viewModel = new View($db);
-        $viewerId = $request->getAttribute('user_id');
+        // These routes have no AuthMiddleware; resolve the viewer optionally.
+        $viewerId = EntryController::getOptionalAuth($request, $config)['user_id'];
         $viewerHash = self::getViewerHash($request);
 
         try {
@@ -98,7 +99,8 @@ class ViewController
         }
 
         $viewModel = new View($db);
-        $viewerId = $request->getAttribute('user_id');
+        // These routes have no AuthMiddleware; resolve the viewer optionally.
+        $viewerId = EntryController::getOptionalAuth($request, $config)['user_id'];
         $viewerHash = self::getViewerHash($request);
 
         try {
@@ -145,7 +147,8 @@ class ViewController
         }
 
         $viewModel = new View($db);
-        $viewerId = $request->getAttribute('user_id');
+        // These routes have no AuthMiddleware; resolve the viewer optionally.
+        $viewerId = EntryController::getOptionalAuth($request, $config)['user_id'];
         $viewerHash = self::getViewerHash($request);
 
         // Don't count self-views on own profile
@@ -202,7 +205,8 @@ class ViewController
         }
 
         $viewModel = new View($db);
-        $viewerId = $request->getAttribute('user_id');
+        // These routes have no AuthMiddleware; resolve the viewer optionally.
+        $viewerId = EntryController::getOptionalAuth($request, $config)['user_id'];
         $viewerHash = self::getViewerHash($request);
 
         // Don't count self-views on own collections

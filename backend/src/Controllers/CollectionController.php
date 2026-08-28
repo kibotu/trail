@@ -139,6 +139,9 @@ class CollectionController
             }
             unset($entry);
 
+            // Add can_edit flag and strip sensitive fields, matching listPublic
+            EntryController::sanitizeEntries($entries, $currentUserId, $auth['is_admin']);
+
             $nextCursor = null;
             if ($hasMore && !empty($entries)) {
                 $nextCursor = end($entries)['created_at'];
@@ -218,9 +221,20 @@ class CollectionController
         $data = json_decode((string) $request->getBody(), true);
         $name = $data['name'] ?? '';
         $slug = $data['slug'] ?? '';
+        $bio = $data['bio'] ?? null;
 
         if (empty($name)) {
             $response->getBody()->write(json_encode(['error' => 'Name is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        // Column limits: name VARCHAR(140), bio VARCHAR(160)
+        if (mb_strlen($name) > 140) {
+            $response->getBody()->write(json_encode(['error' => 'Name must be 140 characters or fewer']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+        if ($bio !== null && mb_strlen($bio) > 160) {
+            $response->getBody()->write(json_encode(['error' => 'Bio must be 160 characters or fewer']));
             return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
         }
 
@@ -248,7 +262,7 @@ class CollectionController
                 $ownerUserId,
                 $name,
                 $slug,
-                $data['bio'] ?? null,
+                $bio,
                 isset($data['avatar_image_id']) ? (int) $data['avatar_image_id'] : null,
                 isset($data['header_image_id']) ? (int) $data['header_image_id'] : null
             );
@@ -306,6 +320,16 @@ class CollectionController
                     $response->getBody()->write(json_encode(['error' => 'Slug is already in use']));
                     return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
                 }
+            }
+
+            // Column limits: name VARCHAR(140), bio VARCHAR(160)
+            if ($data['name'] !== null && mb_strlen($data['name']) > 140) {
+                $response->getBody()->write(json_encode(['error' => 'Name must be 140 characters or fewer']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+            }
+            if ($data['bio'] !== null && mb_strlen($data['bio']) > 160) {
+                $response->getBody()->write(json_encode(['error' => 'Bio must be 160 characters or fewer']));
+                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
 
             $collectionModel->update(

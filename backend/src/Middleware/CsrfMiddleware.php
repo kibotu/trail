@@ -128,6 +128,9 @@ class CsrfMiddleware implements MiddlewareInterface
         if (preg_match('#^/api/users/[^/]+/views$#', $path)) {
             return true;
         }
+        if (preg_match('#^/api/collections/[^/]+/views$#', $path)) {
+            return true;
+        }
 
         return false;
     }

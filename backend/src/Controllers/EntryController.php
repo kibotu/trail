@@ -971,7 +971,7 @@ class EntryController
      * @param int|null $userId Current user ID
      * @param bool $isAdmin Whether current user is admin
      */
-    private static function sanitizeEntries(array &$entries, ?int $userId, bool $isAdmin): void
+    public static function sanitizeEntries(array &$entries, ?int $userId, bool $isAdmin): void
     {
         foreach ($entries as &$entry) {
             // Add can_edit flag

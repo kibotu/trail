@@ -11,6 +11,18 @@ class Entry
     private PDO $db;
     private string $table = 'trail_entries';
 
+    /**
+     * Shared claim join: each entry's claimed collection (lowest collection_id wins)
+     * plus the resolved collection columns. Used by getAll/searchAll/searchByTagSlug.
+     */
+    public const COLLECTION_CLAIM_JOIN_SQL = " LEFT JOIN (
+        SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
+        FROM trail_entry_tags et
+        JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
+        GROUP BY et.entry_id
+    ) claimed ON claimed.entry_id = e.id
+    LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -236,15 +248,10 @@ class Entry
                      FROM trail_comments
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
-                 LEFT JOIN trail_view_counts view_counts
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
-                 LEFT JOIN (
-                     SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
-                     FROM trail_entry_tags et
-                     JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
-                     GROUP BY et.entry_id
-                 ) claimed ON claimed.entry_id = e.id
-                 LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+                  LEFT JOIN trail_view_counts view_counts
+                      ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+
+        $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -983,15 +990,10 @@ class Entry
                      FROM trail_comments
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
-                 LEFT JOIN trail_view_counts view_counts 
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
-                  LEFT JOIN (
-                      SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
-                      FROM trail_entry_tags et
-                      JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
-                      GROUP BY et.entry_id
-                  ) claimed ON claimed.entry_id = e.id
-                  LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+                   LEFT JOIN trail_view_counts view_counts
+                       ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+
+        $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -1288,14 +1290,9 @@ class Entry
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
                   LEFT JOIN trail_view_counts view_counts 
-                      ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
-                  LEFT JOIN (
-                      SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
-                      FROM trail_entry_tags et
-                      JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
-                      GROUP BY et.entry_id
-                  ) claimed ON claimed.entry_id = e.id
-                  LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+                       ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+
+        $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";

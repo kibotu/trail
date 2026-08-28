@@ -413,24 +413,7 @@ $app->get('/collection/{slug}', function ($request, $response, array $args) use 
 $app->get('/collections', function ($request, $response) use ($config) {
     $collectionsPage = __DIR__ . '/../templates/public/collections.php';
     if (file_exists($collectionsPage)) {
-        require_once __DIR__ . '/helpers/session.php';
-
         $db = \Trail\Database\Database::getInstance($config);
-        $session = getAuthenticatedUser($db);
-        $isLoggedIn = $session !== null;
-
-        $userId = $session['user_id'] ?? null;
-        $userName = $session['email'] ?? null;
-        $userPhotoUrl = $session['photo_url'] ?? null;
-        $isAdmin = $session['is_admin'] ?? false;
-        $jwtToken = $session['jwt_token'] ?? null;
-
-        $googleOAuth = $config['google_oauth'] ?? null;
-        $googleAuthUrl = null;
-        if ($googleOAuth !== null && !$isLoggedIn) {
-            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
-        }
-
         $collectionModel = new \Trail\Models\Collection($db);
         $collections = $collectionModel->getAll();
 
