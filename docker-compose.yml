@@ -4,8 +4,12 @@ services:
     container_name: trail-db
     restart: unless-stopped
     environment:
-      # Root password only; the app DB + user are created by dev-db.sh
+      # Creates an empty database + app user on first start.
+      # dev-db.sh is separate: it loads the production backup for testing.
       MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: trail_db
+      MARIADB_USER: trail
+      MARIADB_PASSWORD: trail
     ports:
       # Published so the PHP backend (running on the host) can reach it.
       # Uncommon port to avoid clashing with other local MySQL instances

@@ -102,14 +102,18 @@ function createCollectionRow(collection) {
             <span class="entry-count">${collection.entry_count || 0}</span>
         </div>
         <div class="tags-col-actions">
-            <button class="button secondary tiny" onclick="editCollection('${escapeHtml(collection.slug)}')" title="Edit collection">
+            <button class="button secondary tiny" data-action="edit" title="Edit collection">
                 <i class="fa-solid fa-pen"></i>
             </button>
-            <button class="button danger tiny" onclick="deleteCollection(${collection.id}, '${escapeHtml(collection.name)}')" title="Delete collection">
+            <button class="button danger tiny" data-action="delete" title="Delete collection">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>
     `;
+
+    // Listeners instead of inline onclick: the name is free text (quotes, apostrophes)
+    row.querySelector('[data-action="edit"]').addEventListener('click', () => editCollection(collection.slug));
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteCollection(collection.id, collection.name));
 
     return row;
 }
@@ -172,30 +176,30 @@ async function openCollectionForm(slug) {
             <div class="modal-body">
                 <div style="margin-bottom: 0.75rem;">
                     <label for="collection-name" style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Name</label>
-                    <input type="text" id="collection-name" value="${escapeHtml(collection ? collection.name : '')}" maxlength="140" class="source-filter-select" style="width: 100%;">
+                    <input type="text" id="collection-name" value="" maxlength="140" class="source-filter-select" style="width: 100%;">
                 </div>
                 <div style="margin-bottom: 0.75rem;">
                     <label for="collection-slug" style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Slug</label>
-                    <input type="text" id="collection-slug" value="${escapeHtml(collection ? collection.slug : '')}" maxlength="64" class="source-filter-select" style="width: 100%;">
+                    <input type="text" id="collection-slug" value="" maxlength="64" class="source-filter-select" style="width: 100%;">
                     <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Lowercase, 2-64 chars, only letters/digits/hyphens. Suggested from the name.</p>
                 </div>
                 <div style="margin-bottom: 0.75rem;">
                     <label for="collection-bio" style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Bio</label>
-                    <input type="text" id="collection-bio" value="${escapeHtml(collection ? collection.bio || '' : '')}" maxlength="160" class="source-filter-select" style="width: 100%;">
+                    <input type="text" id="collection-bio" value="" maxlength="160" class="source-filter-select" style="width: 100%;">
                 </div>
                 <div style="margin-bottom: 0.75rem;">
                     <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Avatar &amp; header</label>
                     <div style="display: flex; gap: 1rem; align-items: center;">
                         <div style="text-align: center;">
-                            <img id="collection-avatar-preview" src="${escapeHtml(collection && collection.avatar_url ? collection.avatar_url : '/assets/app-icon.webp')}" alt="Collection avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover;">
+                            <img id="collection-avatar-preview" src="/assets/app-icon.webp" alt="Collection avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover;">
                             <button class="button secondary tiny" style="margin-top: 0.25rem;" onclick="uploadCollectionImage('avatar')">Avatar</button>
                         </div>
                         <div style="text-align: center;">
-                            <img id="collection-header-preview" src="${escapeHtml(collection && collection.header_image_url ? collection.header_image_url : '')}" alt="Collection header" style="width: 120px; height: 56px; object-fit: cover; ${collection && collection.header_image_url ? '' : 'display: none;'}">
+                            <img id="collection-header-preview" src="" alt="Collection header" style="width: 120px; height: 56px; object-fit: cover; display: none;">
                             <button class="button secondary tiny" style="margin-top: 0.25rem;" onclick="uploadCollectionImage('header')">Header</button>
                         </div>
-                        <input type="hidden" id="collection-avatar-image-id" value="${collection && collection.avatar_image_id ? collection.avatar_image_id : ''}">
-                        <input type="hidden" id="collection-header-image-id" value="${collection && collection.header_image_id ? collection.header_image_id : ''}">
+                        <input type="hidden" id="collection-avatar-image-id" value="">
+                        <input type="hidden" id="collection-header-image-id" value="">
                     </div>
                 </div>
                 <div style="margin-bottom: 0.75rem;">
@@ -219,9 +223,25 @@ async function openCollectionForm(slug) {
         if (e.target === modal) closeCollectionModal();
     });
 
-    // Slug auto-suggested from the name until the slug is edited manually
+    // Values set as properties — free text stays out of HTML attributes
     const nameInput = document.getElementById('collection-name');
     const slugInput = document.getElementById('collection-slug');
+    const bioInput = document.getElementById('collection-bio');
+    nameInput.value = collection ? collection.name : '';
+    slugInput.value = collection ? collection.slug : '';
+    bioInput.value = collection && collection.bio || '';
+    document.getElementById('collection-avatar-image-id').value = collection && collection.avatar_image_id ? collection.avatar_image_id : '';
+    document.getElementById('collection-header-image-id').value = collection && collection.header_image_id ? collection.header_image_id : '';
+    if (collection && collection.avatar_url) {
+        document.getElementById('collection-avatar-preview').src = collection.avatar_url;
+    }
+    if (collection && collection.header_image_url) {
+        const headerPreview = document.getElementById('collection-header-preview');
+        headerPreview.src = collection.header_image_url;
+        headerPreview.style.display = '';
+    }
+
+    // Slug auto-suggested from the name until the slug is edited manually
     let slugTouched = !!collection;
     slugInput.addEventListener('input', () => { slugTouched = true; });
     nameInput.addEventListener('input', () => {

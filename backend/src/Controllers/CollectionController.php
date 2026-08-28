@@ -119,7 +119,17 @@ class CollectionController
             $hashSalt = Config::getEntryHashSalt($config);
             $hashIdService = new HashIdService($hashSalt);
 
+            // Cards on the collection page show the collection identity,
+            // matching the landing feed.
+            $collectionObject = [
+                'id' => (int) $collection['id'],
+                'slug' => $collection['slug'],
+                'name' => $collection['name'],
+                'avatar_url' => $collection['avatar_url'] ?? null,
+            ];
+
             foreach ($entries as &$entry) {
+                $entry['collection'] = $collectionObject;
                 $entry['avatar_url'] = self::getAvatarUrl($entry);
                 try {
                     $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
