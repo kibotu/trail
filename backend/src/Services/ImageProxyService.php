@@ -256,7 +256,6 @@ class ImageProxyService
         $origHeight = imagesy($sourceImage);
         
         if ($origWidth <= $maxWidth) {
-            imagedestroy($sourceImage);
             return ['path' => $originalPath, 'mime' => $mimeType];
         }
         
@@ -272,9 +271,6 @@ class ImageProxyService
         
         imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
         imagewebp($newImage, $resizedPath, 80);
-        
-        imagedestroy($sourceImage);
-        imagedestroy($newImage);
         
         if (file_exists($resizedPath)) {
             return ['path' => $resizedPath, 'mime' => 'image/webp'];

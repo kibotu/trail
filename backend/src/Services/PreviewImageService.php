@@ -160,8 +160,6 @@ class PreviewImageService
                         $imageSize, $imageSize,
                         (int)$newSrcW, (int)$newSrcH
                     );
-                    
-                    imagedestroy($previewImg);
                 }
             } catch (\Exception $e) {
                 error_log("Failed to load preview image: " . $e->getMessage());
@@ -229,7 +227,6 @@ class PreviewImageService
         
         // Save as PNG
         imagepng($img, $outputPath, 9);
-        imagedestroy($img);
         chmod($outputPath, 0644);
     }
     
@@ -308,7 +305,6 @@ class PreviewImageService
         
         // Save as PNG
         $success = imagepng($img, $outputPath, 9);
-        imagedestroy($img);
         
         if (!$success) {
             throw new RuntimeException("Failed to save preview image to {$outputPath}");

@@ -9,7 +9,8 @@ use PDO;
 class Collection
 {
     private PDO $db;
-    private string $table = 'trail_collections';
+
+    private const TABLE = 'trail_collections';
 
     /** Top-level route segments a collection slug must not collide with */
     public const RESERVED_SLUGS = [
@@ -50,27 +51,30 @@ class Collection
     }
 
     /**
+     * Shared SELECT with entry/view counts and avatar/header image metadata.
+     * GROUP BY c.id required (tag join fans out).
+     */
+    private const COLLECTION_SELECT =
+        "SELECT c.*,
+                COUNT(DISTINCT et.entry_id) AS entry_count,
+                COALESCE(vc.view_count, 0) AS view_count,
+                av.filename AS avatar_filename,
+                av.user_id AS avatar_user_id,
+                hd.filename AS header_filename,
+                hd.user_id AS header_user_id
+         FROM " . self::TABLE . " c
+         LEFT JOIN trail_collection_tags ct ON ct.collection_id = c.id
+         LEFT JOIN trail_entry_tags et ON et.tag_id = ct.tag_id
+         LEFT JOIN trail_view_counts vc ON vc.target_type = 'collection' AND vc.target_id = c.id
+         LEFT JOIN trail_images av ON av.id = c.avatar_image_id
+         LEFT JOIN trail_images hd ON hd.id = c.header_image_id";
+
+    /**
      * All collections with entry count and view count.
      */
     public function getAll(): array
     {
-        $stmt = $this->db->prepare(
-            "SELECT c.*,
-                    COUNT(DISTINCT et.entry_id) AS entry_count,
-                    COALESCE(vc.view_count, 0) AS view_count,
-                    av.filename AS avatar_filename,
-                    av.user_id AS avatar_user_id,
-                    hd.filename AS header_filename,
-                    hd.user_id AS header_user_id
-             FROM {$this->table} c
-             LEFT JOIN trail_collection_tags ct ON ct.collection_id = c.id
-             LEFT JOIN trail_entry_tags et ON et.tag_id = ct.tag_id
-             LEFT JOIN trail_view_counts vc ON vc.target_type = 'collection' AND vc.target_id = c.id
-             LEFT JOIN trail_images av ON av.id = c.avatar_image_id
-             LEFT JOIN trail_images hd ON hd.id = c.header_image_id
-             GROUP BY c.id
-             ORDER BY c.created_at DESC"
-        );
+        $stmt = $this->db->prepare(self::COLLECTION_SELECT . " GROUP BY c.id ORDER BY c.created_at DESC");
         $stmt->execute();
 
         return array_map(fn(array $row): array => $this->attachImageUrls($row), $stmt->fetchAll());
@@ -81,23 +85,7 @@ class Collection
      */
     public function findBySlug(string $slug): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT c.*,
-                    COUNT(DISTINCT et.entry_id) AS entry_count,
-                    COALESCE(vc.view_count, 0) AS view_count,
-                    av.filename AS avatar_filename,
-                    av.user_id AS avatar_user_id,
-                    hd.filename AS header_filename,
-                    hd.user_id AS header_user_id
-             FROM {$this->table} c
-             LEFT JOIN trail_collection_tags ct ON ct.collection_id = c.id
-             LEFT JOIN trail_entry_tags et ON et.tag_id = ct.tag_id
-             LEFT JOIN trail_view_counts vc ON vc.target_type = 'collection' AND vc.target_id = c.id
-             LEFT JOIN trail_images av ON av.id = c.avatar_image_id
-             LEFT JOIN trail_images hd ON hd.id = c.header_image_id
-             WHERE c.slug = ?
-             GROUP BY c.id"
-        );
+        $stmt = $this->db->prepare(self::COLLECTION_SELECT . " WHERE c.slug = ? GROUP BY c.id");
         $stmt->execute([$slug]);
         $row = $stmt->fetch();
 
@@ -106,7 +94,7 @@ class Collection
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE id = ?");
+        $stmt = $this->db->prepare(self::COLLECTION_SELECT . " WHERE c.id = ? GROUP BY c.id");
         $stmt->execute([$id]);
         $row = $stmt->fetch();
 
@@ -121,7 +109,7 @@ class Collection
         $this->db->beginTransaction();
         try {
             $stmt = $this->db->prepare(
-                "INSERT INTO {$this->table} (owner_user_id, name, slug, bio, avatar_image_id, header_image_id) VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO " . self::TABLE . " (owner_user_id, name, slug, bio, avatar_image_id, header_image_id) VALUES (?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([$ownerUserId, $name, $slug, $bio, $avatarImageId, $headerImageId]);
             $id = (int) $this->db->lastInsertId();
@@ -151,7 +139,7 @@ class Collection
     public function update(int $id, string $name, string $slug, ?string $bio, ?int $avatarImageId, ?int $headerImageId): bool
     {
         $stmt = $this->db->prepare(
-            "UPDATE {$this->table} SET name = ?, slug = ?, bio = ?, avatar_image_id = ?, header_image_id = ? WHERE id = ?"
+            "UPDATE " . self::TABLE . " SET name = ?, slug = ?, bio = ?, avatar_image_id = ?, header_image_id = ? WHERE id = ?"
         );
 
         return $stmt->execute([$name, $slug, $bio, $avatarImageId, $headerImageId, $id]);
@@ -166,7 +154,7 @@ class Collection
         try {
             $this->db->prepare("DELETE FROM trail_view_counts WHERE target_type = 'collection' AND target_id = ?")->execute([$id]);
             $this->db->prepare("DELETE FROM trail_views WHERE target_type = 'collection' AND target_id = ?")->execute([$id]);
-            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
+            $stmt = $this->db->prepare("DELETE FROM " . self::TABLE . " WHERE id = ?");
             $success = $stmt->execute([$id]);
             $this->db->commit();
 
