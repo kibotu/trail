@@ -77,8 +77,10 @@ class AdminController
         $hashSalt = Config::getEntryHashSalt($config);
         $hashIdService = new \Trail\Services\HashIdService($hashSalt);
 
+        // Admin view keeps poster attribution — drop the collection claim.
         // Add avatar URLs and hash IDs (no HTML escaping — this is a JSON API response)
         foreach ($entries as &$entry) {
+            unset($entry['collection']);
             $entry['avatar_url'] = self::getAvatarUrl($entry, 96, false);
             try {
                 $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);

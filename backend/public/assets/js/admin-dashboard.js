@@ -455,11 +455,13 @@ function switchView(view) {
     const brokenLinksContainer = document.getElementById('broken-links-container');
     const tagsContainer = document.getElementById('tags-container');
     const shortLinksContainer = document.getElementById('short-links-container');
+    const collectionsContainer = document.getElementById('collections-container');
     const entriesFilters = document.getElementById('entries-filters');
     const duplicatesFilters = document.getElementById('duplicates-filters');
     const brokenLinksFilters = document.getElementById('broken-links-filters');
     const tagsFilters = document.getElementById('tags-filters');
     const shortLinksFilters = document.getElementById('short-links-filters');
+    const collectionsFilters = document.getElementById('collections-filters');
     const bulkActions = document.getElementById('bulk-actions');
     const brokenLinksBulkActions = document.getElementById('broken-links-bulk-actions');
     const emptyState = document.getElementById('empty-state');
@@ -467,6 +469,7 @@ function switchView(view) {
     const emptyBrokenLinksState = document.getElementById('empty-broken-links-state');
     const emptyTagsState = document.getElementById('empty-tags-state');
     const emptyShortLinksState = document.getElementById('empty-short-links-state');
+    const emptyCollectionsState = document.getElementById('empty-collections-state');
     const sectionTitle = document.getElementById('section-title');
 
     // Toggle active button
@@ -478,6 +481,10 @@ function switchView(view) {
     if (viewShortLinksBtn) {
         viewShortLinksBtn.classList.toggle('active', view === 'short-links');
     }
+    const viewCollectionsBtn = document.getElementById('view-collections');
+    if (viewCollectionsBtn) {
+        viewCollectionsBtn.classList.toggle('active', view === 'collections');
+    }
 
     // Hide all containers and filters first
     entriesContainer.style.display = 'none';
@@ -485,11 +492,13 @@ function switchView(view) {
     brokenLinksContainer.style.display = 'none';
     tagsContainer.style.display = 'none';
     if (shortLinksContainer) shortLinksContainer.style.display = 'none';
+    if (collectionsContainer) collectionsContainer.style.display = 'none';
     entriesFilters.style.display = 'none';
     duplicatesFilters.style.display = 'none';
     brokenLinksFilters.style.display = 'none';
     tagsFilters.style.display = 'none';
     if (shortLinksFilters) shortLinksFilters.style.display = 'none';
+    if (collectionsFilters) collectionsFilters.style.display = 'none';
     bulkActions.style.display = 'none';
     if (brokenLinksBulkActions) brokenLinksBulkActions.style.display = 'none';
     emptyState.style.display = 'none';
@@ -497,6 +506,7 @@ function switchView(view) {
     emptyBrokenLinksState.style.display = 'none';
     emptyTagsState.style.display = 'none';
     if (emptyShortLinksState) emptyShortLinksState.style.display = 'none';
+    if (emptyCollectionsState) emptyCollectionsState.style.display = 'none';
     
     // Clear broken links selection when switching away
     if (view !== 'broken-links' && typeof selectedBrokenLinkIds !== 'undefined') {
@@ -550,6 +560,15 @@ function switchView(view) {
                 shortLinksHasMore = true;
                 loadShortLinks();
             }
+        }
+    } else if (view === 'collections') {
+        if (collectionsContainer) collectionsContainer.style.display = '';
+        if (collectionsFilters) collectionsFilters.style.display = '';
+        sectionTitle.textContent = 'Collections';
+
+        // Load collections if not already loaded
+        if (collectionsContainer && typeof loadCollections === 'function') {
+            loadCollections();
         }
     }
 }

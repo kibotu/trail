@@ -269,6 +269,88 @@ $endpoints = [
         'rate_limit' => "{$rateLimitPerMinute}/min",
         'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n     {$baseUrl}/api/entries/123/tags/python"
     ],
+
+    // COLLECTION ENDPOINTS
+    [
+        'method' => 'GET',
+        'path' => '/api/collections',
+        'description' => 'List all collections with entry and view counts',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/collections"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/collections/{slug}',
+        'description' => 'Get a collection by slug (with tags)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/collections/android"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/collections/{slug}/entries',
+        'description' => 'List entries belonging to a collection - Supports cursor pagination (?limit=20&before=cursor)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/collections/android/entries?limit=20"
+    ],
+    [
+        'method' => 'GET',
+        'path' => '/api/collections/{slug}/rss',
+        'description' => 'RSS feed for a collection',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/collections/android/rss"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/collections/{slug}/views',
+        'description' => 'Record a collection view (fire-and-forget)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl -X POST \\\n     {$baseUrl}/api/collections/android/views"
+    ],
+    [
+        'method' => 'POST',
+        'path' => '/api/admin/collections',
+        'description' => 'Create a collection (admin only) - Body: {name, slug, bio, tag_ids}',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X POST \\\n     -H \"Authorization: Bearer YOUR_ADMIN_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"name\":\"Android\",\"slug\":\"android\",\"tag_ids\":[1,2,3]}' \\\n     {$baseUrl}/api/admin/collections"
+    ],
+    [
+        'method' => 'PUT',
+        'path' => '/api/admin/collections/{id}',
+        'description' => 'Update a collection (admin only) - Body: {name, slug, bio, tag_ids}',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X PUT \\\n     -H \"Authorization: Bearer YOUR_ADMIN_TOKEN\" \\\n     -H \"Content-Type: application/json\" \\\n     -d '{\"name\":\"Android Dev\",\"tag_ids\":[1,2]}' \\\n     {$baseUrl}/api/admin/collections/123"
+    ],
+    [
+        'method' => 'DELETE',
+        'path' => '/api/admin/collections/{id}',
+        'description' => 'Delete a collection (admin only) - entries revert to poster attribution',
+        'auth' => true,
+        'auth_level' => 'admin',
+        'group' => 'admin',
+        'rate_limit' => "{$rateLimitPerMinute}/min",
+        'curl' => "curl -X DELETE \\\n     -H \"Authorization: Bearer YOUR_ADMIN_TOKEN\" \\\n     {$baseUrl}/api/admin/collections/123"
+    ],
     [
         'method' => 'POST',
         'path' => '/api/entries/{id}/comments',

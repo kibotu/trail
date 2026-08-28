@@ -565,10 +565,6 @@ class ImageService
         // Save as WebP
         $success = imagewebp($newImage, $targetPath, self::WEBP_QUALITY);
         
-        // Clean up
-        imagedestroy($sourceImage);
-        imagedestroy($newImage);
-        
         if (!$success) {
             throw new RuntimeException('Failed to save WebP image');
         }
@@ -656,8 +652,6 @@ class ImageService
                 default => imagewebp($thumb, $thumbPath, self::WEBP_QUALITY),
             };
             
-            imagedestroy($thumb);
-            
             if ($saved && file_exists($thumbPath)) {
                 $this->secureUploadedFile($thumbPath);
                 $results[$targetWidth] = [
@@ -668,8 +662,6 @@ class ImageService
                 ];
             }
         }
-        
-        imagedestroy($sourceImage);
         
         return $results;
     }

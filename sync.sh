@@ -137,6 +137,12 @@ bundle_js "user.bundle.js" \
     search-manager.js shader-who.js user-profile-manager.js scroll-to-top.js \
     user-page.js
 
+bundle_js "collection.bundle.js" \
+    auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
+    entries-manager.js infinite-scroll.js comments-manager.js \
+    search-manager.js embed-behaviors.js \
+    collection-profile-manager.js collection-page.js
+
 bundle_js "status.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js image-upload.js comments-manager.js meta-updater.js \
@@ -149,7 +155,7 @@ bundle_js "profile.bundle.js" \
 bundle_js "embed.bundle.js" \
     config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js user-profile-manager.js \
-    search-manager.js embed-page.js
+    search-manager.js embed-behaviors.js embed-page.js
 
 bundle_js "error.bundle.js" \
     config.js snackbar.js celebrations.js ui-interactions.js \

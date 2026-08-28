@@ -732,17 +732,29 @@ function createEntryCard(entry, options = {}) {
     
     // Get hash ID once for all event handlers
     const hashId = entry.hash_id || entry.id; // Fallback to numeric ID if hash_id not available
-    
-    // Determine display name (nickname or fallback)
-    let displayName = entry.user_name;
+
+    // Determine display name, profile link and avatar.
+    // Entries claimed by a collection show the collection identity;
+    // otherwise show the poster.
+    const collection = entry.collection || null;
+    let displayName;
     let userProfileLink = null;
-    
-    if (entry.user_nickname) {
-        displayName = entry.user_nickname;
-        userProfileLink = `/@${entry.user_nickname}`;
-    } else if (entry.google_id) {
-        // Generate a temporary display name hash (will be generated on backend)
-        displayName = 'user_' + entry.google_id.substring(0, 8);
+    let avatarUrl;
+
+    if (collection) {
+        displayName = collection.name;
+        userProfileLink = `/collection/${collection.slug}`;
+        avatarUrl = collection.avatar_url || entry.avatar_url;
+    } else {
+        displayName = entry.user_name;
+        avatarUrl = entry.avatar_url;
+        if (entry.user_nickname) {
+            displayName = entry.user_nickname;
+            userProfileLink = `/@${entry.user_nickname}`;
+        } else if (entry.google_id) {
+            // Generate a temporary display name hash (will be generated on backend)
+            displayName = 'user_' + entry.google_id.substring(0, 8);
+        }
     }
     
     // Use the same structure for both pages
@@ -750,9 +762,9 @@ function createEntryCard(entry, options = {}) {
         <div class="entry-header">
             ${userProfileLink ? 
                 `<a href="${userProfileLink}" data-no-navigate>
-                    <img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">
+                    <img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">
                 </a>` :
-                `<img src="${escapeHtml(entry.avatar_url)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">`
+                `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" class="avatar" width="48" height="48" loading="lazy">`
             }
             <div class="entry-header-content">
                 <div class="entry-header-top">

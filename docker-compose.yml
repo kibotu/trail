@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: trail-db
+    restart: unless-stopped
+    environment:
+      # Creates an empty database + app user on first start.
+      # dev-db.sh is separate: it loads the production backup for testing.
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: trail_db
+      MARIADB_USER: trail
+      MARIADB_PASSWORD: trail
+    ports:
+      # Published so the PHP backend (running on the host) can reach it.
+      # Uncommon port to avoid clashing with other local MySQL instances
+      # (craftsmen-mysql already holds 3306).
+      - "33071:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h localhost -u root -proot -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dbdata:

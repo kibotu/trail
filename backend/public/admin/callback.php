@@ -76,13 +76,14 @@ try {
             $isAdmin = (bool) $user['is_admin'];
         }
     } else {
-        // Create new user
+        // Create new user (api_token is NOT NULL since migration 026)
         $stmt = $db->prepare("
-            INSERT INTO trail_users (google_id, email, name, gravatar_hash, photo_url, is_admin) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO trail_users (google_id, email, name, gravatar_hash, photo_url, is_admin, api_token)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $gravatarHash = md5(strtolower(trim($email)));
-        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl, $isAdminUser ? 1 : 0]);
+        $apiToken = bin2hex(random_bytes(32));
+        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl, $isAdminUser ? 1 : 0, $apiToken]);
         $userId = (int) $db->lastInsertId();
         $isAdmin = $isAdminUser;
     }
