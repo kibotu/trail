@@ -3552,6 +3552,44 @@ main {
     pointer-events: none;
 }
 
+/* Collection tags (collapsed behind the "Tags" details) */
+.page-user .collection-tags {
+    margin-bottom: 0.75rem;
+}
+
+.page-user .collection-tags summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.page-user .collection-tags summary::-webkit-details-marker {
+    display: none;
+}
+
+.page-user .collection-tags summary:hover {
+    color: var(--text-primary);
+}
+
+.page-user .collection-tags summary i {
+    font-size: 0.8125rem;
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.page-user .profile-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin-top: 0.5rem;
+}
+
 /* Profile metadata row (joined, last seen, last post) */
 .page-user .profile-meta {
     display: flex;

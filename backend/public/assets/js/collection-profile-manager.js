@@ -121,13 +121,15 @@ class CollectionProfileManager {
             bioEl.textContent = collection.bio || '';
         }
 
-        // Tags
+        // Tags (collapsed behind the "Tags" details; hidden when there are none)
         const tagsEl = document.getElementById(this.elements.collectionTags);
-        if (tagsEl && Array.isArray(collection.tags)) {
-            tagsEl.innerHTML = collection.tags.map(tag => {
+        if (tagsEl) {
+            const tags = Array.isArray(collection.tags) ? collection.tags : [];
+            tagsEl.innerHTML = tags.map(tag => {
                 const link = `/collection/${this.slug}`;
                 return `<a href="${link}" class="entry-tag" data-no-navigate>#${escapeHtml(tag.name)}</a>`;
             }).join('');
+            tagsEl.closest('details').hidden = tags.length === 0;
         }
 
         // Stats

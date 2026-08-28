@@ -1,6 +1,7 @@
 .phpunit.cache/
 .phpstan.cache/
 secrets.yml
+secrets-prod.yml
 storage/preview-cache/*.png
 storage/temp/
 public/assets/dist/

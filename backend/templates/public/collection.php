@@ -126,9 +126,13 @@
 
                 <div class="profile-details">
                     <h1 class="profile-name" id="profileName">Loading...</h1>
-                    <p class="profile-nickname" id="profileNickname"><?= htmlspecialchars('/collection/' . $collectionSlug) ?></p>
                     <p class="profile-bio" id="profileBio"></p>
-                    <div class="profile-tags" id="collectionTags"></div>
+                    <details class="collection-tags" hidden>
+                        <summary>
+                            <i class="fa-solid fa-tag"></i> Tags
+                        </summary>
+                        <div class="profile-tags" id="collectionTags"></div>
+                    </details>
                     <div class="profile-stats" id="profileStats" style="display:none;">
                         <a class="profile-stat" id="statEntries" href="#entries" title="Entries">
                             <span class="profile-stat-value">0</span>
