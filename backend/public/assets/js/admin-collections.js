@@ -383,11 +383,15 @@ async function saveCollection(id) {
     const header_image_id = headerField && headerField.value ? parseInt(headerField.value, 10) : null;
 
     if (!name) {
-        showSnackbar('Collection name is required', 'error');
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Collection name is required', 'error');
+        }
         return;
     }
     if (!/^[a-z0-9-]+$/.test(slug) || slug.length < 2 || slug.length > 64) {
-        showSnackbar('Slug must be 2-64 chars, lowercase letters/digits/hyphens', 'error');
+        if (typeof showSnackbar === 'function') {
+            showSnackbar('Slug must be 2-64 chars, lowercase letters/digits/hyphens', 'error');
+        }
         return;
     }
 

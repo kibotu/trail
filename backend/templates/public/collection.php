@@ -15,24 +15,24 @@
     $pageTitle = htmlspecialchars("{$collectionName} on Trail");
     $description = htmlspecialchars($collectionBio !== '' ? $collectionBio : "Entries in {$collectionName} on Trail");
     $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
-    $ogUrl = htmlspecialchars("{$baseUrl}/collection/{$collectionSlug}");
-    $ogImage = !empty($collection['avatar_url']) 
-        ? htmlspecialchars($collection['avatar_url']) 
-        : htmlspecialchars("{$baseUrl}/assets/app-icon.webp");
+    $ogUrl = "{$baseUrl}/collection/{$collectionSlug}";
+    $ogImage = !empty($collection['avatar_url'])
+        ? "{$baseUrl}/" . ltrim($collection['avatar_url'], '/')
+        : "{$baseUrl}/assets/app-icon.webp";
     ?>
     
     <!-- Open Graph meta tags -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="<?= $pageTitle ?>">
     <meta property="og:description" content="<?= $description ?>">
-    <meta property="og:url" content="<?= $ogUrl ?>">
-    <meta property="og:image" content="<?= $ogImage ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($ogUrl) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($ogImage) ?>">
     
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="<?= $pageTitle ?>">
     <meta name="twitter:description" content="<?= $description ?>">
-    <meta name="twitter:image" content="<?= $ogImage ?>">
+    <meta name="twitter:image" content="<?= htmlspecialchars($ogImage) ?>">
     
     <!-- JSON-LD structured data -->
     <script type="application/ld+json">
@@ -117,31 +117,18 @@
 
     <main>
         <div class="profile-banner-container" id="profileBannerContainer" style="display: none;">
-            <div class="profile-header-image" id="collectionHeaderImage">
-                <div class="header-upload-overlay" id="headerUploadOverlay" style="display: none;">
-                    <i class="fa-solid fa-camera"></i>
-                    <span>Change header</span>
-                </div>
-            </div>
-            
+            <div class="profile-header-image" id="collectionHeaderImage"></div>
+
             <div class="profile-info-section">
                 <div class="profile-avatar-container">
                     <img class="profile-avatar" id="profileAvatar" src="" alt="Collection avatar">
-                    <div class="avatar-upload-overlay" id="avatarUploadOverlay" style="display: none;">
-                        <i class="fa-solid fa-camera"></i>
-                    </div>
                 </div>
-                
+
                 <div class="profile-details">
                     <h1 class="profile-name" id="profileName">Loading...</h1>
                     <p class="profile-nickname" id="profileNickname"><?= htmlspecialchars('/collection/' . $collectionSlug) ?></p>
                     <p class="profile-bio" id="profileBio"></p>
                     <div class="profile-tags" id="collectionTags"></div>
-                    <div class="profile-meta" id="profileMeta">
-                        <p class="profile-joined" id="profileJoined">
-                            <i class="fa-solid fa-calendar"></i> Created...
-                        </p>
-                    </div>
                     <div class="profile-stats" id="profileStats" style="display:none;">
                         <a class="profile-stat" id="statEntries" href="#entries" title="Entries">
                             <span class="profile-stat-value">0</span>

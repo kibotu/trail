@@ -941,19 +941,20 @@ class Entry
     /**
      * Search all entries with FULLTEXT or LIKE fallback
      * 
-     * @param string $searchQuery Search query (already sanitized)
+     * @param string|null $searchQuery Search query (already sanitized); null = no search filter
      * @param int $limit Maximum number of entries to return
      * @param string|null $before Cursor for pagination (created_at timestamp)
      * @param int|null $excludeUserId User ID to exclude muted users for
      * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
      * @param int|null $currentUserId Current user ID for clap counts
+     * @param int|null $collectionId When set, restricts results to entries claimed by this collection
      * @return array Array of entries matching search query
      */
-    public function searchAll(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+     public function searchAll(?string $searchQuery = null, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?int $collectionId = null): array
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = mb_strlen($searchQuery) >= 4;
-        
+        $useFulltext = $searchQuery !== null && !\Trail\Services\SearchService::isShortQuery($searchQuery);
+
         // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
                 p.url as preview_url, p.title as preview_title, p.description as preview_description,
@@ -990,11 +991,24 @@ class Entry
                      FROM trail_comments
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
-                   LEFT JOIN trail_view_counts view_counts
-                       ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+                    LEFT JOIN trail_view_counts view_counts
+                        ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
 
-        $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
-        
+        // Collection scope: entries claimed by a specific collection (INNER) instead of the LEFT claim join
+        if ($collectionId === null) {
+            $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
+        } else {
+            $sql .= " INNER JOIN (
+                SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
+                FROM trail_entry_tags et
+                JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
+                WHERE ct.collection_id = ?
+                GROUP BY et.entry_id
+            ) claimed ON claimed.entry_id = e.id
+            LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+            $params[] = $collectionId;
+        }
+
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
             $params[] = $currentUserId; // Bind for JOIN
@@ -1004,24 +1018,26 @@ class Entry
         $whereConditions = ["u.deletion_requested_at IS NULL"];
         
         // Add search condition
-        if ($useFulltext) {
-            // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $searchQuery;
-            $params[] = $searchQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-        } else {
-            // LIKE search for short queries
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
+        if ($searchQuery !== null) {
+            if ($useFulltext) {
+                // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $searchQuery;
+                $params[] = $searchQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            } else {
+                // LIKE search for short queries
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            }
         }
         
         // Add cursor-based pagination
@@ -1071,7 +1087,7 @@ class Entry
     public function searchByUser(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = mb_strlen($searchQuery) >= 4;
+        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
@@ -1125,7 +1141,7 @@ class Entry
         // Add search condition
         if ($useFulltext) {
             // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $searchQuery;
             $params[] = $searchQuery;
@@ -1135,7 +1151,7 @@ class Entry
             $params[] = $likeQuery;
         } else {
             // LIKE search for short queries
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $likeQuery;
             $params[] = $likeQuery;
@@ -1193,7 +1209,7 @@ class Entry
     public function countSearchAll(string $searchQuery, ?int $excludeUserId = null, array $excludeEntryIds = []): int
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = mb_strlen($searchQuery) >= 4;
+        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         $sql = "SELECT COUNT(DISTINCT e.id) as total
                 FROM trail_entries e
@@ -1205,7 +1221,7 @@ class Entry
         
         // Add search condition
         if ($useFulltext) {
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $searchQuery;
             $params[] = $searchQuery;
@@ -1214,7 +1230,7 @@ class Entry
             $params[] = $likeQuery;
             $params[] = $likeQuery;
         } else {
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $likeQuery;
             $params[] = $likeQuery;
@@ -1393,7 +1409,7 @@ class Entry
     public function countSearchByUser(int $userId, string $searchQuery): int
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = mb_strlen($searchQuery) >= 4;
+        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         $sql = "SELECT COUNT(DISTINCT e.id) as total
                 FROM trail_entries e
@@ -1405,7 +1421,7 @@ class Entry
         
         // Add search condition
         if ($useFulltext) {
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $sql .= " AND (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $searchQuery;
             $params[] = $searchQuery;
@@ -1414,7 +1430,7 @@ class Entry
             $params[] = $likeQuery;
             $params[] = $likeQuery;
         } else {
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
+            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
             $sql .= " AND (e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
             $params[] = $likeQuery;
             $params[] = $likeQuery;

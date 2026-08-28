@@ -116,52 +116,45 @@ class Collection
     /**
      * Create a collection.
      */
-    public function create(int $ownerUserId, string $name, string $slug, ?string $bio = null, ?int $avatarImageId = null, ?int $headerImageId = null): int
+    public function create(int $ownerUserId, string $name, string $slug, ?string $bio = null, ?int $avatarImageId = null, ?int $headerImageId = null, array $tagIds = []): int
     {
-        $stmt = $this->db->prepare(
-            "INSERT INTO {$this->table} (owner_user_id, name, slug, bio, avatar_image_id, header_image_id) VALUES (?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->execute([$ownerUserId, $name, $slug, $bio, $avatarImageId, $headerImageId]);
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare(
+                "INSERT INTO {$this->table} (owner_user_id, name, slug, bio, avatar_image_id, header_image_id) VALUES (?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([$ownerUserId, $name, $slug, $bio, $avatarImageId, $headerImageId]);
+            $id = (int) $this->db->lastInsertId();
 
-        return (int) $this->db->lastInsertId();
+            if (!empty($tagIds)) {
+                $values = array_fill(0, count($tagIds), '(?, ?)');
+                $params = [];
+                foreach ($tagIds as $tagId) {
+                    $params[] = $id;
+                    $params[] = (int) $tagId;
+                }
+                $this->db->prepare("INSERT IGNORE INTO trail_collection_tags (collection_id, tag_id) VALUES " . implode(', ', $values))->execute($params);
+            }
+
+            $this->db->commit();
+        } catch (\PDOException $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        return $id;
     }
 
     /**
-     * Update collection fields. Null values leave the field untouched.
+     * Replace all collection fields. Nulls clear the field.
      */
-    public function update(int $id, ?string $name = null, ?string $slug = null, ?string $bio = null, ?int $avatarImageId = null, ?int $headerImageId = null): bool
+    public function update(int $id, string $name, string $slug, ?string $bio, ?int $avatarImageId, ?int $headerImageId): bool
     {
-        $fields = [];
-        $params = [];
-        if ($name !== null) {
-            $fields[] = 'name = ?';
-            $params[] = $name;
-        }
-        if ($slug !== null) {
-            $fields[] = 'slug = ?';
-            $params[] = $slug;
-        }
-        if ($bio !== null) {
-            $fields[] = 'bio = ?';
-            $params[] = $bio;
-        }
-        if ($avatarImageId !== null) {
-            $fields[] = 'avatar_image_id = ?';
-            $params[] = $avatarImageId;
-        }
-        if ($headerImageId !== null) {
-            $fields[] = 'header_image_id = ?';
-            $params[] = $headerImageId;
-        }
-        if (empty($fields)) {
-            return true;
-        }
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table} SET name = ?, slug = ?, bio = ?, avatar_image_id = ?, header_image_id = ? WHERE id = ?"
+        );
 
-        $params[] = $id;
-        $sql = "UPDATE {$this->table} SET " . implode(', ', $fields) . ", updated_at = CURRENT_TIMESTAMP WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-
-        return $stmt->execute($params);
+        return $stmt->execute([$name, $slug, $bio, $avatarImageId, $headerImageId, $id]);
     }
 
     /**
@@ -231,119 +224,9 @@ class Collection
     }
 
     /**
-     * Entries belonging to the collection (cursor pagination on created_at).
-     *
-     * Optional filters mirror Entry::getAll: $excludeUserId hides entries from
-     * muted users, $excludeEntryIds hides reported entries, and $searchQuery
-     * enables FULLTEXT/LIKE search (mirrors Entry::searchByUser).
-     */
-    public function getEntries(int $collectionId, int $limit = 20, ?string $before = null, ?int $currentUserId = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?string $searchQuery = null): array
-    {
-        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
-                p.url as preview_url, p.title as preview_title, p.description as preview_description,
-                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
-                COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count,
-                COALESCE(view_counts.view_count, 0) as view_count";
-
-        $params = [];
-
-        // FULLTEXT relevance column for queries >= 4 chars (mirrors Entry::searchByUser)
-        $useFulltext = $searchQuery !== null && mb_strlen($searchQuery) >= 4;
-        if ($useFulltext) {
-            $sql .= ", (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) + COALESCE(MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE), 0)) as relevance";
-            $params[] = $searchQuery;
-            $params[] = $searchQuery;
-        }
-
-        if ($currentUserId !== null) {
-            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
-        }
-
-        $sql .= " FROM trail_entries e
-                 JOIN trail_users u ON e.user_id = u.id
-                 JOIN (
-                     SELECT et.entry_id
-                     FROM trail_entry_tags et
-                     JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
-                     WHERE ct.collection_id = ?
-                     GROUP BY et.entry_id
-                 ) claimed ON claimed.entry_id = e.id
-                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
-                 LEFT JOIN (
-                     SELECT entry_id, SUM(clap_count) as total_claps
-                     FROM trail_claps
-                     GROUP BY entry_id
-                 ) clap_totals ON e.id = clap_totals.entry_id
-                 LEFT JOIN (
-                     SELECT entry_id, COUNT(*) as comment_count
-                     FROM trail_comments
-                     GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id
-                 LEFT JOIN trail_view_counts view_counts
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
-
-        $params[] = $collectionId;
-
-        if ($currentUserId !== null) {
-            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
-            $params[] = $currentUserId;
-        }
-
-        $whereConditions = ["u.deletion_requested_at IS NULL"];
-
-        if ($searchQuery !== null) {
-            $likeQuery = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-            if ($useFulltext) {
-                $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-                $params[] = $searchQuery;
-                $params[] = $searchQuery;
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-            } else {
-                $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-                $params[] = $likeQuery;
-            }
-        }
-
-        if ($before !== null) {
-            $whereConditions[] = "e.created_at < ?";
-            $params[] = $before;
-        }
-
-        // Exclude muted users
-        if ($excludeUserId !== null) {
-            $whereConditions[] = "e.user_id NOT IN (
-                SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?
-            )";
-            $params[] = $excludeUserId;
-        }
-
-        // Exclude hidden entries
-        if (!empty($excludeEntryIds)) {
-            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
-            $whereConditions[] = "e.id NOT IN ($placeholders)";
-            $params = array_merge($params, $excludeEntryIds);
-        }
-
-        $sql .= " WHERE " . implode(' AND ', $whereConditions);
-        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
-        $params[] = $limit;
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll();
-    }
-
-    /**
      * Build avatar/header image URLs from trail_images rows.
      */
+
     private function attachImageUrls(array $row): array
     {
         if (!empty($row['avatar_image_id'])) {

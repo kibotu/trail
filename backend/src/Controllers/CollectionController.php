@@ -98,19 +98,19 @@ class CollectionController
                 $excludeEntryIds = $reportModel->getHiddenEntryIds($currentUserId);
             }
 
-            $entries = [];
+            $entryModel = new Entry($db);
+            $collectionId = (int) $collection['id'];
             if ($searchQuery !== null && trim($searchQuery) !== '') {
                 $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
                 if (\Trail\Services\SearchService::isEmpty($searchQuery) || !\Trail\Services\SearchService::isSafe($searchQuery)) {
                     $entries = [];
                 } else {
-                    $entries = $collectionModel->getEntries((int) $collection['id'], $limit, $before, $currentUserId, $excludeUserId, $excludeEntryIds, $searchQuery);
+                    $entries = $entryModel->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId, $collectionId);
                 }
             } else {
-                $entries = $collectionModel->getEntries((int) $collection['id'], $limit, $before, $currentUserId, $excludeUserId, $excludeEntryIds);
+                $entries = $entryModel->searchAll(null, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId, $collectionId);
             }
 
-            $entryModel = new Entry($db);
             $entries = $entryModel->attachImagesToEntries($entries);
             $entries = $entryModel->attachTagsToEntries($entries);
 
@@ -184,7 +184,7 @@ class CollectionController
                 return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
             }
 
-            $entries = $collectionModel->getEntries((int) $collection['id'], 100);
+            $entries = (new Entry($db))->searchAll(null, 100, null, null, [], null, (int) $collection['id']);
 
             $baseUrl = $config['app']['base_url'] ?? '';
             $hashSalt = Config::getEntryHashSalt($config);
@@ -258,19 +258,16 @@ class CollectionController
             }
 
             $ownerUserId = (int) $request->getAttribute('user_id');
+            $tagIds = is_array($data['tag_ids'] ?? null) ? array_map('intval', $data['tag_ids']) : [];
             $id = $collectionModel->create(
                 $ownerUserId,
                 $name,
                 $slug,
                 $bio,
                 isset($data['avatar_image_id']) ? (int) $data['avatar_image_id'] : null,
-                isset($data['header_image_id']) ? (int) $data['header_image_id'] : null
+                isset($data['header_image_id']) ? (int) $data['header_image_id'] : null,
+                $tagIds
             );
-
-            $tagIds = $data['tag_ids'] ?? [];
-            if (!empty($tagIds) && is_array($tagIds)) {
-                $collectionModel->setTags($id, array_map('intval', $tagIds));
-            }
 
             $response->getBody()->write(json_encode(['collection' => $collectionModel->findById($id)]));
             return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
@@ -332,11 +329,12 @@ class CollectionController
                 return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
             }
 
+            // Client sends the full form; nulls clear the field
             $collectionModel->update(
                 $id,
-                $data['name'] ?? null,
-                $data['slug'] ?? null,
-                $data['bio'] ?? null,
+                $data['name'] ?? '',
+                $data['slug'] ?? '',
+                ($data['bio'] ?? null) === '' ? null : ($data['bio'] ?? null),
                 isset($data['avatar_image_id']) ? (int) $data['avatar_image_id'] : null,
                 isset($data['header_image_id']) ? (int) $data['header_image_id'] : null
             );
