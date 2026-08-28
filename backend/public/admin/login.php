@@ -43,8 +43,12 @@ try {
 
     // Check if we're in development mode
     $isDevelopment = ($config['app']['environment'] ?? 'production') === 'development';
-    
-    if ($isDevelopment) {
+
+    // Dev login requires development mode AND the explicit dev_login.enabled flag
+    $devLoginEnabled = $isDevelopment
+        && ($config['development']['dev_login']['enabled'] ?? false) === true;
+
+    if ($devLoginEnabled) {
         // Get dev users for quick login
         $devUsers = $config['development']['dev_users'] ?? [];
     }

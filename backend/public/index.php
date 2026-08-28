@@ -25,6 +25,7 @@ use Trail\Controllers\CommentReportController;
 use Trail\Controllers\NotificationController;
 use Trail\Controllers\ViewController;
 use Trail\Controllers\TagController;
+use Trail\Controllers\CollectionController;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -325,6 +326,139 @@ $app->get('/@{nickname}/embed', function ($request, $response, array $args) use 
         $user = $userModel->findByNickname($nickname);
 
         if ($user === null || !empty($user['deletion_requested_at'])) {
+            require_once __DIR__ . '/helpers/error.php';
+            return sendErrorPage($response, 404, $config);
+        }
+
+        $params = $request->getQueryParams();
+        $theme = in_array($params['theme'] ?? '', ['light', 'dark'], true) ? $params['theme'] : 'dark';
+        $showHeader = ($params['header'] ?? '0') === '1' ? '1' : '0';
+        $showSearch = ($params['search'] ?? '0') === '1' ? '1' : '0';
+        $limit = max(1, min(50, (int) ($params['limit'] ?? 20)));
+
+        $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+
+        ob_start();
+        include $embedPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'public, max-age=300')
+            ->withoutHeader('X-Frame-Options')
+            ->withHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors *;")
+            ->withHeader('Permissions-Policy', 'web-share=(self), clipboard-write=(self)');
+    }
+
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
+});
+
+// Collection page - Show entries belonging to a collection
+$app->get('/collection/{slug}', function ($request, $response, array $args) use ($config) {
+    $collectionPage = __DIR__ . '/../templates/public/collection.php';
+    if (file_exists($collectionPage)) {
+        require_once __DIR__ . '/helpers/session.php';
+
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+
+        if ($isLoggedIn && getDeletionInfo($session) !== null) {
+            return $response->withHeader('Location', '/account-pending-deletion')->withStatus(302);
+        }
+
+        $userId = $session['user_id'] ?? null;
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
+
+        $collectionSlug = $args['slug'] ?? '';
+
+        $collectionModel = new \Trail\Models\Collection($db);
+        $collection = $collectionModel->findBySlug($collectionSlug);
+
+        if ($collection === null) {
+            require_once __DIR__ . '/helpers/error.php';
+            return sendErrorPage($response, 404, $config);
+        }
+
+        // Build Google OAuth URL for the login button (only if not logged in)
+        $googleOAuth = $config['google_oauth'] ?? null;
+        $googleAuthUrl = null;
+
+        if ($googleOAuth !== null && !$isLoggedIn) {
+            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
+        }
+
+        ob_start();
+        include $collectionPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
+    }
+
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
+});
+
+// Collections directory - list all collections
+$app->get('/collections', function ($request, $response) use ($config) {
+    $collectionsPage = __DIR__ . '/../templates/public/collections.php';
+    if (file_exists($collectionsPage)) {
+        require_once __DIR__ . '/helpers/session.php';
+
+        $db = \Trail\Database\Database::getInstance($config);
+        $session = getAuthenticatedUser($db);
+        $isLoggedIn = $session !== null;
+
+        $userId = $session['user_id'] ?? null;
+        $userName = $session['email'] ?? null;
+        $userPhotoUrl = $session['photo_url'] ?? null;
+        $isAdmin = $session['is_admin'] ?? false;
+        $jwtToken = $session['jwt_token'] ?? null;
+
+        $googleOAuth = $config['google_oauth'] ?? null;
+        $googleAuthUrl = null;
+        if ($googleOAuth !== null && !$isLoggedIn) {
+            $googleAuthUrl = buildGoogleAuthUrl($googleOAuth);
+        }
+
+        $collectionModel = new \Trail\Models\Collection($db);
+        $collections = $collectionModel->getAll();
+
+        ob_start();
+        include $collectionsPage;
+        $html = ob_get_clean();
+        $response->getBody()->write($html);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html')
+            ->withHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+    }
+
+    require_once __DIR__ . '/helpers/error.php';
+    return sendErrorPage($response, 404, $config);
+});
+
+// Embeddable collection widget
+$app->get('/collection/{slug}/embed', function ($request, $response, array $args) use ($config) {
+    $embedPage = __DIR__ . '/../templates/public/collection-embed.php';
+    if (file_exists($embedPage)) {
+        $db = \Trail\Database\Database::getInstance($config);
+
+        $collectionSlug = $args['slug'] ?? '';
+        $collectionModel = new \Trail\Models\Collection($db);
+        $collection = $collectionModel->findBySlug($collectionSlug);
+
+        if ($collection === null) {
             require_once __DIR__ . '/helpers/error.php';
             return sendErrorPage($response, 404, $config);
         }
@@ -751,6 +885,14 @@ $app->post('/api/comments/{id}/views', [ViewController::class, 'recordCommentVie
     ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
 $app->post('/api/users/{nickname}/views', [ViewController::class, 'recordProfileView'])
     ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
+$app->post('/api/collections/{slug}/views', [ViewController::class, 'recordCollectionView'])
+    ->add(new RateLimitMiddleware(120, 60, $rateLimitEnabled)); // 120 req/min
+
+// Collection routes (public read)
+$app->get('/api/collections', [CollectionController::class, 'list']);
+$app->get('/api/collections/{slug}', [CollectionController::class, 'get']);
+$app->get('/api/collections/{slug}/entries', [CollectionController::class, 'getEntries']);
+$app->get('/api/collections/{slug}/rss', [CollectionController::class, 'rss']);
 
 // Image upload routes (authenticated)
 $app->post('/api/images/upload/init', [ImageUploadController::class, 'initUpload'])->add(new AuthMiddleware($config));
@@ -810,6 +952,11 @@ $app->group('/api/admin', function ($group) {
     $group->put('/tags/{id}', [TagController::class, 'adminUpdateTag']);
     $group->delete('/tags/{id}', [TagController::class, 'adminDeleteTag']);
     $group->post('/tags/{id}/merge', [TagController::class, 'adminMergeTag']);
+
+    // Collection management routes
+    $group->post('/collections', [CollectionController::class, 'adminCreate']);
+    $group->put('/collections/{id}', [CollectionController::class, 'adminUpdate']);
+    $group->delete('/collections/{id}', [CollectionController::class, 'adminDelete']);
 })->add(new AuthMiddleware($config, true));
 
 // Public RSS routes

@@ -1,0 +1,23 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: trail-db
+    restart: unless-stopped
+    environment:
+      # Root password only; the app DB + user are created by dev-db.sh
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      # Published so the PHP backend (running on the host) can reach it.
+      # Uncommon port to avoid clashing with other local MySQL instances
+      # (craftsmen-mysql already holds 3306).
+      - "33071:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h localhost -u root -proot -e 'SELECT 1'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dbdata:

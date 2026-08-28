@@ -215,14 +215,16 @@ class Entry
                 p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
-                COALESCE(view_counts.view_count, 0) as view_count";
-        
+                COALESCE(view_counts.view_count, 0) as view_count,
+                col.id as collection_id, col.slug as collection_slug, col.name as collection_name,
+                col.avatar_image_id as collection_avatar_image_id";
+
         if ($currentUserId !== null) {
             $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
         }
-        
-        $sql .= " FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
+
+        $sql .= " FROM {$this->table} e
+                 JOIN trail_users u ON e.user_id = u.id
                  LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
                  LEFT JOIN (
                      SELECT entry_id, SUM(clap_count) as total_claps
@@ -234,8 +236,15 @@ class Entry
                      FROM trail_comments
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
-                 LEFT JOIN trail_view_counts view_counts 
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+                 LEFT JOIN trail_view_counts view_counts
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
+                 LEFT JOIN (
+                     SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
+                     FROM trail_entry_tags et
+                     JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
+                     GROUP BY et.entry_id
+                 ) claimed ON claimed.entry_id = e.id
+                 LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -302,11 +311,67 @@ class Entry
             $sql .= " ORDER BY e.created_at DESC LIMIT ?";
             $params[] = $limit;
         }
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        
-        return $stmt->fetchAll();
+
+        return $this->attachCollections($stmt->fetchAll());
+    }
+
+    /**
+     * Assemble the `collection` object on entries claimed by a collection.
+     * Unclaimed entries get `collection => null`.
+     */
+    private function attachCollections(array $entries): array
+    {
+        if (empty($entries)) {
+            return $entries;
+        }
+
+        try {
+            // Batch-fetch collection avatar images
+            $avatarIds = [];
+            foreach ($entries as $entry) {
+                if (!empty($entry['collection_avatar_image_id'])) {
+                    $avatarIds[(int) $entry['collection_avatar_image_id']] = true;
+                }
+            }
+
+            $avatarUrls = [];
+            if (!empty($avatarIds)) {
+                $ids = array_values(array_unique(array_keys($avatarIds)));
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = $this->db->prepare("SELECT id, filename, user_id FROM trail_images WHERE id IN ($placeholders)");
+                $stmt->execute($ids);
+                foreach ($stmt->fetchAll() as $img) {
+                    $avatarUrls[(int) $img['id']] = '/uploads/images/' . $img['user_id'] . '/' . $img['filename'];
+                }
+            }
+
+            foreach ($entries as &$entry) {
+                $collection = null;
+                if (!empty($entry['collection_id'])) {
+                    $collection = [
+                        'id' => (int) $entry['collection_id'],
+                        'slug' => $entry['collection_slug'],
+                        'name' => $entry['collection_name'],
+                        'avatar_url' => $avatarUrls[(int) $entry['collection_avatar_image_id']] ?? null,
+                    ];
+                }
+                $entry['collection'] = $collection;
+                unset($entry['collection_id'], $entry['collection_slug'], $entry['collection_name'], $entry['collection_avatar_image_id']);
+            }
+            unset($entry);
+        } catch (\PDOException $e) {
+            error_log("attachCollections error: " . $e->getMessage());
+            foreach ($entries as &$entry) {
+                $entry['collection'] = null;
+                unset($entry['collection_id'], $entry['collection_slug'], $entry['collection_name'], $entry['collection_avatar_image_id']);
+            }
+            unset($entry);
+        }
+
+        return $entries;
     }
 
     public function update(int $id, string $text, ?int $urlPreviewId = null, ?array $imageIds = null, bool $skipUpdatedAt = false): bool
@@ -745,7 +810,7 @@ class Entry
     /**
      * Batch-attach image URLs to multiple entries (single query instead of N+1)
      */
-    private function attachImagesToEntries(array $entries): array
+    public function attachImagesToEntries(array $entries): array
     {
         if (empty($entries)) {
             return $entries;
@@ -812,7 +877,7 @@ class Entry
     /**
      * Attach tags to multiple entries (batch fetch for performance)
      */
-    private function attachTagsToEntries(array $entries): array
+    public function attachTagsToEntries(array $entries): array
     {
         if (empty($entries)) {
             return $entries;
@@ -888,7 +953,9 @@ class Entry
                 p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
-                COALESCE(view_counts.view_count, 0) as view_count";
+                COALESCE(view_counts.view_count, 0) as view_count,
+                col.id as collection_id, col.slug as collection_slug, col.name as collection_name,
+                col.avatar_image_id as collection_avatar_image_id";
         
         // Params must be added in the exact order of ? placeholders in the SQL
         $params = [];
@@ -917,7 +984,14 @@ class Entry
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
                  LEFT JOIN trail_view_counts view_counts 
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
+                  LEFT JOIN (
+                      SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
+                      FROM trail_entry_tags et
+                      JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
+                      GROUP BY et.entry_id
+                  ) claimed ON claimed.entry_id = e.id
+                  LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -979,7 +1053,7 @@ class Entry
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         
-        return $stmt->fetchAll();
+        return $this->attachCollections($stmt->fetchAll());
     }
 
     /**
@@ -1188,7 +1262,9 @@ class Entry
                 p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
                 COALESCE(clap_totals.total_claps, 0) as clap_count,
                 COALESCE(comment_counts.comment_count, 0) as comment_count,
-                COALESCE(view_counts.view_count, 0) as view_count";
+                COALESCE(view_counts.view_count, 0) as view_count,
+                col.id as collection_id, col.slug as collection_slug, col.name as collection_name,
+                col.avatar_image_id as collection_avatar_image_id";
         
         $params = [];
         
@@ -1211,8 +1287,15 @@ class Entry
                      FROM trail_comments
                      GROUP BY entry_id
                  ) comment_counts ON e.id = comment_counts.entry_id
-                 LEFT JOIN trail_view_counts view_counts 
-                     ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
+                  LEFT JOIN trail_view_counts view_counts 
+                      ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id
+                  LEFT JOIN (
+                      SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
+                      FROM trail_entry_tags et
+                      JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
+                      GROUP BY et.entry_id
+                  ) claimed ON claimed.entry_id = e.id
+                  LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
         
         if ($currentUserId !== null) {
             $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
@@ -1250,7 +1333,7 @@ class Entry
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         
-        return $stmt->fetchAll();
+        return $this->attachCollections($stmt->fetchAll());
     }
 
     /**

@@ -172,9 +172,11 @@ class AuthController
     {
         $config = Config::load(__DIR__ . '/../../secrets.yml');
         
-        // Only allow in development mode and from localhost
-        if (($config['app']['environment'] ?? 'production') !== 'development') {
-            $response->getBody()->write(json_encode(['error' => 'Dev auth only available in development mode']));
+        // Only allow in development mode, with dev_login.enabled, and from localhost
+        $isDevelopment = ($config['app']['environment'] ?? 'production') === 'development';
+        $devLoginEnabled = ($config['development']['dev_login']['enabled'] ?? false) === true;
+        if (!$isDevelopment || !$devLoginEnabled) {
+            $response->getBody()->write(json_encode(['error' => 'Dev auth not enabled']));
             return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 

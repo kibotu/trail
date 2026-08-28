@@ -11,6 +11,7 @@ use Trail\Models\View;
 use Trail\Models\Entry;
 use Trail\Models\Comment;
 use Trail\Models\User;
+use Trail\Models\Collection;
 use Trail\Config\Config;
 use Trail\Services\HashIdService;
 
@@ -168,6 +169,63 @@ class ViewController
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\PDOException $e) {
             error_log("ViewController: Database error recording profile view - " . $e->getMessage());
+            $response->getBody()->write(json_encode(['error' => 'Database error occurred']));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
+     * Record a view for a collection.
+     * POST /api/collections/{slug}/views
+     *
+     * Optional body: { "fingerprint": "client-side-fingerprint" }
+     */
+    public static function recordCollectionView(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $slug = $args['slug'] ?? '';
+        if (empty($slug)) {
+            $response->getBody()->write(json_encode(['error' => 'Collection slug is required']));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $config = Config::load(__DIR__ . '/../../secrets.yml');
+        $db = Database::getInstance($config);
+        $collectionModel = new Collection($db);
+
+        $collection = $collectionModel->findBySlug($slug);
+        if (!$collection) {
+            $response->getBody()->write(json_encode(['error' => 'Collection not found']));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+
+        $viewModel = new View($db);
+        $viewerId = $request->getAttribute('user_id');
+        $viewerHash = self::getViewerHash($request);
+
+        // Don't count self-views on own collections
+        if ($viewerId !== null && (int) $viewerId === (int) $collection['owner_user_id']) {
+            $viewCount = $viewModel->getViewCount('collection', (int) $collection['id']);
+            $response->getBody()->write(json_encode([
+                'recorded'   => false,
+                'view_count' => $viewCount,
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        try {
+            $recorded = $viewModel->recordView('collection', (int) $collection['id'], $viewerId, $viewerHash);
+            $viewCount = $viewModel->getViewCount('collection', (int) $collection['id']);
+
+            $response->getBody()->write(json_encode([
+                'recorded'   => $recorded,
+                'view_count' => $viewCount,
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\PDOException $e) {
+            error_log("ViewController: Database error recording collection view - " . $e->getMessage());
             $response->getBody()->write(json_encode(['error' => 'Database error occurred']));
             return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
         }

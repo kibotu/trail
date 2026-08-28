@@ -926,7 +926,7 @@ class EntryController
      * @param array $config
      * @return array{user_id: int|null, is_admin: bool}
      */
-    private static function getOptionalAuth(ServerRequestInterface $request, array $config): array
+    public static function getOptionalAuth(ServerRequestInterface $request, array $config): array
     {
         $cookies = $request->getCookieParams();
         $token = $cookies['trail_jwt'] ?? null;

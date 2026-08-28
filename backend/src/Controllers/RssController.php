@@ -22,6 +22,22 @@ class RssController
 
         $entries = $entryModel->getAll(100, null);
 
+        // Attribute claimed entries to their collection; add permalinks for links and guids
+        $hashSalt = Config::getEntryHashSalt($config);
+        $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+
+        foreach ($entries as &$entry) {
+            if (!empty($entry['collection']['name'])) {
+                $entry['user_name'] = $entry['collection']['name'];
+            }
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                $entry['hash_id'] = (string) $entry['id'];
+            }
+        }
+        unset($entry);
+
         $rssGenerator = new RssGenerator($config);
         $xml = $rssGenerator->generate($entries);
 
@@ -38,6 +54,7 @@ class RssController
         $entryModel = new Entry($db);
 
         $entries = $entryModel->getByUser($userId, 100, null);
+        $entries = self::attachHashIds($entries, Config::getEntryHashSalt($config));
 
         $rssGenerator = new RssGenerator($config);
         $xml = $rssGenerator->generate($entries, $userId);
@@ -73,11 +90,30 @@ class RssController
         // Get entries for this user
         $entryModel = new Entry($db);
         $entries = $entryModel->getByUser($user['id'], 100, null);
+        $entries = self::attachHashIds($entries, Config::getEntryHashSalt($config));
 
         $rssGenerator = new RssGenerator($config);
         $xml = $rssGenerator->generate($entries, $user['id']);
 
         $response->getBody()->write($xml);
         return $response->withHeader('Content-Type', 'application/rss+xml; charset=UTF-8');
+    }
+
+    /**
+     * Add hash_id permalinks so RSS guids and link fallbacks are stable.
+     */
+    private static function attachHashIds(array $entries, string $hashSalt): array
+    {
+        $hashIdService = new \Trail\Services\HashIdService($hashSalt);
+        foreach ($entries as &$entry) {
+            try {
+                $entry['hash_id'] = $hashIdService->encode((int) $entry['id']);
+            } catch (\Throwable $e) {
+                $entry['hash_id'] = (string) $entry['id'];
+            }
+        }
+        unset($entry);
+
+        return $entries;
     }
 }

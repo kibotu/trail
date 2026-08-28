@@ -404,6 +404,9 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                         <span class="dupe-badge"><?= $shortLinkStats['total'] ?></span>
                     </button>
                     <?php endif; ?>
+                    <button id="view-collections" class="view-mode-btn" onclick="switchView('collections')">
+                        <i class="fa-solid fa-box"></i> Collections
+                    </button>
                 </div>
                 <div id="entries-filters">
                     <label for="source-filter" style="margin-right: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">Source:</label>
@@ -451,6 +454,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
                     <label style="color: var(--text-secondary); font-size: 0.875rem;">
                         Short URLs (t.co, bit.ly, etc.) that need to be resolved to their final destinations
                     </label>
+                </div>
+                <div id="collections-filters" style="display: none;">
+                    <button onclick="openCollectionForm()" class="button primary small" style="margin-right: 0.5rem;">
+                        <i class="fa-solid fa-plus"></i> New Collection
+                    </button>
                 </div>
             </div>
         </div>
@@ -513,6 +521,10 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <!-- Short links will be loaded here -->
         </div>
 
+        <div id="collections-container" class="entries-container" style="display: none;">
+            <!-- Collections will be loaded here -->
+        </div>
+
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p style="margin-top: 1rem;">Loading...</p>
@@ -542,6 +554,11 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
             <div class="empty-state-icon"><i class="fa-solid fa-check-circle"></i></div>
             <p>No short links found. All URLs are already resolved!</p>
         </div>
+
+        <div id="empty-collections-state" class="empty-state" style="display: none;">
+            <div class="empty-state-icon"><i class="fa-solid fa-box"></i></div>
+            <p>No collections yet. Create one to group entries by tag.</p>
+        </div>
     </div>
 
     <script>
@@ -558,6 +575,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/assets/js/admin-broken-links.js"></script>
     <script src="/assets/js/admin-tags.js"></script>
     <script src="/assets/js/admin-short-links.js"></script>
+    <script src="/assets/js/image-upload.js"></script>
+    <script src="/assets/js/admin-collections.js"></script>
     <script src="/assets/js/admin-ai-scripts.js"></script>
 </body>
 </html>

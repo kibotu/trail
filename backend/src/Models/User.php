@@ -74,12 +74,14 @@ class User
 
     public function create(string $googleId, string $email, string $name, string $gravatarHash, ?string $photoUrl = null): int
     {
+        // api_token is NOT NULL since migration 026
+        $apiToken = bin2hex(random_bytes(32));
         $stmt = $this->db->prepare(
-            "INSERT INTO {$this->table} (google_id, email, name, gravatar_hash, photo_url) 
-             VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO {$this->table} (google_id, email, name, gravatar_hash, photo_url, api_token) 
+             VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl]);
-        
+        $stmt->execute([$googleId, $email, $name, $gravatarHash, $photoUrl, $apiToken]);
+
         return (int) $this->db->lastInsertId();
     }
 

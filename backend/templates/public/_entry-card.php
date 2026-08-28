@@ -8,9 +8,20 @@
  */
 
 $hashId       = $entry['hash_id'] ?? $entry['id'];
-$displayName  = $entry['user_nickname'] ?? $entry['user_name'] ?? '';
-$profileLink  = !empty($entry['user_nickname']) ? ('/@' . $entry['user_nickname']) : null;
-$avatarUrl    = htmlspecialchars($entry['avatar_url'] ?? '', ENT_QUOTES);
+
+// Collection identity: entries claimed by a collection show the collection,
+// not the poster. Unclaimed entries show the poster as before.
+$collection = $entry['collection'] ?? null;
+if ($collection) {
+    $displayName = $collection['name'] ?? '';
+    $profileLink = '/collection/' . $collection['slug'];
+    $avatarUrlRaw = $collection['avatar_url'] ?? $entry['avatar_url'] ?? '';
+} else {
+    $displayName = $entry['user_nickname'] ?? $entry['user_name'] ?? '';
+    $profileLink = !empty($entry['user_nickname']) ? ('/@' . $entry['user_nickname']) : null;
+    $avatarUrlRaw = $entry['avatar_url'] ?? '';
+}
+$avatarUrl = htmlspecialchars($avatarUrlRaw, ENT_QUOTES);
 $escapedName  = htmlspecialchars($displayName, ENT_QUOTES);
 $canModify    = !empty($entry['can_edit']);
 $showMenu     = $canModify || ($isLoggedIn && $userId && (int) $userId !== (int) $entry['user_id']);

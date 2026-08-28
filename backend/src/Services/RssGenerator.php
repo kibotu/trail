@@ -16,7 +16,7 @@ class RssGenerator
         $this->config = $config;
     }
 
-    public function generate(array $entries, ?int $userId = null): string
+    public function generate(array $entries, ?int $userId = null, ?string $channelTitle = null, ?string $channelLink = null): string
     {
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
@@ -31,12 +31,12 @@ class RssGenerator
         $rss->appendChild($channel);
 
         // Channel info
-        $title = $userId 
+        $title = $channelTitle ?? ($userId !== null
             ? $this->config['app']['rss_title'] . ' - User ' . $userId
-            : $this->config['app']['rss_title'];
-        
+            : $this->config['app']['rss_title']);
+
         $this->addElement($dom, $channel, 'title', $title);
-        $this->addElement($dom, $channel, 'link', $this->config['app']['base_url']);
+        $this->addElement($dom, $channel, 'link', $channelLink ?? $this->config['app']['base_url']);
         $this->addElement($dom, $channel, 'description', $this->config['app']['rss_description']);
         $this->addElement($dom, $channel, 'language', 'en');
         $this->addElement($dom, $channel, 'lastBuildDate', date(DATE_RSS));
@@ -49,6 +49,11 @@ class RssGenerator
             // Get text field (with fallback for old data during tests)
             $text = $entry['text'] ?? $entry['message'] ?? '';
             
+            // Stable permalink for link fallback and guid
+            $permalink = isset($entry['hash_id'])
+                ? $this->config['app']['base_url'] . '/status/' . $entry['hash_id']
+                : $this->config['app']['base_url'] . '/entries/' . $entry['id'];
+
             // Get link (with fallback for old url field during tests)
             if (!empty($entry['url'])) {
                 // Old format: use url field directly
@@ -56,7 +61,7 @@ class RssGenerator
             } else {
                 // New format: extract first URL from text if present
                 $urls = !empty($text) ? TextSanitizer::extractUrls($text) : [];
-                $link = !empty($urls) ? $urls[0] : $this->config['app']['base_url'] . '/entries/' . $entry['id'];
+                $link = !empty($urls) ? $urls[0] : $permalink;
             }
 
             $this->addElement($dom, $item, 'title', $text);
@@ -64,7 +69,7 @@ class RssGenerator
             $this->addElement($dom, $item, 'description', $text);
             $this->addElement($dom, $item, 'author', $entry['user_name']);
             $this->addElement($dom, $item, 'pubDate', date(DATE_RSS, strtotime($entry['created_at'])));
-            $this->addElement($dom, $item, 'guid', $this->config['app']['base_url'] . '/entries/' . $entry['id']);
+            $this->addElement($dom, $item, 'guid', $permalink);
         }
 
         return $dom->saveXML();

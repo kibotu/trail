@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <?php
+    // Generate meta tags from collection data
+    $collectionName = $collection['name'] ?? 'Collection';
+    $collectionBio = $collection['bio'] ?? '';
+    $collectionSlug = $collection['slug'] ?? '';
+    $pageTitle = htmlspecialchars("{$collectionName} on Trail");
+    $description = htmlspecialchars($collectionBio !== '' ? $collectionBio : "Entries in {$collectionName} on Trail");
+    $baseUrl = $config['app']['base_url'] ?? 'https://trail.services.kibotu.net';
+    $ogUrl = htmlspecialchars("{$baseUrl}/collection/{$collectionSlug}");
+    $ogImage = !empty($collection['avatar_url']) 
+        ? htmlspecialchars($collection['avatar_url']) 
+        : htmlspecialchars("{$baseUrl}/assets/app-icon.webp");
+    ?>
+    
+    <!-- Open Graph meta tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?= $pageTitle ?>">
+    <meta property="og:description" content="<?= $description ?>">
+    <meta property="og:url" content="<?= $ogUrl ?>">
+    <meta property="og:image" content="<?= $ogImage ?>">
+    
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<?= $pageTitle ?>">
+    <meta name="twitter:description" content="<?= $description ?>">
+    <meta name="twitter:image" content="<?= $ogImage ?>">
+    
+    <!-- JSON-LD structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "mainEntity": {
+        "@type": "Collection",
+        "name": <?= json_encode($collectionName) ?>,
+        "url": <?= json_encode($ogUrl) ?>,
+        "image": <?= json_encode($ogImage) ?>
+      }
+    }
+    </script>
+    
+    <meta name="description" content="<?= $description ?>">
+    <title><?= $pageTitle ?></title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
+    <link rel="stylesheet" href="/assets/dist/main.bundle.css">
+</head>
+<body class="page-user"
+      data-slug="<?= htmlspecialchars($collectionSlug ?? '') ?>"
+      data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
+      data-user-id="<?= htmlspecialchars((string)($userId ?? '')) ?>">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <i class="fa-solid fa-link"></i>
+                <span>Trail</span>
+            </a>
+            <div class="header-actions">
+                <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+                    <a href="/api" class="nav-link" aria-label="API Documentation">
+                        <i class="fa-solid fa-book"></i>
+                    </a>
+                    <a href="/api/collections/<?= htmlspecialchars($collectionSlug) ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
+                    <?php if (isset($isAdmin) && $isAdmin): ?>
+                        <a href="/admin" class="nav-link" aria-label="Admin Dashboard">
+                            <i class="fa-solid fa-gear"></i>
+                        </a>
+                    <?php endif; ?>
+                    <a href="/profile" class="nav-link" aria-label="Profile">
+                        <i class="fa-solid fa-user"></i>
+                    </a>
+                    <a href="/admin/logout.php" class="logout-button" aria-label="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </a>
+                <?php elseif (isset($googleAuthUrl) && $googleAuthUrl): ?>
+                    <a href="/api/collections/<?= htmlspecialchars($collectionSlug) ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
+                    <a href="<?= htmlspecialchars($googleAuthUrl) ?>" class="login-button">
+                        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77-.98.66c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                        <span>Sign in with Google</span>
+                    </a>
+                <?php else: ?>
+                    <a href="/api/collections/<?= htmlspecialchars($collectionSlug) ?>/rss" class="nav-link" aria-label="RSS Feed">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
+                    <a href="/admin/login.php" class="login-button">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Login</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="profile-banner-container" id="profileBannerContainer" style="display: none;">
+            <div class="profile-header-image" id="collectionHeaderImage">
+                <div class="header-upload-overlay" id="headerUploadOverlay" style="display: none;">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Change header</span>
+                </div>
+            </div>
+            
+            <div class="profile-info-section">
+                <div class="profile-avatar-container">
+                    <img class="profile-avatar" id="profileAvatar" src="" alt="Collection avatar">
+                    <div class="avatar-upload-overlay" id="avatarUploadOverlay" style="display: none;">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                </div>
+                
+                <div class="profile-details">
+                    <h1 class="profile-name" id="profileName">Loading...</h1>
+                    <p class="profile-nickname" id="profileNickname"><?= htmlspecialchars('/collection/' . $collectionSlug) ?></p>
+                    <p class="profile-bio" id="profileBio"></p>
+                    <div class="profile-tags" id="collectionTags"></div>
+                    <div class="profile-meta" id="profileMeta">
+                        <p class="profile-joined" id="profileJoined">
+                            <i class="fa-solid fa-calendar"></i> Created...
+                        </p>
+                    </div>
+                    <div class="profile-stats" id="profileStats" style="display:none;">
+                        <a class="profile-stat" id="statEntries" href="#entries" title="Entries">
+                            <span class="profile-stat-value">0</span>
+                            <span class="profile-stat-label">Entries</span>
+                        </a>
+                        <span class="profile-stat" id="statTotalViews" title="Views">
+                            <span class="profile-stat-value">0</span>
+                            <span class="profile-stat-label">Views</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <div class="entries-container" id="entriesContainer">
+            <!-- Entries will be loaded here -->
+        </div>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading entries...</p>
+        </div>
+        <div class="end-message" id="endMessage" style="display: none;">
+            <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
+        </div>
+    </main>
+
+    <script src="/assets/dist/collection.bundle.js" defer></script>
+    
+    <footer class="site-footer">
+        <div class="site-footer-links">
+            <a href="/data-privacy/">Data Privacy</a>
+            <a href="/terms-and-conditions/">Terms &amp; Conditions</a>
+        </div>
+    </footer>
+</body>
+</html>

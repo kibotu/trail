@@ -74,6 +74,62 @@ class RssGeneratorTest extends TestCase
         $this->assertStringContainsString('User 123', $xml);
     }
 
+    public function testGenerateFeedWithChannelTitleAndLink(): void
+    {
+        $entries = [
+            [
+                'id' => 1,
+                'hash_id' => 'abc123',
+                'url' => 'https://example.com/article',
+                'message' => 'Test article',
+                'user_email' => 'test@example.com',
+                'user_name' => 'Test User',
+                'created_at' => '2026-01-26 10:00:00',
+            ],
+        ];
+
+        $generator = new RssGenerator($this->config);
+        $xml = $generator->generate($entries, null, 'Android Dev', 'https://example.com/trail/collection/android');
+
+        // Channel title and link reflect the collection, not the global feed.
+        $this->assertStringContainsString('Android Dev', $xml);
+        $this->assertStringContainsString('https://example.com/trail/collection/android', $xml);
+
+        // Permalink uses hash_id when present.
+        $this->assertStringContainsString('https://example.com/trail/status/abc123', $xml);
+    }
+
+    public function testAuthorUsesUserNameAndGuidFallbacks(): void
+    {
+        $entries = [
+            [
+                'id' => 1,
+                'hash_id' => 'abc123',
+                'message' => 'Entry with hash_id',
+                'user_email' => 'test@example.com',
+                'user_name' => 'Collection Name',
+                'created_at' => '2026-01-26 10:00:00',
+            ],
+            [
+                'id' => 2,
+                'message' => 'Entry without hash_id',
+                'user_email' => 'test@example.com',
+                'user_name' => 'Collection Name',
+                'created_at' => '2026-01-26 10:00:00',
+            ],
+        ];
+
+        $generator = new RssGenerator($this->config);
+        $xml = $generator->generate($entries, null, 'Collection Name', 'https://example.com/trail/collection/test');
+
+        // Author swaps to the collection name via user_name.
+        $this->assertStringContainsString('<author>Collection Name</author>', $xml);
+
+        // guid uses hash_id when present, falls back to numeric id otherwise.
+        $this->assertStringContainsString('<guid>https://example.com/trail/status/abc123</guid>', $xml);
+        $this->assertStringContainsString('<guid>https://example.com/trail/entries/2</guid>', $xml);
+    }
+
     public function testXmlEscaping(): void
     {
         $entries = [
