@@ -52,6 +52,7 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.StateFlow
 import net.kibotu.trail.feature.auth.DeletionBlockerScreen
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
+import net.kibotu.trail.feature.collection.CollectionScreen
 import net.kibotu.trail.feature.entrydetail.EntryDetailScreen
 import net.kibotu.trail.feature.home.HomeScreen
 import net.kibotu.trail.feature.myfeed.MyFeedScreen
@@ -77,11 +78,13 @@ object Routes {
     const val SEARCH = "search?query={query}"
     const val ENTRY_DETAIL = "entry/{hashId}"
     const val USER_PROFILE = "user/{nickname}"
+    const val COLLECTION = "collection/{slug}"
     const val NOTIFICATIONS = "notifications"
     const val SHARE = "share"
 
     fun entryDetail(hashId: String) = "entry/$hashId"
     fun userProfile(nickname: String) = "user/$nickname"
+    fun collection(slug: String) = "collection/$slug"
     fun search(query: String = "") = if (query.isNotBlank()) "search?query=${URLEncoder.encode(query, "UTF-8")}" else "search"
 }
 
@@ -204,6 +207,9 @@ private fun TrailNavigationContent(
                     onNavigateToUser = { nickname ->
                         navController.navigate(Routes.userProfile(nickname))
                     },
+                    onNavigateToCollection = { slug ->
+                        navController.navigate(Routes.collection(slug))
+                    },
                     onNavigateToSearch = { query ->
                         navController.navigate(Routes.search(query))
                     },
@@ -222,6 +228,9 @@ private fun TrailNavigationContent(
                     },
                     onNavigateToUser = { nickname ->
                         navController.navigate(Routes.userProfile(nickname))
+                    },
+                    onNavigateToCollection = { slug ->
+                        navController.navigate(Routes.collection(slug))
                     },
                     onNavigateToSearch = { query ->
                         navController.navigate(Routes.search(query))
@@ -259,6 +268,9 @@ private fun TrailNavigationContent(
                     onNavigateToUser = { nickname ->
                         navController.navigate(Routes.userProfile(nickname))
                     },
+                    onNavigateToCollection = { slug ->
+                        navController.navigate(Routes.collection(slug))
+                    },
                     scrollConnection = scrollConnection
                 )
             }
@@ -292,6 +304,27 @@ private fun TrailNavigationContent(
                     },
                     onNavigateToUser = { nick ->
                         navController.navigate(Routes.userProfile(nick))
+                    },
+                    onNavigateToCollection = { slug ->
+                        navController.navigate(Routes.collection(slug))
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.COLLECTION,
+                arguments = listOf(navArgument("slug") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val slug = backStackEntry.arguments?.getString("slug") ?: return@composable
+                CollectionScreen(
+                    slug = slug,
+                    hazeState = hazeState,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEntry = { hashId ->
+                        navController.navigate(Routes.entryDetail(hashId))
+                    },
+                    onNavigateToUser = { nickname ->
+                        navController.navigate(Routes.userProfile(nickname))
                     }
                 )
             }

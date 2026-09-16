@@ -1,5 +1,6 @@
-package net.kibotu.trail.feature.userprofile
+package net.kibotu.trail.feature.collection
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -18,13 +19,12 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,10 +39,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,45 +62,40 @@ import dev.chrisbanes.haze.hazeEffect
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
-import net.kibotu.trail.shared.theme.LocalWindowSizeClass
-import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
-import androidx.compose.ui.platform.LocalConfiguration
 import net.kibotu.trail.shared.util.openInCustomTab
 import net.kibotu.trail.shared.util.shareEntry
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun UserProfileScreen(
-    nickname: String,
+fun CollectionScreen(
+    slug: String,
     hazeState: HazeState,
     onNavigateBack: () -> Unit,
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit = {},
-    onNavigateToCollection: (String) -> Unit = {},
-    viewModel: UserProfileViewModel = viewModel(
-        key = nickname,
-        factory = UserProfileViewModel.Factory(nickname)
+    viewModel: CollectionViewModel = viewModel(
+        key = slug,
+        factory = CollectionViewModel.Factory(slug)
     )
 ) {
-    val profileState by viewModel.state.collectAsState()
+    val collectionState by viewModel.state.collectAsState()
     val entries = viewModel.entries.collectAsLazyPagingItems()
     val authState by LocalAuthViewModel.current.state.collectAsState()
     val showTags by LocalThemePreferences.current.showEntryTags.collectAsState()
     val context = LocalContext.current
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val baseUrl = BuildConfig.API_BASE_URL
+
+    fun resolveUrl(url: String?): String? = url?.let { if (it.startsWith("http")) it else "$baseUrl$it" }
 
     Box(Modifier.fillMaxSize()) {
         Crossfade(
-            targetState = profileState.isLoading,
+            targetState = collectionState.isLoading,
             animationSpec = tween(300),
-            label = "userProfileState"
+            label = "collectionState"
         ) { isLoading ->
             if (isLoading) {
                 Box(Modifier.fillMaxSize()) {
@@ -108,8 +107,8 @@ fun UserProfileScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = statusBarTop + 56.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    profileState.profile?.let { profile ->
-                        item(key = "profile_header") {
+                    collectionState.collection?.let { collection ->
+                        item(key = "collection_header") {
                             val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
                             val headerContainerHeight = (screenHeightDp * 0.25f).coerceIn(140.dp, 200.dp)
                             val headerImageHeight = (headerContainerHeight - 40.dp).coerceAtLeast(100.dp)
@@ -118,17 +117,17 @@ fun UserProfileScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    if (profile.headerImageUrl != null) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    val headerUrl = resolveUrl(collection.headerImageUrl)
+                                    val avatarUrl = resolveUrl(collection.avatarUrl)
+                                    if (headerUrl != null) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(headerContainerHeight)
                                         ) {
                                             AsyncImage(
-                                                model = profile.headerImageUrl,
+                                                model = headerUrl,
                                                 contentDescription = "Header",
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -137,7 +136,7 @@ fun UserProfileScreen(
                                                 contentScale = ContentScale.Crop
                                             )
                                             AsyncImage(
-                                                model = profile.avatarUrl,
+                                                model = avatarUrl,
                                                 contentDescription = "Avatar",
                                                 modifier = Modifier
                                                     .padding(start = 20.dp)
@@ -150,7 +149,7 @@ fun UserProfileScreen(
                                     } else {
                                         Spacer(modifier = Modifier.height(20.dp))
                                         AsyncImage(
-                                            model = profile.avatarUrl,
+                                            model = avatarUrl,
                                             contentDescription = "Avatar",
                                             modifier = Modifier
                                                 .padding(start = 20.dp)
@@ -162,22 +161,13 @@ fun UserProfileScreen(
                                     }
 
                                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                                        // Name & nickname - left aligned like web
                                         Text(
-                                            profile.name,
+                                            collection.name,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 22.sp
                                         )
-                                        profile.nickname?.let {
-                                            Text(
-                                                "@$it",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
 
-                                        // Bio
-                                        profile.bio?.let {
+                                        collection.bio?.let {
                                             Spacer(modifier = Modifier.height(10.dp))
                                             Text(
                                                 it,
@@ -187,57 +177,51 @@ fun UserProfileScreen(
                                             )
                                         }
 
-                                        Spacer(modifier = Modifier.height(12.dp))
-
-                                        // Joined + Last post row
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (collection.tags.isNotEmpty()) {
+                                            var tagsExpanded by remember { mutableStateOf(false) }
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Row(
+                                                modifier = Modifier.clickable { tagsExpanded = !tagsExpanded },
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
                                                 FaIcon(
-                                                    FaIcons.CalendarAlt,
+                                                    faIcon = if (tagsExpanded) FaIcons.ChevronDown else FaIcons.ChevronRight,
                                                     size = 12.dp,
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
-                                                Spacer(Modifier.width(5.dp))
                                                 Text(
-                                                    "Joined ${formatMonthYear(profile.createdAt)}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                    "Tags (${collection.tags.size})",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
-                                            profile.stats.lastEntryAt?.let { lastEntry ->
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    FaIcon(
-                                                        FaIcons.PenFancy,
-                                                        size = 12.dp,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                                    )
-                                                    Spacer(Modifier.width(5.dp))
-                                                    Text(
-                                                        "Last post ${formatRelativeDate(lastEntry)}",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                                    )
+                                            AnimatedVisibility(visible = tagsExpanded) {
+                                                FlowRow(
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    collection.tags.forEach { tag ->
+                                                        Text(
+                                                            text = "#${tag.name}",
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
 
-                                        // Inline stats row (like web: "2,951 Entries  13.5K Views  2,609 Claps")
+                                        Spacer(modifier = Modifier.height(12.dp))
+
                                         val statItems = buildList {
-                                            if (profile.stats.entryCount > 0)
-                                                add(formatCompactNumber(profile.stats.entryCount) to "Entries")
-                                            if (profile.stats.totalEntryViews > 0)
-                                                add(formatCompactNumber(profile.stats.totalEntryViews) to "Views")
-                                            if (profile.stats.totalEntryClaps > 0)
-                                                add(formatCompactNumber(profile.stats.totalEntryClaps) to "Claps")
-                                            if (profile.stats.commentCount > 0)
-                                                add(formatCompactNumber(profile.stats.commentCount) to "Comments")
+                                            if (collection.entryCount > 0)
+                                                add(formatCompactNumber(collection.entryCount) to "Entries")
+                                            if (collection.viewCount > 0)
+                                                add(formatCompactNumber(collection.viewCount) to "Views")
                                         }
 
                                         if (statItems.isNotEmpty()) {
-                                            Spacer(modifier = Modifier.height(6.dp))
                                             FlowRow(
                                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                                                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -264,31 +248,18 @@ fun UserProfileScreen(
 
                                     Spacer(modifier = Modifier.height(14.dp))
 
-                                    // Action buttons
                                     Row(
                                         modifier = Modifier.padding(horizontal = 20.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        if (authState.user?.id != profile.id) {
-                                            OutlinedButton(
-                                                onClick = {
-                                                    if (profileState.isMuted) viewModel.unmuteUser()
-                                                    else viewModel.muteUser()
-                                                }
-                                            ) {
-                                                Text(if (profileState.isMuted) "Unmute" else "Mute")
+                                        OutlinedButton(
+                                            onClick = {
+                                                context.openInCustomTab("${BuildConfig.API_BASE_URL}api/collections/$slug/rss")
                                             }
-                                        }
-                                        profile.nickname?.let { nick ->
-                                            OutlinedButton(
-                                                onClick = {
-                                                    context.openInCustomTab("${BuildConfig.API_BASE_URL}api/users/$nick/rss")
-                                                }
-                                            ) {
-                                                FaIcon(FaIcons.Rss, size = 14.dp, tint = MaterialTheme.colorScheme.primary)
-                                                Spacer(Modifier.width(6.dp))
-                                                Text("RSS")
-                                            }
+                                        ) {
+                                            FaIcon(FaIcons.Rss, size = 14.dp, tint = MaterialTheme.colorScheme.primary)
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("RSS")
                                         }
                                     }
 
@@ -320,16 +291,6 @@ fun UserProfileScreen(
                             baseUrl = BuildConfig.API_BASE_URL,
                             showTags = showTags,
                             onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                            onAvatarClick = {
-                                val collection = entry.collection
-                                if (collection != null) onNavigateToCollection(collection.slug)
-                                else entry.userNickname?.let { onNavigateToUser(it) }
-                            },
-                            onUsernameClick = {
-                                val collection = entry.collection
-                                if (collection != null) onNavigateToCollection(collection.slug)
-                                else entry.userNickname?.let { onNavigateToUser(it) }
-                            },
                             onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                             onShare = { shareEntry(context, entry) },
                             onMentionClick = { nick -> onNavigateToUser(nick) }
@@ -371,42 +332,6 @@ fun UserProfileScreen(
     }
 }
 
-private val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-
-private fun formatMonthYear(dateString: String): String {
-    return try {
-        val dateTime = LocalDateTime.parse(dateString, inputFormatter)
-        dateTime.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH))
-    } catch (e: Exception) {
-        dateString.take(10)
-    }
-}
-
-private fun formatRelativeDate(dateString: String): String {
-    return try {
-        val dateTime = LocalDateTime.parse(dateString, inputFormatter)
-        val now = LocalDateTime.now()
-        val diffMinutes = ChronoUnit.MINUTES.between(dateTime, now)
-        val diffHours = ChronoUnit.HOURS.between(dateTime, now)
-        val diffDays = ChronoUnit.DAYS.between(dateTime, now)
-        when {
-            diffMinutes < 1 -> "just now"
-            diffMinutes < 60 -> "${diffMinutes}m ago"
-            diffHours < 24 -> "${diffHours}h ago"
-            diffDays < 2 -> "yesterday"
-            diffDays < 7 -> "${diffDays}d ago"
-            diffDays < 30 -> "${diffDays / 7}w ago"
-            diffDays < 365 -> "${diffDays / 30}mo ago"
-            else -> "${diffDays / 365}y ago"
-        }
-    } catch (e: Exception) {
-        dateString.take(10)
-    }
-}
-
-/**
- * Compact number formatting: 1234 → "1,234", 13500 → "13.5K", 1200000 → "1.2M"
- */
 private fun formatCompactNumber(value: Int): String {
     return when {
         value >= 1_000_000 -> {
@@ -419,9 +344,7 @@ private fun formatCompactNumber(value: Int): String {
             if (formatted == formatted.toLong().toDouble()) "${formatted.toLong()}K"
             else "${formatted}K"
         }
-        value >= 1_000 -> {
-            String.format(Locale.US, "%,d", value)
-        }
+        value >= 1_000 -> String.format("%,d", value)
         else -> value.toString()
     }
 }

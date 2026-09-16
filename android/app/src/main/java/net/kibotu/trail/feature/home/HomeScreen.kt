@@ -48,6 +48,7 @@ import net.kibotu.trail.shared.util.shareEntry
 fun HomeScreen(
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
+    onNavigateToCollection: (String) -> Unit = {},
     onNavigateToSearch: (String) -> Unit = {},
     scrollConnection: NestedScrollConnection? = null,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory())
@@ -141,8 +142,16 @@ fun HomeScreen(
                                         currentlyPlayingVideoId = currentlyPlayingVideoId,
                                         onVideoPlay = viewModel::onVideoPlay,
                                         onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                        onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                        onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onAvatarClick = {
+                                            val collection = entry.collection
+                                            if (collection != null) onNavigateToCollection(collection.slug)
+                                            else entry.userNickname?.let { onNavigateToUser(it) }
+                                        },
+                                        onUsernameClick = {
+                                            val collection = entry.collection
+                                            if (collection != null) onNavigateToCollection(collection.slug)
+                                            else entry.userNickname?.let { onNavigateToUser(it) }
+                                        },
                                         onTagClick = { tag -> onNavigateToSearch("#$tag") },
                                         onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                                         onShare = { shareEntry(context, entry) },
@@ -198,8 +207,16 @@ fun HomeScreen(
                                         currentlyPlayingVideoId = currentlyPlayingVideoId,
                                         onVideoPlay = viewModel::onVideoPlay,
                                         onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                        onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                        onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                        onAvatarClick = {
+                                            val collection = entry.collection
+                                            if (collection != null) onNavigateToCollection(collection.slug)
+                                            else entry.userNickname?.let { onNavigateToUser(it) }
+                                        },
+                                        onUsernameClick = {
+                                            val collection = entry.collection
+                                            if (collection != null) onNavigateToCollection(collection.slug)
+                                            else entry.userNickname?.let { onNavigateToUser(it) }
+                                        },
                                         onTagClick = { tag -> onNavigateToSearch("#$tag") },
                                         onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                                         onShare = { shareEntry(context, entry) },

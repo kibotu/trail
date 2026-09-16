@@ -80,4 +80,21 @@ class EntryRepository(private val client: HttpClient) {
             setBody(ReportRequest(reason))
         }.body()
     }
+
+    suspend fun getCollection(slug: String): Result<CollectionDetailResponse> = runCatching {
+        client.get("api/collections/$slug").body()
+    }
+
+    suspend fun getCollectionEntries(
+        slug: String,
+        limit: Int = 20,
+        before: String? = null,
+        query: String? = null
+    ): Result<EntriesResponse> = runCatching {
+        client.get("api/collections/$slug/entries") {
+            parameter("limit", limit)
+            before?.let { parameter("before", it) }
+            query?.let { parameter("q", it) }
+        }.body()
+    }
 }

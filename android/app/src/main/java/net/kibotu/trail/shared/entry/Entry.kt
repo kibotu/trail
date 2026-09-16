@@ -26,12 +26,21 @@ data class Entry(
     @SerialName("preview_description") val previewDescription: String? = null,
     @SerialName("preview_image") val previewImage: String? = null,
     @SerialName("preview_site_name") val previewSiteName: String? = null,
+    val collection: EntryCollection? = null,
     val tags: List<Tag> = emptyList(),
     val images: List<EntryImage> = emptyList()
 ) {
     val displayName: String
-        get() = userNickname ?: userName
+        get() = collection?.name ?: userNickname ?: userName
 }
+
+@Serializable
+data class EntryCollection(
+    val id: Int,
+    val slug: String,
+    val name: String,
+    @SerialName("avatar_url") val avatarUrl: String? = null
+)
 
 @Serializable
 data class Tag(
@@ -59,7 +68,8 @@ data class EntriesResponse(
     val entries: List<Entry>,
     @SerialName("has_more") val hasMore: Boolean,
     @SerialName("next_cursor") val nextCursor: String? = null,
-    val limit: Int
+    val limit: Int,
+    val collection: EntryCollection? = null
 )
 
 @Serializable
@@ -110,6 +120,27 @@ data class ReportResponse(
     val success: Boolean? = null,
     @SerialName("report_count") val reportCount: Int? = null,
     val message: String? = null
+)
+
+@Serializable
+data class CollectionDetail(
+    val id: Int,
+    @SerialName("owner_user_id") val ownerUserId: Int,
+    val name: String,
+    val slug: String,
+    val bio: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("header_image_url") val headerImageUrl: String? = null,
+    @SerialName("entry_count") val entryCount: Int = 0,
+    @SerialName("view_count") val viewCount: Int = 0,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val tags: List<Tag> = emptyList()
+)
+
+@Serializable
+data class CollectionDetailResponse(
+    val collection: CollectionDetail
 )
 
 interface MediaItemData {

@@ -56,6 +56,7 @@ import net.kibotu.trail.shared.util.shareEntry
 fun SearchScreen(
     onNavigateToEntry: (String) -> Unit,
     onNavigateToUser: (String) -> Unit,
+    onNavigateToCollection: (String) -> Unit = {},
     initialQuery: String = "",
     scrollConnection: NestedScrollConnection? = null,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory())
@@ -164,8 +165,16 @@ fun SearchScreen(
                                     baseUrl = BuildConfig.API_BASE_URL,
                                     showTags = showTags,
                                     onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                    onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                    onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onAvatarClick = {
+                                        val collection = entry.collection
+                                        if (collection != null) onNavigateToCollection(collection.slug)
+                                        else entry.userNickname?.let { onNavigateToUser(it) }
+                                    },
+                                    onUsernameClick = {
+                                        val collection = entry.collection
+                                        if (collection != null) onNavigateToCollection(collection.slug)
+                                        else entry.userNickname?.let { onNavigateToUser(it) }
+                                    },
                                     onTagClick = { tag -> viewModel.updateQuery("#$tag") },
                                     onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                                     onShare = { shareEntry(context, entry) },
@@ -205,8 +214,16 @@ fun SearchScreen(
                                     baseUrl = BuildConfig.API_BASE_URL,
                                     showTags = showTags,
                                     onCardClick = { entry.hashId?.let { onNavigateToEntry(it) } },
-                                    onAvatarClick = { entry.userNickname?.let { onNavigateToUser(it) } },
-                                    onUsernameClick = { entry.userNickname?.let { onNavigateToUser(it) } },
+                                    onAvatarClick = {
+                                        val collection = entry.collection
+                                        if (collection != null) onNavigateToCollection(collection.slug)
+                                        else entry.userNickname?.let { onNavigateToUser(it) }
+                                    },
+                                    onUsernameClick = {
+                                        val collection = entry.collection
+                                        if (collection != null) onNavigateToCollection(collection.slug)
+                                        else entry.userNickname?.let { onNavigateToUser(it) }
+                                    },
                                     onTagClick = { tag -> viewModel.updateQuery("#$tag") },
                                     onClap = { count -> entry.hashId?.let { viewModel.addClaps(it, count) } },
                                     onShare = { shareEntry(context, entry) },

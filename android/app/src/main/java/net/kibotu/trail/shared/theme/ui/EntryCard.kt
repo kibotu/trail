@@ -116,6 +116,7 @@ fun EntryCard(
     var showDeleteDialog by remember { mutableStateOf(false) }
     val canModify = isAdmin || entry.userId == currentUserId
     val isOwnContent = entry.userId == currentUserId
+    val displayAvatarUrl = entry.collection?.avatarUrl?.let { if (it.startsWith("http")) it else "$baseUrl$it" } ?: entry.avatarUrl
 
     val cardInteractionSource = remember { MutableInteractionSource() }
 
@@ -142,8 +143,9 @@ fun EntryCard(
                 verticalAlignment = Alignment.Top
             ) {
                 AsyncImage(
-                    model = entry.avatarUrl,
+                    model = displayAvatarUrl,
                     contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
