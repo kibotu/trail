@@ -28,7 +28,7 @@ android {
 
     defaultConfig {
         applicationId = "net.kibotu.trail"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 37
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?) ?: "1.0"
