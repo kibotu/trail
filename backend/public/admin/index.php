@@ -153,6 +153,7 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/vendor/cropper/cropper.min.css">
 </head>
 <body class="page-admin-dashboard">
     <div class="orb orb-1"></div>
@@ -576,6 +577,8 @@ $avatarUrl = getUserAvatarUrl($session['photo_url'] ?? null, $session['email']);
     <script src="/assets/js/admin-tags.js"></script>
     <script src="/assets/js/admin-short-links.js"></script>
     <script src="/assets/js/image-upload.js"></script>
+    <script src="/assets/vendor/cropper/cropper.min.js"></script>
+    <script src="/assets/js/image-crop.js"></script>
     <script src="/assets/js/admin-collections.js"></script>
     <script src="/assets/js/admin-ai-scripts.js"></script>
 </body>

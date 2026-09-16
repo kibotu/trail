@@ -3449,6 +3449,7 @@ main {
     width: 120px;
     height: 120px;
     margin-bottom: 1rem;
+    z-index: 11;
 }
 
 .page-user .profile-avatar {
@@ -6613,7 +6614,7 @@ main {
     }
 
     .page-user .profile-header-image {
-        height: 150px;
+        height: 200px;
     }
 
     .page-user .profile-info-section {
@@ -8070,5 +8071,100 @@ main {
     .deletion-blocker-actions .btn-revert {
         font-size: 0.875rem;
         padding: 0.7rem 1.25rem;
+    }
+}
+
+/* ============================================
+   IMAGE CROP MODAL
+   ============================================ */
+
+.crop-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+}
+
+.crop-modal-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.crop-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.crop-modal-body {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.crop-modal-body img {
+    max-width: 100%;
+    max-height: 60vh;
+}
+
+.crop-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+    .crop-modal-overlay {
+        padding: 0;
+    }
+
+    .crop-modal-container {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        height: 100%;
+    }
+
+    .crop-modal-body {
+        padding: 0.5rem;
+    }
+
+    .crop-modal-body img {
+        max-height: calc(100vh - 120px);
+    }
+}
+
+@media (max-width: 480px) {
+    .crop-modal-footer {
+        padding: 0.75rem;
+    }
+
+    .crop-modal-footer .button {
+        flex: 1;
+        padding: 0.75rem;
     }
 }

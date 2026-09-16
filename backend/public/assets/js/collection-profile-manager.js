@@ -12,6 +12,7 @@ class CollectionProfileManager {
         this.apiBase = options.apiBase || '/api';
         this.baseUrl = options.baseUrl || '';
         this.collectionData = null;
+        this.isAdmin = false;
 
         this.elements = {
             collectionHeaderImage: 'collectionHeaderImage',
@@ -24,8 +25,13 @@ class CollectionProfileManager {
     }
 
     async init() {
+        this.isAdmin = document.body.dataset.isAdmin === 'true';
+
         try {
             await this.loadCollection();
+            if (this.isAdmin) {
+                this.setupEventListeners();
+            }
         } catch (error) {
             console.error('Failed to initialize collection:', error);
             this.showError('Failed to load collection. Please try again.');
@@ -155,6 +161,206 @@ class CollectionProfileManager {
         const containerEl = document.getElementById(this.elements.profileBannerContainer);
         if (containerEl) {
             containerEl.style.display = 'block';
+        }
+
+        // Show upload overlays for admins
+        if (this.isAdmin) {
+            const headerOverlay = document.getElementById('headerUploadOverlay');
+            const avatarOverlay = document.getElementById('avatarUploadOverlay');
+            if (headerOverlay) headerOverlay.classList.add('owner');
+            if (avatarOverlay) avatarOverlay.classList.add('owner');
+        }
+    }
+
+    setupEventListeners() {
+        const headerImage = document.getElementById(this.elements.collectionHeaderImage);
+        const avatarImage = document.getElementById(this.elements.profileAvatar);
+
+        if (headerImage) {
+            headerImage.style.cursor = 'pointer';
+            headerImage.addEventListener('click', (e) => {
+                if (e.target.closest('.header-upload-overlay')) return;
+                this.triggerHeaderImageUpload();
+            });
+        }
+
+        const headerOverlay = document.getElementById('headerUploadOverlay');
+        if (headerOverlay) {
+            headerOverlay.style.cursor = 'pointer';
+            headerOverlay.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.triggerHeaderImageUpload();
+            });
+        }
+
+        if (avatarImage) {
+            avatarImage.style.cursor = 'pointer';
+            avatarImage.addEventListener('click', (e) => {
+                if (e.target.closest('.avatar-upload-overlay')) return;
+                this.triggerAvatarImageUpload();
+            });
+        }
+
+        const avatarOverlay = document.getElementById('avatarUploadOverlay');
+        if (avatarOverlay) {
+            avatarOverlay.style.cursor = 'pointer';
+            avatarOverlay.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.triggerAvatarImageUpload();
+            });
+        }
+    }
+
+    triggerHeaderImageUpload() {
+        if (typeof ImageUploader === 'undefined') {
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('Image upload feature is not available. Please refresh the page.', 'error');
+            }
+            return;
+        }
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif';
+        fileInput.style.display = 'none';
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
+
+            const doUpload = async (uploadFile) => {
+                try {
+                    const headerOverlay = document.getElementById('headerUploadOverlay');
+                    if (headerOverlay) {
+                        headerOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Uploading...</span>';
+                    }
+
+                    const uploader = new ImageUploader(
+                        'header',
+                        () => {},
+                        async (result) => {
+                            await this.updateCollection({ header_image_id: result.image_id });
+                            const headerEl = document.getElementById(this.elements.collectionHeaderImage);
+                            if (headerEl) headerEl.style.backgroundImage = `url('${result.url}')`;
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar('Header uploaded', 'success');
+                            }
+                        },
+                        (error) => {
+                            console.error('Upload error:', error);
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar(error, 'error');
+                            }
+                        }
+                    );
+                    await uploader.upload(uploadFile);
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                }
+            };
+
+            if (typeof ImageCropModal !== 'undefined') {
+                ImageCropModal.show(file, {
+                    aspectRatio: 3.68,
+                    outputWidth: 1920,
+                    onCrop: doUpload,
+                    onCancel: () => {}
+                });
+            } else {
+                doUpload(file);
+            }
+        });
+
+        document.body.appendChild(fileInput);
+        fileInput.click();
+    }
+
+    triggerAvatarImageUpload() {
+        if (typeof ImageUploader === 'undefined') {
+            if (typeof showSnackbar === 'function') {
+                showSnackbar('Image upload feature is not available. Please refresh the page.', 'error');
+            }
+            return;
+        }
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif';
+        fileInput.style.display = 'none';
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
+
+            const doUpload = async (uploadFile) => {
+                try {
+                    const avatarOverlay = document.getElementById('avatarUploadOverlay');
+                    if (avatarOverlay) {
+                        avatarOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    }
+
+                    const uploader = new ImageUploader(
+                        'profile',
+                        () => {},
+                        async (result) => {
+                            await this.updateCollection({ avatar_image_id: result.image_id });
+                            const avatarEl = document.getElementById(this.elements.profileAvatar);
+                            if (avatarEl) avatarEl.src = result.url;
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar('Avatar uploaded', 'success');
+                            }
+                        },
+                        (error) => {
+                            console.error('Upload error:', error);
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar(error, 'error');
+                            }
+                        }
+                    );
+                    await uploader.upload(uploadFile);
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                }
+            };
+
+            if (typeof ImageCropModal !== 'undefined') {
+                ImageCropModal.show(file, {
+                    aspectRatio: 1,
+                    outputWidth: 512,
+                    onCrop: doUpload,
+                    onCancel: () => {}
+                });
+            } else {
+                doUpload(file);
+            }
+        });
+
+        document.body.appendChild(fileInput);
+        fileInput.click();
+    }
+
+    async updateCollection(fields) {
+        const c = this.collectionData.collection || this.collectionData;
+        const body = {
+            name: c.name ?? '',
+            slug: c.slug ?? '',
+            bio: c.bio ?? '',
+            avatar_image_id: c.avatar_image_id ?? null,
+            header_image_id: c.header_image_id ?? null,
+            ...fields
+        };
+        const response = await fetch(`${this.apiBase}/admin/collections/${c.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update collection');
         }
     }
 

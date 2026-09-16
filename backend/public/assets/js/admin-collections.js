@@ -327,37 +327,52 @@ function uploadCollectionImage(kind) {
         const file = input.files && input.files[0];
         if (!file) return;
 
-        try {
-            const imageType = kind === 'avatar' ? 'profile' : 'header';
-            const uploader = new ImageUploader(
-                imageType,
-                () => {},
-                (result) => {
-                    const field = document.getElementById(`collection-${kind}-image-id`);
-                    if (field) field.value = result.image_id;
-                    const preview = document.getElementById(`collection-${kind}-preview`);
-                    if (preview) {
-                        preview.src = result.url;
-                        preview.style.display = '';
+        if (input.parentNode) {
+            input.parentNode.removeChild(input);
+        }
+
+        const doUpload = async (uploadFile) => {
+            try {
+                const imageType = kind === 'avatar' ? 'profile' : 'header';
+                const uploader = new ImageUploader(
+                    imageType,
+                    () => {},
+                    (result) => {
+                        const field = document.getElementById(`collection-${kind}-image-id`);
+                        if (field) field.value = result.image_id;
+                        const preview = document.getElementById(`collection-${kind}-preview`);
+                        if (preview) {
+                            preview.src = result.url;
+                            preview.style.display = '';
+                        }
+                        if (typeof showSnackbar === 'function') {
+                            showSnackbar(`${kind === 'avatar' ? 'Avatar' : 'Header'} uploaded`, 'success');
+                        }
+                    },
+                    (error) => {
+                        console.error('Upload error:', error);
+                        if (typeof showSnackbar === 'function') {
+                            showSnackbar(error, 'error');
+                        }
                     }
-                    if (typeof showSnackbar === 'function') {
-                        showSnackbar(`${kind === 'avatar' ? 'Avatar' : 'Header'} uploaded`, 'success');
-                    }
-                },
-                (error) => {
-                    console.error('Upload error:', error);
-                    if (typeof showSnackbar === 'function') {
-                        showSnackbar(error, 'error');
-                    }
-                }
-            );
-            await uploader.upload(file);
-        } catch (error) {
-            console.error('Upload failed:', error);
-        } finally {
-            if (input.parentNode) {
-                input.parentNode.removeChild(input);
+                );
+                await uploader.upload(uploadFile);
+            } catch (error) {
+                console.error('Upload failed:', error);
             }
+        };
+
+        if (typeof ImageCropModal !== 'undefined') {
+            const aspectRatio = kind === 'avatar' ? 1 : 3.68;
+            const outputWidth = kind === 'avatar' ? 512 : 1920;
+            ImageCropModal.show(file, {
+                aspectRatio,
+                outputWidth,
+                onCrop: doUpload,
+                onCancel: () => {}
+            });
+        } else {
+            doUpload(file);
         }
     });
 

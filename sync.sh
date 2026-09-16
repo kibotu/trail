@@ -135,12 +135,12 @@ bundle_js "user.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js image-upload.js comments-manager.js \
     search-manager.js shader-who.js user-profile-manager.js scroll-to-top.js \
-    user-page.js
+    user-page.js image-crop.js
 
 bundle_js "collection.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
-    entries-manager.js infinite-scroll.js comments-manager.js \
-    search-manager.js embed-behaviors.js \
+    entries-manager.js infinite-scroll.js image-upload.js comments-manager.js \
+    search-manager.js embed-behaviors.js image-crop.js \
     collection-profile-manager.js collection-page.js
 
 bundle_js "status.bundle.js" \

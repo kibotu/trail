@@ -442,40 +442,50 @@ class UserProfileManager {
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
-            try {
-                // Show loading state
-                const headerOverlay = document.getElementById(this.elements.headerUploadOverlay);
-                if (headerOverlay) {
-                    headerOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Uploading...</span>';
-                }
-                
-                // Create uploader and upload
-                const uploader = new ImageUploader(
-                    'header',
-                    (progress) => this.onUploadProgress('header', progress),
-                    (result) => this.onHeaderImageUploaded(result),
-                    (error) => {
-                        console.error('Upload error:', error);
-                        if (typeof showSnackbar === 'function') {
-                            showSnackbar(error, 'error');
-                        }
-                        // Restore overlay
-                        if (headerOverlay) {
-                            headerOverlay.innerHTML = '<i class="fa-solid fa-camera"></i><span>Change header</span>';
-                        }
+
+            // Clean up file input
+            if (fileInput.parentNode) {
+                fileInput.parentNode.removeChild(fileInput);
+            }
+
+            const headerOverlay = document.getElementById(this.elements.headerUploadOverlay);
+
+            const doUpload = async (uploadFile) => {
+                try {
+                    if (headerOverlay) {
+                        headerOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Uploading...</span>';
                     }
-                );
-                
-                await uploader.upload(file);
-                
-            } catch (error) {
-                console.error('Upload failed:', error);
-            } finally {
-                // Clean up - check if element exists in DOM
-                if (fileInput && fileInput.parentNode) {
-                    fileInput.parentNode.removeChild(fileInput);
+
+                    const uploader = new ImageUploader(
+                        'header',
+                        (progress) => this.onUploadProgress('header', progress),
+                        (result) => this.onHeaderImageUploaded(result),
+                        (error) => {
+                            console.error('Upload error:', error);
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar(error, 'error');
+                            }
+                            if (headerOverlay) {
+                                headerOverlay.innerHTML = '<i class="fa-solid fa-camera"></i><span>Change header</span>';
+                            }
+                        }
+                    );
+
+                    await uploader.upload(uploadFile);
+                } catch (error) {
+                    console.error('Upload failed:', error);
                 }
+            };
+
+            if (typeof ImageCropModal !== 'undefined') {
+                ImageCropModal.show(file, {
+                    aspectRatio: 3.68,
+                    outputWidth: 1920,
+                    onCrop: doUpload,
+                    onCancel: () => {}
+                });
+            } else {
+                doUpload(file);
             }
         });
         
@@ -506,40 +516,50 @@ class UserProfileManager {
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
-            try {
-                // Show loading state
-                const avatarOverlay = document.getElementById(this.elements.avatarUploadOverlay);
-                if (avatarOverlay) {
-                    avatarOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                }
-                
-                // Create uploader and upload
-                const uploader = new ImageUploader(
-                    'profile',
-                    (progress) => this.onUploadProgress('profile', progress),
-                    (result) => this.onProfileImageUploaded(result),
-                    (error) => {
-                        console.error('Upload error:', error);
-                        if (typeof showSnackbar === 'function') {
-                            showSnackbar(error, 'error');
-                        }
-                        // Restore overlay
-                        if (avatarOverlay) {
-                            avatarOverlay.innerHTML = '<i class="fa-solid fa-camera"></i>';
-                        }
+
+            // Clean up file input
+            if (fileInput.parentNode) {
+                fileInput.parentNode.removeChild(fileInput);
+            }
+
+            const avatarOverlay = document.getElementById(this.elements.avatarUploadOverlay);
+
+            const doUpload = async (uploadFile) => {
+                try {
+                    if (avatarOverlay) {
+                        avatarOverlay.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                     }
-                );
-                
-                await uploader.upload(file);
-                
-            } catch (error) {
-                console.error('Upload failed:', error);
-            } finally {
-                // Clean up - check if element exists in DOM
-                if (fileInput && fileInput.parentNode) {
-                    fileInput.parentNode.removeChild(fileInput);
+
+                    const uploader = new ImageUploader(
+                        'profile',
+                        (progress) => this.onUploadProgress('profile', progress),
+                        (result) => this.onProfileImageUploaded(result),
+                        (error) => {
+                            console.error('Upload error:', error);
+                            if (typeof showSnackbar === 'function') {
+                                showSnackbar(error, 'error');
+                            }
+                            if (avatarOverlay) {
+                                avatarOverlay.innerHTML = '<i class="fa-solid fa-camera"></i>';
+                            }
+                        }
+                    );
+
+                    await uploader.upload(uploadFile);
+                } catch (error) {
+                    console.error('Upload failed:', error);
                 }
+            };
+
+            if (typeof ImageCropModal !== 'undefined') {
+                ImageCropModal.show(file, {
+                    aspectRatio: 1,
+                    outputWidth: 512,
+                    onCrop: doUpload,
+                    onCancel: () => {}
+                });
+            } else {
+                doUpload(file);
             }
         });
         

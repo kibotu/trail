@@ -58,6 +58,7 @@
     <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/dist/main.bundle.css">
+    <link rel="stylesheet" href="/assets/vendor/cropper/cropper.min.css">
 </head>
 <body class="page-user"
       data-nickname="<?= htmlspecialchars($nickname ?? '') ?>"
@@ -190,6 +191,7 @@
         </div>
     </main>
 
+    <script src="/assets/vendor/cropper/cropper.min.js"></script>
     <script src="/assets/dist/user.bundle.js" defer></script>
 
     <footer class="site-footer">

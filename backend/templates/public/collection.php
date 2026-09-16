@@ -56,10 +56,12 @@
     <link rel="stylesheet" href="/assets/fontawesome/css/solid.min.css">
     <link rel="stylesheet" href="/assets/fontawesome/css/regular.min.css">
     <link rel="stylesheet" href="/assets/dist/main.bundle.css">
+    <link rel="stylesheet" href="/assets/vendor/cropper/cropper.min.css">
 </head>
 <body class="page-user"
       data-slug="<?= htmlspecialchars($collectionSlug ?? '') ?>"
       data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
+      data-is-admin="<?= ($isAdmin ?? false) ? 'true' : 'false' ?>"
       data-user-id="<?= htmlspecialchars((string)($userId ?? '')) ?>">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
@@ -117,11 +119,19 @@
 
     <main>
         <div class="profile-banner-container" id="profileBannerContainer" style="display: none;">
-            <div class="profile-header-image" id="collectionHeaderImage"></div>
+            <div class="profile-header-image" id="collectionHeaderImage">
+                <div class="header-upload-overlay" id="headerUploadOverlay">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Change header</span>
+                </div>
+            </div>
 
             <div class="profile-info-section">
                 <div class="profile-avatar-container">
                     <img class="profile-avatar" id="profileAvatar" src="" alt="Collection avatar">
+                    <div class="avatar-upload-overlay" id="avatarUploadOverlay">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
                 </div>
 
                 <div class="profile-details">
@@ -161,6 +171,7 @@
         </div>
     </main>
 
+    <script src="/assets/vendor/cropper/cropper.min.js"></script>
     <script src="/assets/dist/collection.bundle.js" defer></script>
     
     <footer class="site-footer">
