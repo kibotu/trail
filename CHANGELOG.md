@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-09-16
+
+### Changed
+
+- Android: updated Gradle wrapper, dependencies and library versions.
+
 ## [2.1.0] - 2026-09-16
 
 ### Added
@@ -83,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized first page load and improved static asset caching.
 - `created_at` field now optional in entry creation.
 
-[unreleased]: https://github.com/kibotu/trail/compare/2.1.0...HEAD
+[unreleased]: https://github.com/kibotu/trail/compare/2.1.2...HEAD
+[2.1.2]: https://github.com/kibotu/trail/compare/2.1.0...2.1.2
 [2.1.0]: https://github.com/kibotu/trail/compare/2.0.2...2.1.0
 [2.0.2]: https://github.com/kibotu/trail/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/kibotu/trail/compare/2.0.0...2.0.1
