@@ -2,6 +2,7 @@
 .phpstan.cache/
 secrets.yml
 secrets-prod.yml
+secrets-local.yml
 storage/preview-cache/*.png
 storage/temp/
 public/assets/dist/
