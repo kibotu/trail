@@ -2,9 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.2] - 2026-09-16
 
 ### Added
 
@@ -38,3 +41,44 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Collection page upload overlays use the `owner` CSS class (matching user profile page) instead of inline `style.display`, enabling the hover opacity transition with camera icon.
 - Crop modal uses `FileReader.readAsDataURL()` instead of `URL.createObjectURL()` to comply with CSP `img-src` policy (blocks `blob:` URLs).
 - `create-collections.php` token parsing: first positional argument (not a flag) is used as the API token, preventing `--avatars` from being interpreted as the token.
+
+## [2.0.1] - 2026-08-21
+
+### Fixed
+
+- Android app crash fixes in search, profile caching and theme preferences.
+- In-app review and update manager stability improvements.
+
+## [2.0.0] - 2026-08-21
+
+### Added
+
+- Android: image download support for offline viewing.
+- Android: pull-to-refresh on profile screen.
+- Android: ruler tool in entry detail view.
+- Unit tests for `ProfileViewModel` and `ProfileRepository`.
+
+### Changed
+
+- Android Gradle and dependency version updates.
+- Improved profile caching strategy.
+- Backend `.htaccess` rewrite rules updated.
+
+## [1.2.7] - 2026-03-18
+
+### Added
+
+- Admin dashboard (`/admin`) with entry management UI and AI script controls.
+- Redesigned entry card component with richer metadata display.
+- GitHub Actions CI trigger for automated builds.
+
+### Changed
+
+- Optimized first page load and improved static asset caching.
+- `created_at` field now optional in entry creation.
+
+[unreleased]: https://github.com/kibotu/trail/compare/2.0.2...HEAD
+[2.0.2]: https://github.com/kibotu/trail/compare/2.0.1...2.0.2
+[2.0.1]: https://github.com/kibotu/trail/compare/2.0.0...2.0.1
+[2.0.0]: https://github.com/kibotu/trail/compare/1.2.7...2.0.0
+[1.2.7]: https://github.com/kibotu/trail/releases/tag/1.2.7
