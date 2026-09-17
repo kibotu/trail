@@ -22,6 +22,7 @@ class UserEntriesPagingSource(
             )
             result.fold(
                 onSuccess = { response ->
+                    EntryCache.putAll(response.entries)
                     LoadResult.Page(
                         data = response.entries,
                         prevKey = null,

@@ -72,7 +72,9 @@ import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.toMediaItemDataList
 import net.kibotu.trail.shared.navigation.LocalAnimatedVisibilityScope
+import net.kibotu.trail.shared.navigation.LocalSharedEntryId
 import net.kibotu.trail.shared.navigation.LocalSharedTransitionScope
+import net.kibotu.trail.shared.navigation.TrailMotion
 import net.kibotu.trail.shared.util.openInCustomTab
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -128,20 +130,24 @@ fun EntryCard(
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
-    val sharedTransitionModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null && entry.hashId != null) {
+    // Only the entry being opened takes part, otherwise two feeds showing the same entry would
+    // match each other on a tab switch. See LocalSharedEntryId.
+    val isSharedEntry = entry.hashId != null && entry.hashId == LocalSharedEntryId.current
+    val sharedTransitionModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null && isSharedEntry) {
         with(sharedTransitionScope) {
             Modifier.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = "entry-${entry.hashId}"),
                 animatedVisibilityScope = animatedVisibilityScope,
-                boundsTransform = { _: androidx.compose.ui.geometry.Rect, _: androidx.compose.ui.geometry.Rect ->
-                    spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                },
-                enter = fadeIn(tween(300)),
-                exit = fadeOut(tween(200)),
-                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                boundsTransform = { _, _ -> TrailMotion.sharedBounds },
+                enter = TrailMotion.sharedContentIn,
+                exit = TrailMotion.sharedContentOut,
+                // The list and detail cards are the same width, so scaling the layer is a no-op
+                // horizontally and the card simply unrolls downward. Re-measuring a card full of
+                // text and images every frame would reflow it instead.
+                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(
+                    contentScale = ContentScale.FillWidth,
+                    alignment = Alignment.TopStart
+                ),
             )
         }
     } else Modifier

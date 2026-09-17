@@ -14,6 +14,7 @@ import net.kibotu.trail.shared.comment.CommentRepository
 import net.kibotu.trail.shared.comment.CreateCommentRequest
 import net.kibotu.trail.shared.comment.UpdateCommentRequest
 import net.kibotu.trail.shared.entry.Entry
+import net.kibotu.trail.shared.entry.EntryCache
 import net.kibotu.trail.shared.entry.EntryRepository
 import net.kibotu.trail.shared.util.shareEntry as shareEntryUtil
 import net.kibotu.trail.shared.entry.UpdateEntryRequest
@@ -37,7 +38,11 @@ class EntryDetailViewModel(
 ) : ViewModel() {
 
     val state: StateFlow<EntryDetailState>
-        field = MutableStateFlow(EntryDetailState())
+        field = MutableStateFlow(
+            EntryCache[hashId]
+                ?.let { EntryDetailState(entry = it, isLoading = false) }
+                ?: EntryDetailState()
+        )
 
     val entryDeleted: SharedFlow<Unit>
         field = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -54,7 +59,10 @@ class EntryDetailViewModel(
     private fun loadEntry() {
         viewModelScope.launch {
             entryRepository.getEntry(hashId).fold(
-                onSuccess = { state.value = state.value.copy(entry = it, isLoading = false) },
+                onSuccess = {
+                    EntryCache.put(it)
+                    state.value = state.value.copy(entry = it, isLoading = false)
+                },
                 onFailure = { state.value = state.value.copy(error = it.message, isLoading = false) }
             )
         }
