@@ -12,11 +12,11 @@ class Collection
 
     private const TABLE = 'trail_collections';
 
-    /** Top-level route segments a collection slug must not collide with */
+    /** Route segments a collection slug must not collide with ('sidebar' shadows /api/collections/sidebar) */
     public const RESERVED_SLUGS = [
         'api', 'profile', 'status', 'admin', 'assets', 'uploads',
         'data-privacy', 'terms-and-conditions', 'account-pending-deletion',
-        'notifications', 'collection', 'collections',
+        'notifications', 'collection', 'collections', 'sidebar',
     ];
 
     public function __construct(PDO $db)
@@ -76,6 +76,18 @@ class Collection
     {
         $stmt = $this->db->prepare(self::COLLECTION_SELECT . " GROUP BY c.id ORDER BY c.created_at DESC");
         $stmt->execute();
+
+        return array_map(fn(array $row): array => $this->attachImageUrls($row), $stmt->fetchAll());
+    }
+
+    /**
+     * Top collections sorted by entry count, descending.
+     * Used for the sidebar widget.
+     */
+    public function getAllByEntryCount(int $limit = 12): array
+    {
+        $stmt = $this->db->prepare(self::COLLECTION_SELECT . " GROUP BY c.id ORDER BY entry_count DESC, c.created_at DESC LIMIT ?");
+        $stmt->execute([$limit]);
 
         return array_map(fn(array $row): array => $this->attachImageUrls($row), $stmt->fetchAll());
     }

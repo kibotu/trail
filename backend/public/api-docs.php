@@ -283,6 +283,16 @@ $endpoints = [
     ],
     [
         'method' => 'GET',
+        'path' => '/api/collections/sidebar',
+        'description' => 'Top collections sorted by entry count for sidebar widget (max 12)',
+        'auth' => false,
+        'auth_level' => 'public',
+        'group' => 'public',
+        'rate_limit' => 'None',
+        'curl' => "curl {$baseUrl}/api/collections/sidebar"
+    ],
+    [
+        'method' => 'GET',
         'path' => '/api/collections/{slug}',
         'description' => 'Get a collection by slug (with tags)',
         'auth' => false,

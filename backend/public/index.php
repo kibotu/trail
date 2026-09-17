@@ -194,6 +194,17 @@ $app->get('/', function ($request, $response) use ($config) {
             $nextCursor = null;
         }
 
+        // SSR: fetch sidebar collections
+        $sidebarCollections = [];
+        try {
+            $db = $db ?? \Trail\Database\Database::getInstance($config);
+            $collectionModel = new \Trail\Models\Collection($db);
+            $sidebarCollections = $collectionModel->getAllByEntryCount(12);
+        } catch (\Throwable $e) {
+            error_log('SSR sidebar fetch failed: ' . $e->getMessage());
+            $sidebarCollections = [];
+        }
+
         ob_start();
         include $landingPage;
         $html = ob_get_clean();
@@ -873,6 +884,7 @@ $app->post('/api/collections/{slug}/views', [ViewController::class, 'recordColle
 
 // Collection routes (public read)
 $app->get('/api/collections', [CollectionController::class, 'list']);
+$app->get('/api/collections/sidebar', [CollectionController::class, 'sidebar']);
 $app->get('/api/collections/{slug}', [CollectionController::class, 'get']);
 $app->get('/api/collections/{slug}/entries', [CollectionController::class, 'getEntries']);
 $app->get('/api/collections/{slug}/rss', [CollectionController::class, 'rss']);

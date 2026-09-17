@@ -58,7 +58,7 @@
     <link rel="stylesheet" href="/assets/dist/main.bundle.css">
     <link rel="stylesheet" href="/assets/vendor/cropper/cropper.min.css">
 </head>
-<body class="page-user"
+<body class="page-user page-collection"
       data-slug="<?= htmlspecialchars($collectionSlug ?? '') ?>"
       data-is-logged-in="<?= $isLoggedIn ? 'true' : 'false' ?>"
       data-is-admin="<?= ($isAdmin ?? false) ? 'true' : 'false' ?>"
@@ -117,6 +117,7 @@
         </div>
     </header>
 
+    <div class="collection-layout">
     <main>
         <div class="profile-banner-container" id="profileBannerContainer" style="display: none;">
             <div class="profile-header-image" id="collectionHeaderImage">
@@ -170,6 +171,17 @@
             <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
         </div>
     </main>
+
+    <aside class="collections-sidebar" id="collectionsSidebar" aria-labelledby="sidebarTitle">
+        <h3 class="sidebar-title" id="sidebarTitle">
+            <i class="fa-solid fa-layer-group"></i> Collections
+        </h3>
+        <div class="sidebar-collections" id="sidebarCollections">
+            <!-- Populated by collections-sidebar.js -->
+        </div>
+        <a href="/collections" class="sidebar-view-all">View all collections</a>
+    </aside>
+    </div>
 
     <script src="/assets/vendor/cropper/cropper.min.js"></script>
     <script src="/assets/dist/collection.bundle.js" defer></script>

@@ -381,6 +381,33 @@ class CollectionController
     }
 
     /**
+     * Top collections for sidebar widget.
+     * GET /api/collections/sidebar
+     */
+    public static function sidebar(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        try {
+            $config = Config::load(__DIR__ . '/../../secrets.yml');
+            $collectionModel = new Collection(Database::getInstance($config));
+            $collections = $collectionModel->getAllByEntryCount(12);
+            $response->getBody()->write(json_encode([
+                'collections' => array_map(fn(array $c): array => [
+                    'name' => $c['name'],
+                    'slug' => $c['slug'],
+                    'avatar_url' => $c['avatar_url'] ?? null,
+                    'entry_count' => (int) $c['entry_count'],
+                ], $collections),
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')
+                ->withHeader('Cache-Control', 'public, max-age=300');
+        } catch (\Throwable $e) {
+            error_log("CollectionController: Error loading sidebar - " . $e->getMessage());
+            $response->getBody()->write(json_encode(['collections' => []]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+    }
+
+    /**
      * Entry avatar URL (Gravatar fallback), shared shape with EntryController.
      */
     private static function getAvatarUrl(array $entry, int $size = 96): string

@@ -312,6 +312,158 @@ main {
     padding: 2rem 1rem;
 }
 
+/* ============================================
+   COLLECTIONS SIDEBAR
+   ============================================ */
+
+.landing-layout {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 0 auto;
+}
+
+/* Outranks `.page-landing main`, which would otherwise cap this at 600px. */
+.page-landing .landing-layout {
+    max-width: 1100px;
+    padding: 1rem;
+}
+
+.landing-layout .landing-feed {
+    flex: 1;
+    min-width: 0;
+    max-width: 600px;
+}
+
+.collection-layout {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Outranks `.page-user main`, which collection pages also match. */
+.page-collection .collection-layout main {
+    flex: 1;
+    min-width: 0;
+    max-width: 600px;
+    margin: 0;
+    padding: 0;
+}
+
+.collections-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 80px;
+    height: fit-content;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.sidebar-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+}
+
+.sidebar-title i {
+    margin-right: 0.375rem;
+}
+
+.sidebar-collections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar-bubble {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-bubble:hover,
+.sidebar-bubble:focus-visible {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.sidebar-bubble:focus-visible,
+.sidebar-view-all:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.sidebar-bubble.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent);
+}
+
+.sidebar-bubble-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+}
+
+.sidebar-bubble:hover .sidebar-bubble-avatar,
+.sidebar-bubble:focus-visible .sidebar-bubble-avatar {
+    border-color: var(--accent);
+}
+
+.sidebar-bubble.active .sidebar-bubble-avatar {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar-bubble-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Makes the entry-count sort order legible instead of arbitrary. */
+.sidebar-bubble-count {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.sidebar-view-all {
+    display: block;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+    text-align: center;
+    border-radius: 0.5rem;
+    transition: background 0.15s;
+}
+
+.sidebar-view-all:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
 .page-status main {
     margin: 2rem auto;
     padding: 0 2rem;
@@ -6382,6 +6534,80 @@ main {
         bottom: 1.5rem;
         right: 1.5rem;
         font-size: 1.25rem;
+    }
+
+    /* Sidebar — mobile: horizontal scroll strip above the feed */
+    .landing-layout {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .landing-layout .landing-feed {
+        max-width: 100%;
+    }
+
+    .collection-layout {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .page-collection .collection-layout main {
+        max-width: 100%;
+    }
+
+    .collections-sidebar {
+        order: -1;
+        position: static;
+        width: 100%;
+        max-height: none;
+        padding-bottom: 0.5rem;
+    }
+
+    .sidebar-title {
+        margin-bottom: 0.75rem;
+    }
+
+    .sidebar-collections {
+        flex-direction: row;
+        gap: 0.75rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .sidebar-collections::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sidebar-bubble {
+        flex-direction: column;
+        min-width: 64px;
+        max-width: 64px;
+        padding: 0.375rem;
+        text-align: center;
+        scroll-snap-align: start;
+    }
+
+    .sidebar-bubble-name {
+        flex: 0 1 auto;
+        width: 100%;
+        font-size: 0.7rem;
+        margin-top: 0.25rem;
+    }
+
+    .sidebar-bubble-count {
+        font-size: 0.65rem;
+    }
+
+    .sidebar-bubble-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .sidebar-view-all {
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
     }
 }
 

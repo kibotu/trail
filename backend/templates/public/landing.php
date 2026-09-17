@@ -99,58 +99,84 @@
         </div>
     </header>
 
-    <main>
-        <?php if (isset($_GET['error'])): ?>
-            <div class="error-message" style="margin-bottom: 2rem;">
-                <?= htmlspecialchars($_GET['error']) ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Search Section -->
-        <div class="search-section" id="searchSection">
-            <!-- Populated by SearchManager -->
-        </div>
-        
-        <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
-        <div class="create-post-section">
-            <div class="create-post-header">
-                <i class="fa-solid fa-pen" style="font-size: 1.5rem;"></i>
-                <h2>Create a Post</h2>
-            </div>
-            <form class="post-form" id="createPostForm" onsubmit="return false;">
-                <textarea 
-                    id="postText" 
-                    class="post-textarea" 
-                    placeholder="Share a link, thought, or update... (optional)"
-                    rows="3"
-                ></textarea>
-                <div id="post-image-upload" style="margin: 1rem 0;"></div>
-                <div class="post-form-footer">
-                    <span class="char-counter" id="charCounter">0 / ...</span>
-                    <button type="submit" class="submit-button" id="submitButton">
-                        <i class="fa-solid fa-paper-plane"></i>
-                        <span>Post</span>
-                    </button>
+    <main class="landing-layout">
+        <div class="landing-feed">
+            <?php if (isset($_GET['error'])): ?>
+                <div class="error-message" style="margin-bottom: 2rem;">
+                    <?= htmlspecialchars($_GET['error']) ?>
                 </div>
-            </form>
-            <div id="postMessage" style="display: none;"></div>
+            <?php endif; ?>
+            
+            <!-- Search Section -->
+            <div class="search-section" id="searchSection">
+                <!-- Populated by SearchManager -->
+            </div>
+            
+            <?php if (isset($isLoggedIn) && $isLoggedIn): ?>
+            <div class="create-post-section">
+                <div class="create-post-header">
+                    <i class="fa-solid fa-pen" style="font-size: 1.5rem;"></i>
+                    <h2>Create a Post</h2>
+                </div>
+                <form class="post-form" id="createPostForm" onsubmit="return false;">
+                    <textarea 
+                        id="postText" 
+                        class="post-textarea" 
+                        placeholder="Share a link, thought, or update... (optional)"
+                        rows="3"
+                    ></textarea>
+                    <div id="post-image-upload" style="margin: 1rem 0;"></div>
+                    <div class="post-form-footer">
+                        <span class="char-counter" id="charCounter">0 / ...</span>
+                        <button type="submit" class="submit-button" id="submitButton">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Post</span>
+                        </button>
+                    </div>
+                </form>
+                <div id="postMessage" style="display: none;"></div>
+            </div>
+            <?php endif; ?>
+            
+            <div class="entries-container" id="entriesContainer">
+    <?php if (!empty($initialEntries)): ?>
+    <?php   foreach ($initialEntries as $entry): ?>
+                <?php include __DIR__ . '/_entry-card.php'; ?>
+    <?php   endforeach; ?>
+    <?php endif; ?>
+            </div>
+            <div class="loading" id="loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Loading entries...</p>
+            </div>
+            <div class="end-message" id="endMessage" style="display: none;">
+                <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
+            </div>
         </div>
-        <?php endif; ?>
-        
-        <div class="entries-container" id="entriesContainer">
-<?php if (!empty($initialEntries)): ?>
-<?php   foreach ($initialEntries as $entry): ?>
-            <?php include __DIR__ . '/_entry-card.php'; ?>
-<?php   endforeach; ?>
-<?php endif; ?>
-        </div>
-        <div class="loading" id="loading" style="display: none;">
-            <div class="loading-spinner"></div>
-            <p>Loading entries...</p>
-        </div>
-        <div class="end-message" id="endMessage" style="display: none;">
-            <p><i class="fa-solid fa-sparkles"></i> You've reached the end</p>
-        </div>
+
+        <aside class="collections-sidebar" id="collectionsSidebar" aria-labelledby="sidebarTitle">
+            <h3 class="sidebar-title" id="sidebarTitle">
+                <i class="fa-solid fa-layer-group"></i> Collections
+            </h3>
+            <!-- SSR-rendered, so intentionally no #sidebarCollections id: collections-sidebar.js must not overwrite it. -->
+            <div class="sidebar-collections">
+                <?php if (!empty($sidebarCollections)): ?>
+                    <?php foreach ($sidebarCollections as $collection): ?>
+                        <a href="/collection/<?= htmlspecialchars($collection['slug'], ENT_QUOTES) ?>"
+                           class="sidebar-bubble"
+                           title="<?= htmlspecialchars($collection['name'], ENT_QUOTES) ?> · <?= (int) $collection['entry_count'] ?> entries">
+                            <img src="<?= htmlspecialchars($collection['avatar_url'] ?? '/assets/app-icon.webp', ENT_QUOTES) ?>"
+                                 alt=""
+                                 class="sidebar-bubble-avatar"
+                                 width="40" height="40" loading="lazy">
+                            <span class="sidebar-bubble-name"><?= htmlspecialchars($collection['name'], ENT_QUOTES) ?></span>
+                            <span class="sidebar-bubble-count"><?= (int) $collection['entry_count'] ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            <a href="/collections" class="sidebar-view-all">View all collections</a>
+        </aside>
     </main>
 
     <script>
