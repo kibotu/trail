@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-09-17
+
+### Fixed
+
+- Android: video player seekbar was positioned in the middle of the view instead of the bottom. Control overlay visibility was coupled to the paused state, causing the entire controls layer (gradient scrim, seekbar, buttons) to render simultaneously with the centered play button when paused.
+- Android: video player controls Row wrapped to multiple lines. The fullscreen IconButton had `systemBarsPadding()` applied directly, injecting ~48dp of insets into a single button and forcing the Row to wrap.
+- Android: video was stuck with a spinner when returning from fullscreen to list view. Two `PlayerView` instances shared the same `ExoPlayer`; `setPlayer()` is a no-op when the player is already set, so the inline `PlayerView` never re-acquired the video surface after the dialog was dismissed. Now only one `PlayerView` exists at a time.
+- Android: replay button did not restart playback after returning from fullscreen (same surface acquisition issue).
+
+### Changed
+
+- Android: gradient scrim now covers the full overlay area (transparent → opaque black from top to bottom) instead of only the Column's intrinsic height.
+- Android: controls layout reordered — play/pause, timestamp, mute and fullscreen buttons sit above the seekbar, which is flush at the bottom edge of the video.
+
 ## [2.1.2] - 2026-09-16
 
 ### Changed
@@ -89,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized first page load and improved static asset caching.
 - `created_at` field now optional in entry creation.
 
-[unreleased]: https://github.com/kibotu/trail/compare/2.1.2...HEAD
+[unreleased]: https://github.com/kibotu/trail/compare/2.1.3...HEAD
+[2.1.3]: https://github.com/kibotu/trail/compare/2.1.2...2.1.3
 [2.1.2]: https://github.com/kibotu/trail/compare/2.1.0...2.1.2
 [2.1.0]: https://github.com/kibotu/trail/compare/2.0.2...2.1.0
 [2.0.2]: https://github.com/kibotu/trail/compare/2.0.1...2.0.2
