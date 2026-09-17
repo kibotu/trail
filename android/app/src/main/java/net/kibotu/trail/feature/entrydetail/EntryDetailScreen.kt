@@ -2,7 +2,7 @@ package net.kibotu.trail.feature.entrydetail
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,16 +11,9 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,20 +22,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
+import net.kibotu.trail.shared.theme.ui.BackButton
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
-import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 
 @Composable
 fun EntryDetailScreen(
@@ -67,7 +58,12 @@ fun EntryDetailScreen(
         viewModel.entryDeleted.collect { onNavigateBack() }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            // Opaque, so the screen underneath cannot show through while the two cross-fade.
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         val detailViewState = when {
             detailState.isLoading -> "loading"
             detailState.error != null -> "error"
@@ -110,9 +106,6 @@ fun EntryDetailScreen(
                     item {
                         EntryCard(
                             entry = entry,
-                            modifier = Modifier
-                                .animateItem(fadeInSpec = tween(300), fadeOutSpec = tween(200))
-                                .staggeredFadeIn(0),
                             currentUserId = authState.user?.id,
                             isAdmin = authState.user?.isAdmin ?: false,
                             baseUrl = BuildConfig.API_BASE_URL,
@@ -146,26 +139,10 @@ fun EntryDetailScreen(
             }
         }
 
-        val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(start = 12.dp, top = 8.dp)
-                .size(40.dp)
-                .align(Alignment.TopStart)
-                .clip(CircleShape)
-                .hazeEffect(state = hazeState) {
-                    backgroundColor = hazeBackgroundColor
-                }
-                .clickable(onClick = onNavigateBack),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        BackButton(
+            onClick = onNavigateBack,
+            hazeState = hazeState,
+            modifier = Modifier.align(Alignment.TopStart)
+        )
     }
 }

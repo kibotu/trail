@@ -3,6 +3,7 @@ package net.kibotu.trail.feature.collection
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import net.kibotu.trail.shared.entry.Entry
+import net.kibotu.trail.shared.entry.EntryCache
 import net.kibotu.trail.shared.entry.EntryRepository
 
 class CollectionEntriesPagingSource(
@@ -24,6 +25,7 @@ class CollectionEntriesPagingSource(
             )
             result.fold(
                 onSuccess = { response ->
+                    EntryCache.putAll(response.entries)
                     LoadResult.Page(
                         data = response.entries,
                         prevKey = null,

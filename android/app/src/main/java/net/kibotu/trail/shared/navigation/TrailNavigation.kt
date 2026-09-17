@@ -1,14 +1,14 @@
-package net.kibotu.trail.shared.navigation
+﻿package net.kibotu.trail.shared.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +20,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -29,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -36,7 +40,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -82,10 +89,47 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val SHARE = "share"
 
+    val TABS = setOf(HOME, MY_FEED, PROFILE, SEARCH, NOTIFICATIONS)
+
     fun entryDetail(hashId: String) = "entry/$hashId"
     fun userProfile(nickname: String) = "user/$nickname"
     fun collection(slug: String) = "collection/$slug"
-    fun search(query: String = "") = if (query.isNotBlank()) "search?query=${URLEncoder.encode(query, "UTF-8")}" else "search"
+    fun search(query: String = "") =
+        if (query.isNotBlank()) "search?query=${URLEncoder.encode(query, "UTF-8")}" else "search"
+}
+
+internal val LocalSharedTransitionScope = staticCompositionLocalOf<SharedTransitionScope?> { null }
+internal val LocalAnimatedVisibilityScope =
+    staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
+
+/**
+ * Hash id of the one entry allowed to run a shared-bounds transition right now, or null.
+ *
+ * Feeds overlap by design: the same entry shows up in Home, My Feed and Search. Keying shared
+ * content on the hash id alone would therefore make a tab switch match two list cards and fling
+ * one across the screen. Gating on the entry being opened keeps at most one matched pair alive.
+ */
+internal val LocalSharedEntryId = compositionLocalOf<String?> { null }
+
+/**
+ * Registers a destination that can take part in shared element transitions.
+ *
+ * Every screen gets the scopes, including ones with no entry cards today, so that adding a card
+ * later is not silently a no-op.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+private fun NavGraphBuilder.screen(
+    route: String,
+    sharedTransitionScope: SharedTransitionScope,
+    arguments: List<NamedNavArgument> = emptyList(),
+    content: @Composable (NavBackStackEntry) -> Unit,
+) = composable(route, arguments) { backStackEntry ->
+    CompositionLocalProvider(
+        LocalSharedTransitionScope provides sharedTransitionScope,
+        LocalAnimatedVisibilityScope provides this@composable,
+    ) {
+        content(backStackEntry)
+    }
 }
 
 @Composable
@@ -141,8 +185,7 @@ private fun TrailNavigationContent(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val tabRoutes = listOf(Routes.HOME, Routes.MY_FEED, Routes.PROFILE, Routes.SEARCH, Routes.NOTIFICATIONS)
-    val isOnTabScreen = currentRoute in tabRoutes || currentRoute?.startsWith("search") == true
+    val isOnTabScreen = currentRoute in Routes.TABS
 
     val scrollConnection = rememberFloatingTabBarScrollConnection()
     val hazeState = rememberHazeState()
@@ -183,194 +226,194 @@ private fun TrailNavigationContent(
         }
     }
 
+    // Set before navigating rather than from inside the detail screen, so the list card already
+    // carries its shared bounds on the frame the transition starts.
+    var sharedEntryId by remember { mutableStateOf<String?>(null) }
+
+    fun navigateToEntry(hashId: String) {
+        sharedEntryId = hashId
+        navController.navigate(Routes.entryDetail(hashId))
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Routes.HOME,
-            enterTransition = { fadeIn(tween(300)) + slideInHorizontally { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) + slideInHorizontally { -it / 4 } },
-            popExitTransition = { fadeOut(tween(200)) + slideOutHorizontally { it / 4 } },
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(state = hazeState)
-        ) {
-            composable(
-                Routes.HOME,
-                enterTransition = { fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
-            ) {
-                HomeScreen(
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
-                    },
-                    onNavigateToCollection = { slug ->
-                        navController.navigate(Routes.collection(slug))
-                    },
-                    onNavigateToSearch = { query ->
-                        navController.navigate(Routes.search(query))
-                    },
-                    scrollConnection = scrollConnection
-                )
-            }
-
-            composable(
-                Routes.MY_FEED,
-                enterTransition = { fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
-            ) {
-                MyFeedScreen(
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
-                    },
-                    onNavigateToCollection = { slug ->
-                        navController.navigate(Routes.collection(slug))
-                    },
-                    onNavigateToSearch = { query ->
-                        navController.navigate(Routes.search(query))
-                    },
-                    scrollConnection = scrollConnection
-                )
-            }
-
-            composable(
-                Routes.PROFILE,
-                enterTransition = { fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
-            ) {
-                ProfileScreen(
-                    themePreferences = themePreferences,
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    scrollConnection = scrollConnection
-                )
-            }
-
-            composable(
-                route = Routes.SEARCH,
-                arguments = listOf(navArgument("query") { type = NavType.StringType; defaultValue = "" }),
-                enterTransition = { fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
-            ) { backStackEntry ->
-                val initialQuery = backStackEntry.arguments?.getString("query") ?: ""
-                SearchScreen(
-                    initialQuery = initialQuery,
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
-                    },
-                    onNavigateToCollection = { slug ->
-                        navController.navigate(Routes.collection(slug))
-                    },
-                    scrollConnection = scrollConnection
-                )
-            }
-
-            composable(
-                route = Routes.ENTRY_DETAIL,
-                arguments = listOf(navArgument("hashId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val hashId = backStackEntry.arguments?.getString("hashId") ?: return@composable
-                EntryDetailScreen(
-                    hashId = hashId,
-                    hazeState = hazeState,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
+        CompositionLocalProvider(LocalSharedEntryId provides sharedEntryId) {
+            @OptIn(ExperimentalSharedTransitionApi::class)
+            SharedTransitionLayout {
+                NavHost(
+                    navController = navController,
+                    startDestination = Routes.HOME,
+                    enterTransition = { TrailMotion.enter(targetState) },
+                    exitTransition = { TrailMotion.exit(targetState) },
+                    popEnterTransition = { TrailMotion.popEnter(initialState) },
+                    popExitTransition = { TrailMotion.popExit(initialState) },
+                    predictivePopEnterTransition = { TrailMotion.popEnter(initialState) },
+                    predictivePopExitTransition = { TrailMotion.popExit(initialState) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(state = hazeState)
+                ) {
+                    screen(Routes.HOME, this@SharedTransitionLayout) {
+                        HomeScreen(
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            },
+                            onNavigateToCollection = { slug ->
+                                navController.navigate(Routes.collection(slug))
+                            },
+                            onNavigateToSearch = { query ->
+                                navController.navigate(Routes.search(query))
+                            },
+                            scrollConnection = scrollConnection
+                        )
                     }
-                )
-            }
 
-            composable(
-                route = Routes.USER_PROFILE,
-                arguments = listOf(navArgument("nickname") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val nickname = backStackEntry.arguments?.getString("nickname") ?: return@composable
-                UserProfileScreen(
-                    nickname = nickname,
-                    hazeState = hazeState,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nick ->
-                        navController.navigate(Routes.userProfile(nick))
-                    },
-                    onNavigateToCollection = { slug ->
-                        navController.navigate(Routes.collection(slug))
+                    screen(Routes.MY_FEED, this@SharedTransitionLayout) {
+                        MyFeedScreen(
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            },
+                            onNavigateToCollection = { slug ->
+                                navController.navigate(Routes.collection(slug))
+                            },
+                            onNavigateToSearch = { query ->
+                                navController.navigate(Routes.search(query))
+                            },
+                            scrollConnection = scrollConnection
+                        )
                     }
-                )
-            }
 
-            composable(
-                route = Routes.COLLECTION,
-                arguments = listOf(navArgument("slug") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val slug = backStackEntry.arguments?.getString("slug") ?: return@composable
-                CollectionScreen(
-                    slug = slug,
-                    hazeState = hazeState,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
+                    screen(Routes.PROFILE, this@SharedTransitionLayout) {
+                        ProfileScreen(
+                            themePreferences = themePreferences,
+                            onNavigateToEntry = ::navigateToEntry,
+                            scrollConnection = scrollConnection
+                        )
                     }
-                )
-            }
 
-            composable(
-                Routes.NOTIFICATIONS,
-                enterTransition = { fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
-            ) {
-                NotificationsScreen(
-                    hazeState = hazeState,
-                    onNavigateToEntry = { hashId ->
-                        navController.navigate(Routes.entryDetail(hashId))
-                    },
-                    onNavigateToUser = { nickname ->
-                        navController.navigate(Routes.userProfile(nickname))
+                    screen(
+                        route = Routes.SEARCH,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        arguments = listOf(navArgument("query") {
+                            type = NavType.StringType; defaultValue = ""
+                        })
+                    ) { backStackEntry ->
+                        SearchScreen(
+                            initialQuery = backStackEntry.arguments?.getString("query") ?: "",
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            },
+                            onNavigateToCollection = { slug ->
+                                navController.navigate(Routes.collection(slug))
+                            },
+                            scrollConnection = scrollConnection
+                        )
                     }
-                )
-            }
 
-            composable(Routes.SHARE) {
-                ShareScreen(
-                    initialText = sharedTextForScreen ?: "",
-                    onShareSuccess = {
-                        onSharedTextConsumed()
-                        navController.navigate(Routes.MY_FEED) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                inclusive = false
-                            }
-                            launchSingleTop = true
-                            restoreState = false
+                    screen(
+                        route = Routes.ENTRY_DETAIL,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        arguments = listOf(navArgument("hashId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val hashId = backStackEntry.arguments?.getString("hashId") ?: return@screen
+                        // Re-arms the shared element when this screen comes back off the back stack,
+                        // and disarms it once the screen is gone for good. onDispose runs after the pop
+                        // transition, so the collapsing card keeps its bounds for the whole animation.
+                        DisposableEffect(hashId) {
+                            sharedEntryId = hashId
+                            onDispose { if (sharedEntryId == hashId) sharedEntryId = null }
                         }
-                    },
-                    onBack = {
-                        onSharedTextConsumed()
-                        navController.popBackStack()
+                        EntryDetailScreen(
+                            hashId = hashId,
+                            hazeState = hazeState,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            }
+                        )
                     }
-                )
+
+                    screen(
+                        route = Routes.USER_PROFILE,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        arguments = listOf(navArgument("nickname") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val nickname = backStackEntry.arguments?.getString("nickname") ?: return@screen
+                        UserProfileScreen(
+                            nickname = nickname,
+                            hazeState = hazeState,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nick ->
+                                navController.navigate(Routes.userProfile(nick))
+                            },
+                            onNavigateToCollection = { slug ->
+                                navController.navigate(Routes.collection(slug))
+                            }
+                        )
+                    }
+
+                    screen(
+                        route = Routes.COLLECTION,
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        arguments = listOf(navArgument("slug") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val slug = backStackEntry.arguments?.getString("slug") ?: return@screen
+                        CollectionScreen(
+                            slug = slug,
+                            hazeState = hazeState,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            }
+                        )
+                    }
+
+                    screen(Routes.NOTIFICATIONS, this@SharedTransitionLayout) {
+                        NotificationsScreen(
+                            hazeState = hazeState,
+                            onNavigateToEntry = ::navigateToEntry,
+                            onNavigateToUser = { nickname ->
+                                navController.navigate(Routes.userProfile(nickname))
+                            }
+                        )
+                    }
+
+                    screen(Routes.SHARE, this@SharedTransitionLayout) {
+                        ShareScreen(
+                            initialText = sharedTextForScreen ?: "",
+                            onShareSuccess = {
+                                onSharedTextConsumed()
+                                navController.navigate(Routes.MY_FEED) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        inclusive = false
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = false
+                                }
+                            },
+                            onBack = {
+                                onSharedTextConsumed()
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+                }
             }
         }
 
-        if (isOnTabScreen) {
+        AnimatedVisibility(
+            visible = isOnTabScreen,
+            enter = TrailMotion.tabBarEnter,
+            exit = TrailMotion.tabBarExit,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             val isCompact = LocalWindowSizeClass.current.isCompactWidth
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(
                         horizontal = if (isCompact) 16.dp else 24.dp,
@@ -517,7 +560,10 @@ private fun TrailNavigationContent(
                                                     scaleY = badgeScale
                                                 }
                                                 .size(8.dp)
-                                                .background(MaterialTheme.colorScheme.error, CircleShape)
+                                                .background(
+                                                    MaterialTheme.colorScheme.error,
+                                                    CircleShape
+                                                )
                                         )
                                     }
                                 }

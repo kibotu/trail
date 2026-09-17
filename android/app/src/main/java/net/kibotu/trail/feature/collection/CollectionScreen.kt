@@ -5,6 +5,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,17 +23,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -58,10 +55,10 @@ import coil3.compose.AsyncImage
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import net.kibotu.trail.BuildConfig
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
 import net.kibotu.trail.shared.storage.LocalThemePreferences
+import net.kibotu.trail.shared.theme.ui.BackButton
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
@@ -91,7 +88,12 @@ fun CollectionScreen(
 
     fun resolveUrl(url: String?): String? = url?.let { if (it.startsWith("http")) it else "$baseUrl$it" }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            // Opaque, so the screen it slides over cannot show through.
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Crossfade(
             targetState = collectionState.isLoading,
             animationSpec = tween(300),
@@ -308,27 +310,11 @@ fun CollectionScreen(
             }
         }
 
-        val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(start = 12.dp, top = 8.dp)
-                .size(40.dp)
-                .align(Alignment.TopStart)
-                .clip(CircleShape)
-                .hazeEffect(state = hazeState) {
-                    backgroundColor = hazeBackgroundColor
-                }
-                .clickable(onClick = onNavigateBack),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        BackButton(
+            onClick = onNavigateBack,
+            hazeState = hazeState,
+            modifier = Modifier.align(Alignment.TopStart)
+        )
     }
 }
 
