@@ -7,9 +7,9 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
 import android.view.ViewGroup
+import android.webkit.MimeTypeMap
 import android.webkit.URLUtil
 import android.webkit.WebView
-import android.webkit.MimeTypeMap
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -517,7 +517,6 @@ fun VideoPlayer(
 
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
-    var isSeeking by remember { mutableStateOf(false) }
 
     LaunchedEffect(url) {
         exoPlayer.setMediaItem(MediaItem.fromUri(url))
@@ -560,10 +559,8 @@ fun VideoPlayer(
     // Poll position while playing
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
-            if (!isSeeking) {
-                currentPositionMs = exoPlayer.currentPosition
-                durationMs = exoPlayer.duration.coerceAtLeast(0L)
-            }
+            currentPositionMs = exoPlayer.currentPosition
+            durationMs = exoPlayer.duration.coerceAtLeast(0L)
             delay(250.milliseconds)
         }
         currentPositionMs = exoPlayer.currentPosition
@@ -652,33 +649,31 @@ fun VideoPlayer(
                     onFullscreenToggle = { isFullscreen = false },
                     onControlOverlayToggle = onShowControls,
                     onSeek = onSeek,
-                    onSeekStart = { isSeeking = true },
-                    onSeekEnd = { isSeeking = false },
                     modifier = Modifier.fillMaxSize()
                 )
             }
         }
     }
 
-    VideoPlayerContent(
-        exoPlayer = exoPlayer,
-        isPlaying = isPlaying,
-        hasEnded = hasEnded,
-        isMuted = isMuted,
-        showControlOverlay = showControlOverlay && !isFullscreen,
-        isFullscreen = false,
-        currentPositionMs = currentPositionMs,
-        durationMs = durationMs,
-        url = url,
-        onPlayStateChange = onPlayStateChange,
-        onMuteToggle = onMuteToggle,
-        onFullscreenToggle = { isFullscreen = true },
-        onControlOverlayToggle = onShowControls,
-        onSeek = onSeek,
-        onSeekStart = { isSeeking = true },
-        onSeekEnd = { isSeeking = false },
-        modifier = modifier
-    )
+    if (!isFullscreen) {
+        VideoPlayerContent(
+            exoPlayer = exoPlayer,
+            isPlaying = isPlaying,
+            hasEnded = hasEnded,
+            isMuted = isMuted,
+            showControlOverlay = showControlOverlay,
+            isFullscreen = false,
+            currentPositionMs = currentPositionMs,
+            durationMs = durationMs,
+            url = url,
+            onPlayStateChange = onPlayStateChange,
+            onMuteToggle = onMuteToggle,
+            onFullscreenToggle = { isFullscreen = true },
+            onControlOverlayToggle = onShowControls,
+            onSeek = onSeek,
+            modifier = modifier
+        )
+    }
 }
 
 private fun formatDuration(ms: Long): String {
@@ -688,88 +683,6 @@ private fun formatDuration(ms: Long): String {
     val sec = totalSec % 60
     return if (hrs > 0) "%d:%02d:%02d".format(hrs, min, sec)
     else "%d:%02d".format(min, sec)
-}
-
-/**
- * Thin seek bar matching web styling: 4dp track, 12dp draggable handle.
- */
-@Composable
-private fun VideoSeekBar(
-    currentMs: Long,
-    durationMs: Long,
-    onSeekStart: () -> Unit,
-    onSeek: (Long) -> Unit,
-    onSeekEnd: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val fraction = if (durationMs > 0) (currentMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
-    val trackHeight = 4.dp
-    val thumbRadius = 6.dp
-    val touchTargetHeight = 24.dp
-
-    Box(
-        modifier = modifier.height(touchTargetHeight),
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(trackHeight)
-                .pointerInput(durationMs) {
-                    detectHorizontalDragGestures(
-                        onDragStart = { offset ->
-                            onSeekStart()
-                            val pct = (offset.x / size.width).coerceIn(0f, 1f)
-                            onSeek((pct * durationMs).toLong())
-                        },
-                        onHorizontalDrag = { change, _ ->
-                            change.consume()
-                            val pct = (change.position.x / size.width).coerceIn(0f, 1f)
-                            onSeek((pct * durationMs).toLong())
-                        },
-                        onDragEnd = { onSeekEnd() },
-                        onDragCancel = { onSeekEnd() }
-                    )
-                }
-                .pointerInput(durationMs) {
-                    detectTapGestures { offset ->
-                        val pct = (offset.x / size.width).coerceIn(0f, 1f)
-                        onSeekStart()
-                        onSeek((pct * durationMs).toLong())
-                        onSeekEnd()
-                    }
-                }
-        ) {
-            val trackHeightPx = trackHeight.toPx()
-            val cornerPx = trackHeightPx / 2f
-            val thumbRadiusPx = thumbRadius.toPx()
-
-            // Inactive track
-            drawRoundRect(
-                color = Color.White.copy(alpha = 0.25f),
-                size = Size(size.width, trackHeightPx),
-                cornerRadius = CornerRadius(cornerPx, cornerPx)
-            )
-            // Active track
-            val filledWidth = size.width * fraction
-            if (filledWidth > 0f) {
-                drawRoundRect(
-                    color = Color.White,
-                    size = Size(filledWidth, trackHeightPx),
-                    cornerRadius = CornerRadius(cornerPx, cornerPx)
-                )
-            }
-            // Thumb
-            drawCircle(
-                color = Color.White,
-                radius = thumbRadiusPx,
-                center = Offset(
-                    filledWidth.coerceIn(thumbRadiusPx, size.width - thumbRadiusPx),
-                    trackHeightPx / 2f
-                )
-            )
-        }
-    }
 }
 
 /**
@@ -793,8 +706,6 @@ private fun VideoPlayerContent(
     onFullscreenToggle: () -> Unit,
     onControlOverlayToggle: () -> Unit,
     onSeek: (Long) -> Unit,
-    onSeekStart: () -> Unit,
-    onSeekEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -856,44 +767,33 @@ private fun VideoPlayerContent(
             }
         }
 
-        // Control overlay (scrim + controls)
+        // Control overlay (scrim + controls) — only when playing and toggled on
         AnimatedVisibility(
-            visible = showControlOverlay || !isPlaying,
+            visible = showControlOverlay,
             enter = fadeIn(tween(200)),
             exit = fadeOut(tween(200)),
             modifier = Modifier.matchParentSize()
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Bottom controls bar with gradient scrim (matches web)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (isFullscreen) Modifier.systemBarsPadding() else Modifier)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                        )
+                    )
+            ) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
-                            )
-                        )
                         .padding(horizontal = if (isFullscreen) 16.dp else 8.dp)
                 ) {
-                    // Thin seek bar (matches web: 4px track, 12px handle)
-                    if (durationMs > 0) {
-                        VideoSeekBar(
-                            currentMs = currentPositionMs,
-                            durationMs = durationMs,
-                            onSeekStart = onSeekStart,
-                            onSeek = onSeek,
-                            onSeekEnd = onSeekEnd,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = if (isFullscreen) 8.dp else 4.dp)
-                        )
-                    }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = if (isFullscreen) 8.dp else 2.dp),
+                            .padding(bottom = if (isFullscreen) 4.dp else 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Play/Pause
@@ -961,15 +861,71 @@ private fun VideoPlayerContent(
                         // Fullscreen
                         IconButton(
                             onClick = onFullscreenToggle,
-                            modifier = Modifier
-                                .systemBarsPadding()
-                                .size(if (isFullscreen) 40.dp else 28.dp)
+                            modifier = Modifier.size(if (isFullscreen) 40.dp else 28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                                 contentDescription = if (isFullscreen) "Exit fullscreen" else "Fullscreen",
                                 tint = Color.White,
                                 modifier = Modifier.size(if (isFullscreen) 22.dp else 16.dp)
+                            )
+                        }
+                    }
+
+                    // Thin seek bar: 4dp track, 8dp thumb, 24dp touch target — flush at bottom
+                    if (durationMs > 0) {
+                        val fraction = (currentPositionMs.toFloat() / durationMs).coerceIn(0f, 1f)
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(24.dp)
+                                .pointerInput(durationMs) {
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { offset ->
+                                            val pct = (offset.x / size.width).coerceIn(0f, 1f)
+                                            onSeek((pct * durationMs).toLong())
+                                        },
+                                        onHorizontalDrag = { change, _ ->
+                                            change.consume()
+                                            val pct = (change.position.x / size.width).coerceIn(0f, 1f)
+                                            onSeek((pct * durationMs).toLong())
+                                        }
+                                    )
+                                }
+                                .pointerInput(durationMs) {
+                                    detectTapGestures { offset ->
+                                        val pct = (offset.x / size.width).coerceIn(0f, 1f)
+                                        onSeek((pct * durationMs).toLong())
+                                    }
+                                }
+                        ) {
+                            val trackY = size.height / 2f
+                            val trackH = 4.dp.toPx()
+                            val corner = trackH / 2f
+                            val thumbR = 4.dp.toPx()
+                            val filled = size.width * fraction
+
+                            // Inactive track
+                            drawRoundRect(
+                                color = Color.White.copy(alpha = 0.3f),
+                                topLeft = Offset(0f, trackY - trackH / 2f),
+                                size = Size(size.width, trackH),
+                                cornerRadius = CornerRadius(corner)
+                            )
+                            // Active track
+                            if (filled > 0f) {
+                                drawRoundRect(
+                                    color = Color.White,
+                                    topLeft = Offset(0f, trackY - trackH / 2f),
+                                    size = Size(filled, trackH),
+                                    cornerRadius = CornerRadius(corner)
+                                )
+                            }
+                            // Thumb
+                            drawCircle(
+                                color = Color.White,
+                                radius = thumbR,
+                                center = Offset(filled.coerceIn(thumbR, size.width - thumbR), trackY)
                             )
                         }
                     }
