@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-17
+
 ### Added
 
 - Collections sidebar component for browsing and filtering collections.
+
+- Android: shared element transition from entry list cards to the detail screen. Tapping an entry now animates the card itself (bounds + content crossfade) instead of a plain screen slide. Only the tapped entry participates, so the same entry appearing in multiple feeds won't collide on a tab switch.
+- Android: `EntryCache` — an in-memory LRU map (200 entries) that seeds the detail screen with the card's data on the first frame, eliminating the shimmer flash while the network round-trip completes. Cache is populated by `EntriesPagingSource`, `UserEntriesPagingSource` and `EntryDetailViewModel`.
+- Android: `TrailMotion` — centralised navigation animation definitions. Three motion families: tabs fade-through, entry detail fades only (shared bounds carry the eye), pushed screens slide from the right with a parallaxing parent. Pop and predictive-pop use the same values.
+- Android: `BackButton` composable extracted from entry detail, user profile, and collection screens. Back arrow now slides in/out sideways via `animateEnterExit` instead of riding the screen transition.
+- Android: tab bar enters/exits with a slide-up + fade animation (`AnimatedVisibility`) instead of popping in instantly.
+
+### Changed
+
+- Android: navigation refactored — all destinations now register through a `screen()` helper that provides `SharedTransitionScope` and `AnimatedVisibilityScope` via composition locals. `NavHost` transition lambdas delegate to `TrailMotion`.
+- Android: entry detail, user profile, and collection screens render an opaque `MaterialTheme.colorScheme.background` behind the content so the screen underneath cannot show through during crossfade transitions.
+- Android: removed inline back-button boilerplate from `EntryDetailScreen`, `UserProfileScreen`, and `CollectionScreen` (replaced by shared `BackButton`).
 
 ## [2.1.3] - 2026-09-17
 
@@ -107,7 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized first page load and improved static asset caching.
 - `created_at` field now optional in entry creation.
 
-[unreleased]: https://github.com/kibotu/trail/compare/2.1.3...HEAD
+[unreleased]: https://github.com/kibotu/trail/compare/2.2.0...HEAD
+[2.2.0]: https://github.com/kibotu/trail/compare/2.1.3...2.2.0
 [2.1.3]: https://github.com/kibotu/trail/compare/2.1.2...2.1.3
 [2.1.2]: https://github.com/kibotu/trail/compare/2.1.0...2.1.2
 [2.1.0]: https://github.com/kibotu/trail/compare/2.0.2...2.1.0
