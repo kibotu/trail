@@ -1,11 +1,15 @@
 package net.kibotu.trail.shared.theme.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -67,6 +71,8 @@ import com.guru.fontawesomecomposelib.FaIcons
 import net.kibotu.trail.shared.comment.Comment
 import net.kibotu.trail.shared.entry.Entry
 import net.kibotu.trail.shared.entry.toMediaItemDataList
+import net.kibotu.trail.shared.navigation.LocalAnimatedVisibilityScope
+import net.kibotu.trail.shared.navigation.LocalSharedTransitionScope
 import net.kibotu.trail.shared.util.openInCustomTab
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -76,7 +82,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun EntryCard(
     entry: Entry,
@@ -120,8 +126,29 @@ fun EntryCard(
 
     val cardInteractionSource = remember { MutableInteractionSource() }
 
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+    val sharedTransitionModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null && entry.hashId != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "entry-${entry.hashId}"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                boundsTransform = { _: androidx.compose.ui.geometry.Rect, _: androidx.compose.ui.geometry.Rect ->
+                    spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                },
+                enter = fadeIn(tween(300)),
+                exit = fadeOut(tween(200)),
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            )
+        }
+    } else Modifier
+
     Card(
         modifier = modifier
+            .then(sharedTransitionModifier)
             .fillMaxWidth()
             .pressScale(cardInteractionSource)
             .clickable(

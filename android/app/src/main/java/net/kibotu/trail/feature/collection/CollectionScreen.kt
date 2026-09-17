@@ -91,7 +91,10 @@ fun CollectionScreen(
 
     fun resolveUrl(url: String?): String? = url?.let { if (it.startsWith("http")) it else "$baseUrl$it" }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+    ) {
         Crossfade(
             targetState = collectionState.isLoading,
             animationSpec = tween(300),
