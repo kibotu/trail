@@ -2,6 +2,8 @@ package net.kibotu.trail.feature.entrydetail
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +46,7 @@ import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.ShimmerFeed
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
+import net.kibotu.trail.shared.navigation.LocalAnimatedVisibilityScope
 
 @Composable
 fun EntryDetailScreen(
@@ -151,8 +154,18 @@ fun EntryDetailScreen(
         }
 
         val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
+        val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
         Box(
             modifier = Modifier
+                .then(
+                    animatedVisibilityScope?.let {
+                        with(it) {
+                            Modifier.animateEnterExit(
+                                exit = slideOutHorizontally(tween(250)) { -it / 3 } + fadeOut(tween(200))
+                            )
+                        }
+                    } ?: Modifier
+                )
                 .statusBarsPadding()
                 .padding(start = 12.dp, top = 8.dp)
                 .size(40.dp)

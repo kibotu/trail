@@ -1,6 +1,8 @@
 package net.kibotu.trail.shared.navigation
 
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -199,18 +201,20 @@ private fun TrailNavigationContent(
             NavHost(
                 navController = navController,
                 startDestination = Routes.HOME,
-                enterTransition = { fadeIn(tween(300)) },
-                exitTransition = { fadeOut(tween(200)) },
-                popEnterTransition = { fadeIn(tween(300)) },
-                popExitTransition = { fadeOut(tween(200)) },
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { fadeIn(tween(150)) },
+                popExitTransition = { fadeOut(tween(150)) },
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(state = hazeState)
             ) {
                 composable(
                     Routes.HOME,
-                    enterTransition = { fadeIn(tween(250)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(150)) }
                 ) {
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -236,8 +240,10 @@ private fun TrailNavigationContent(
 
                 composable(
                     Routes.MY_FEED,
-                    enterTransition = { fadeIn(tween(250)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(150)) }
                 ) {
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -263,8 +269,10 @@ private fun TrailNavigationContent(
 
                 composable(
                     Routes.PROFILE,
-                    enterTransition = { fadeIn(tween(250)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(150)) }
                 ) {
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -285,8 +293,10 @@ private fun TrailNavigationContent(
                     arguments = listOf(navArgument("query") {
                         type = NavType.StringType; defaultValue = ""
                     }),
-                    enterTransition = { fadeIn(tween(250)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(150)) }
                 ) { backStackEntry ->
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -312,10 +322,10 @@ private fun TrailNavigationContent(
                 composable(
                     route = Routes.ENTRY_DETAIL,
                     arguments = listOf(navArgument("hashId") { type = NavType.StringType }),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(150)) },
-                    popEnterTransition = { fadeIn(tween(150)) },
-                    popExitTransition = { fadeOut(tween(150)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(200)) }
                 ) { backStackEntry ->
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -337,10 +347,10 @@ private fun TrailNavigationContent(
                 composable(
                     route = Routes.USER_PROFILE,
                     arguments = listOf(navArgument("nickname") { type = NavType.StringType }),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(150)) },
-                    popEnterTransition = { fadeIn(tween(150)) },
-                    popExitTransition = { fadeOut(tween(150)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(200)) }
                 ) { backStackEntry ->
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -368,10 +378,10 @@ private fun TrailNavigationContent(
                 composable(
                     route = Routes.COLLECTION,
                     arguments = listOf(navArgument("slug") { type = NavType.StringType }),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(150)) },
-                    popEnterTransition = { fadeIn(tween(150)) },
-                    popExitTransition = { fadeOut(tween(150)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(200)) }
                 ) { backStackEntry ->
                     CompositionLocalProvider(
                         LocalSharedTransitionScope provides this@SharedTransitionLayout,
@@ -395,8 +405,10 @@ private fun TrailNavigationContent(
 
                 composable(
                     Routes.NOTIFICATIONS,
-                    enterTransition = { fadeIn(tween(250)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = { EnterTransition.None },
+                    exitTransition = { ExitTransition.None },
+                    popEnterTransition = { EnterTransition.None },
+                    popExitTransition = { fadeOut(tween(150)) }
                 ) {
                     NotificationsScreen(
                         hazeState = hazeState,
