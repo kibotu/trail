@@ -335,133 +335,118 @@ main {
     max-width: 600px;
 }
 
-.collection-layout {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-
-/* Outranks `.page-user main`, which collection pages also match. */
-.page-collection .collection-layout main {
-    flex: 1;
-    min-width: 0;
-    max-width: 600px;
-    margin: 0;
-    padding: 0;
-}
-
+/* Avatar-only rail. Labels live in the hover tooltip and aria-label. */
 .collections-sidebar {
-    width: 240px;
+    width: 3.5rem;
     flex-shrink: 0;
     position: sticky;
     top: 80px;
     height: fit-content;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
 }
 
-.sidebar-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin-bottom: 1rem;
-    padding: 0 0.5rem;
-}
-
-.sidebar-title i {
-    margin-right: 0.375rem;
+/* Mobile-only disclosure control. */
+.sidebar-toggle {
+    display: none;
 }
 
 .sidebar-collections {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-}
-
-.sidebar-bubble {
-    display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    text-decoration: none;
-    color: var(--text-secondary);
-    transition: background 0.15s, color 0.15s;
+    gap: 0.625rem;
 }
 
-.sidebar-bubble:hover,
-.sidebar-bubble:focus-visible {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+.sidebar-bubble,
+.sidebar-view-all {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    text-decoration: none;
+    color: var(--text-muted);
 }
 
 .sidebar-bubble:focus-visible,
 .sidebar-view-all:focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-
-.sidebar-bubble.active {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--accent);
+    outline-offset: 3px;
 }
 
 .sidebar-bubble-avatar {
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border);
-    flex-shrink: 0;
+    transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .sidebar-bubble:hover .sidebar-bubble-avatar,
 .sidebar-bubble:focus-visible .sidebar-bubble-avatar {
     border-color: var(--accent);
+    transform: scale(1.08);
 }
 
-.sidebar-bubble.active .sidebar-bubble-avatar {
-    border-color: var(--accent);
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
-}
-
-.sidebar-bubble-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Makes the entry-count sort order legible instead of arbitrary. */
-.sidebar-bubble-count {
-    flex-shrink: 0;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-}
-
+/* Subtle counterpart to a bubble: same circle, no avatar. */
 .sidebar-view-all {
-    display: block;
-    margin-top: 0.75rem;
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--accent);
-    text-decoration: none;
-    text-align: center;
-    border-radius: 0.5rem;
-    transition: background 0.15s;
+    border: 1px dashed var(--border);
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.sidebar-view-all:hover {
+.sidebar-view-all:hover,
+.sidebar-view-all:focus-visible {
+    border-style: solid;
+    border-color: var(--accent);
+    color: var(--accent);
     background: rgba(59, 130, 246, 0.1);
+}
+
+/* The rail carries no visible labels, so hover/focus supplies the name. */
+.sidebar-bubble::after,
+.sidebar-view-all::after {
+    content: attr(data-name);
+    position: absolute;
+    right: calc(100% + 0.625rem);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+}
+
+.sidebar-bubble:hover::after,
+.sidebar-bubble:focus-visible::after,
+.sidebar-view-all:hover::after,
+.sidebar-view-all:focus-visible::after {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-bubble:hover .sidebar-bubble-avatar,
+    .sidebar-bubble:focus-visible .sidebar-bubble-avatar {
+        transform: none;
+    }
+}
+
+/* A full rail is ~690px tall; pinning it on a short viewport would strand the
+   bottom bubbles out of reach, so let it scroll with the page instead. */
+@media (max-height: 800px) {
+    .collections-sidebar {
+        position: static;
+    }
 }
 
 .page-status main {
@@ -6536,7 +6521,7 @@ main {
         font-size: 1.25rem;
     }
 
-    /* Sidebar — mobile: horizontal scroll strip above the feed */
+    /* Sidebar — mobile: collapsed above the feed, expands to an avatar strip */
     .landing-layout {
         flex-direction: column;
         padding: 1rem;
@@ -6546,30 +6531,52 @@ main {
         max-width: 100%;
     }
 
-    .collection-layout {
-        flex-direction: column;
-        padding: 1rem;
-    }
-
-    .page-collection .collection-layout main {
-        max-width: 100%;
-    }
-
     .collections-sidebar {
         order: -1;
         position: static;
         width: 100%;
-        max-height: none;
-        padding-bottom: 0.5rem;
     }
 
-    .sidebar-title {
-        margin-bottom: 0.75rem;
+    .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.5rem;
+        background: none;
+        border: none;
+        border-radius: 0.5rem;
+        color: var(--text-muted);
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+    }
+
+    .sidebar-toggle:hover {
+        color: var(--text-primary);
+    }
+
+    .sidebar-toggle-chevron {
+        margin-left: auto;
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+
+    .sidebar-toggle[aria-expanded="true"] .sidebar-toggle-chevron {
+        transform: rotate(180deg);
+    }
+
+    .collections-sidebar:not(.expanded) .sidebar-collections {
+        display: none;
     }
 
     .sidebar-collections {
         flex-direction: row;
         gap: 0.75rem;
+        padding: 0.25rem 0.5rem 0.5rem;
         overflow-x: auto;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
@@ -6580,34 +6587,17 @@ main {
         display: none;
     }
 
-    .sidebar-bubble {
-        flex-direction: column;
-        min-width: 64px;
-        max-width: 64px;
-        padding: 0.375rem;
-        text-align: center;
+    .sidebar-bubble,
+    .sidebar-view-all {
+        width: 3rem;
+        height: 3rem;
         scroll-snap-align: start;
     }
 
-    .sidebar-bubble-name {
-        flex: 0 1 auto;
-        width: 100%;
-        font-size: 0.7rem;
-        margin-top: 0.25rem;
-    }
-
-    .sidebar-bubble-count {
-        font-size: 0.65rem;
-    }
-
-    .sidebar-bubble-avatar {
-        width: 48px;
-        height: 48px;
-    }
-
-    .sidebar-view-all {
-        margin-top: 0.5rem;
-        font-size: 0.75rem;
+    /* Tooltips are a pointer affordance; touch taps navigate instead. */
+    .sidebar-bubble::after,
+    .sidebar-view-all::after {
+        display: none;
     }
 }
 

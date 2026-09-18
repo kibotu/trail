@@ -141,7 +141,7 @@ bundle_js "collection.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \
     entries-manager.js infinite-scroll.js image-upload.js comments-manager.js \
     search-manager.js embed-behaviors.js image-crop.js \
-    collection-profile-manager.js collection-page.js collections-sidebar.js
+    collection-profile-manager.js collection-page.js
 
 bundle_js "status.bundle.js" \
     auth-client.js config.js snackbar.js card-template.js ui-interactions.js \

@@ -154,28 +154,30 @@
             </div>
         </div>
 
-        <aside class="collections-sidebar" id="collectionsSidebar" aria-labelledby="sidebarTitle">
-            <h3 class="sidebar-title" id="sidebarTitle">
-                <i class="fa-solid fa-layer-group"></i> Collections
-            </h3>
-            <!-- SSR-rendered, so intentionally no #sidebarCollections id: collections-sidebar.js must not overwrite it. -->
-            <div class="sidebar-collections">
-                <?php if (!empty($sidebarCollections)): ?>
-                    <?php foreach ($sidebarCollections as $collection): ?>
-                        <a href="/collection/<?= htmlspecialchars($collection['slug'], ENT_QUOTES) ?>"
-                           class="sidebar-bubble"
-                           title="<?= htmlspecialchars($collection['name'], ENT_QUOTES) ?> · <?= (int) $collection['entry_count'] ?> entries">
-                            <img src="<?= htmlspecialchars($collection['avatar_url'] ?? '/assets/app-icon.webp', ENT_QUOTES) ?>"
-                                 alt=""
-                                 class="sidebar-bubble-avatar"
-                                 width="40" height="40" loading="lazy">
-                            <span class="sidebar-bubble-name"><?= htmlspecialchars($collection['name'], ENT_QUOTES) ?></span>
-                            <span class="sidebar-bubble-count"><?= (int) $collection['entry_count'] ?></span>
-                        </a>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+        <aside class="collections-sidebar" id="collectionsSidebar" aria-label="Collections">
+            <button type="button" class="sidebar-toggle" id="sidebarToggle"
+                    aria-expanded="false" aria-controls="sidebarCollections">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Collections</span>
+                <i class="fa-solid fa-chevron-down sidebar-toggle-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="sidebar-collections" id="sidebarCollections">
+                <?php foreach ($sidebarCollections ?? [] as $collection): ?>
+                    <a href="/collection/<?= htmlspecialchars($collection['slug'], ENT_QUOTES) ?>"
+                       class="sidebar-bubble"
+                       aria-label="<?= htmlspecialchars($collection['name'], ENT_QUOTES) ?>"
+                       data-name="<?= htmlspecialchars($collection['name'], ENT_QUOTES) ?>">
+                        <img src="<?= htmlspecialchars($collection['avatar_url'] ?? '/assets/app-icon.webp', ENT_QUOTES) ?>"
+                             alt=""
+                             class="sidebar-bubble-avatar"
+                             width="44" height="44" loading="lazy">
+                    </a>
+                <?php endforeach; ?>
+                <a href="/collections" class="sidebar-view-all"
+                   aria-label="All collections" data-name="All collections">
+                    <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+                </a>
             </div>
-            <a href="/collections" class="sidebar-view-all">View all collections</a>
         </aside>
     </main>
 
