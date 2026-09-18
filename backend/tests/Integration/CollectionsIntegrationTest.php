@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Trail\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use Trail\Models\Collection;
 
 /**
  * Integration tests for collection endpoints.
@@ -37,6 +38,30 @@ class CollectionsIntegrationTest extends TestCase
         $this->assertEquals(200, $response['status']);
         $this->assertArrayHasKey('collections', $response['data']);
         $this->assertIsArray($response['data']['collections']);
+    }
+
+    public function testSidebarReturnsCappedCollectionsByEntryCountDescending(): void
+    {
+        $response = $this->makeRequest('GET', '/api/collections/sidebar');
+
+        $this->assertEquals(200, $response['status']);
+        $this->assertStringContainsStringIgnoringCase('max-age=300', $response['headers']);
+
+        $collections = $response['data']['collections'] ?? null;
+        $this->assertIsArray($collections);
+        $this->assertLessThanOrEqual(Collection::SIDEBAR_LIMIT, count($collections));
+
+        $previous = PHP_INT_MAX;
+        foreach ($collections as $collection) {
+            $this->assertSame(
+                ['name', 'slug', 'avatar_url', 'entry_count'],
+                array_keys($collection),
+                'Sidebar payload must stay minimal - no extra collection fields leaked.'
+            );
+            $this->assertIsInt($collection['entry_count']);
+            $this->assertLessThanOrEqual($previous, $collection['entry_count']);
+            $previous = $collection['entry_count'];
+        }
     }
 
     public function testCollectionDetailEntriesAndRss(): void
@@ -226,6 +251,7 @@ class CollectionsIntegrationTest extends TestCase
             'status' => $httpCode,
             'data' => json_decode($body, true) ?? [],
             'raw' => $body,
+            'headers' => (string) substr($response, 0, $headerSize),
         ];
     }
 }

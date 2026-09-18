@@ -54,5 +54,7 @@ class CollectionTest extends TestCase
         $this->assertContains('collection', Collection::RESERVED_SLUGS);
         $this->assertContains('collections', Collection::RESERVED_SLUGS);
         $this->assertContains('admin', Collection::RESERVED_SLUGS);
+        // Would shadow GET /api/collections/sidebar.
+        $this->assertContains('sidebar', Collection::RESERVED_SLUGS);
     }
 }

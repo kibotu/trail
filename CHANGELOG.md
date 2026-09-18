@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Collections sidebar component for browsing and filtering collections.
+
 - Android: shared element transition from entry list cards to the detail screen. Tapping an entry now animates the card itself (bounds + content crossfade) instead of a plain screen slide. Only the tapped entry participates, so the same entry appearing in multiple feeds won't collide on a tab switch.
 - Android: `EntryCache` — an in-memory LRU map (200 entries) that seeds the detail screen with the card's data on the first frame, eliminating the shimmer flash while the network round-trip completes. Cache is populated by `EntriesPagingSource`, `UserEntriesPagingSource` and `EntryDetailViewModel`.
 - Android: `TrailMotion` — centralised navigation animation definitions. Three motion families: tabs fade-through, entry detail fades only (shared bounds carry the eye), pushed screens slide from the right with a parallaxing parent. Pop and predictive-pop use the same values.
