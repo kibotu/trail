@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Trail\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use Trail\Models\Collection;
 
 /**
  * Integration tests for collection endpoints.
@@ -39,7 +40,7 @@ class CollectionsIntegrationTest extends TestCase
         $this->assertIsArray($response['data']['collections']);
     }
 
-    public function testSidebarReturnsAtMost12CollectionsByEntryCountDescending(): void
+    public function testSidebarReturnsCappedCollectionsByEntryCountDescending(): void
     {
         $response = $this->makeRequest('GET', '/api/collections/sidebar');
 
@@ -48,7 +49,7 @@ class CollectionsIntegrationTest extends TestCase
 
         $collections = $response['data']['collections'] ?? null;
         $this->assertIsArray($collections);
-        $this->assertLessThanOrEqual(12, count($collections));
+        $this->assertLessThanOrEqual(Collection::SIDEBAR_LIMIT, count($collections));
 
         $previous = PHP_INT_MAX;
         foreach ($collections as $collection) {

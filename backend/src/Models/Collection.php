@@ -12,6 +12,9 @@ class Collection
 
     private const TABLE = 'trail_collections';
 
+    /** Sidebar rail holds a 3-wide grid, 7 rows deep: 20 bubbles plus the "all collections" link */
+    public const SIDEBAR_LIMIT = 20;
+
     /** Route segments a collection slug must not collide with ('sidebar' shadows /api/collections/sidebar) */
     public const RESERVED_SLUGS = [
         'api', 'profile', 'status', 'admin', 'assets', 'uploads',
@@ -84,7 +87,7 @@ class Collection
      * Top collections sorted by entry count, descending.
      * Used for the sidebar widget.
      */
-    public function getAllByEntryCount(int $limit = 12): array
+    public function getAllByEntryCount(int $limit = self::SIDEBAR_LIMIT): array
     {
         $stmt = $this->db->prepare(self::COLLECTION_SELECT . " GROUP BY c.id ORDER BY entry_count DESC, c.created_at DESC LIMIT ?");
         $stmt->execute([$limit]);

@@ -199,7 +199,7 @@ $app->get('/', function ($request, $response) use ($config) {
         try {
             $db = $db ?? \Trail\Database\Database::getInstance($config);
             $collectionModel = new \Trail\Models\Collection($db);
-            $sidebarCollections = $collectionModel->getAllByEntryCount(12);
+            $sidebarCollections = $collectionModel->getAllByEntryCount();
         } catch (\Throwable $e) {
             error_log('SSR sidebar fetch failed: ' . $e->getMessage());
             $sidebarCollections = [];

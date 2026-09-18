@@ -389,7 +389,7 @@ class CollectionController
         try {
             $config = Config::load(__DIR__ . '/../../secrets.yml');
             $collectionModel = new Collection(Database::getInstance($config));
-            $collections = $collectionModel->getAllByEntryCount(12);
+            $collections = $collectionModel->getAllByEntryCount();
             $response->getBody()->write(json_encode([
                 'collections' => array_map(fn(array $c): array => [
                     'name' => $c['name'],

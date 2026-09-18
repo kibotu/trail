@@ -284,7 +284,7 @@ $endpoints = [
     [
         'method' => 'GET',
         'path' => '/api/collections/sidebar',
-        'description' => 'Top collections sorted by entry count for sidebar widget (max 12)',
+        'description' => 'Top collections sorted by entry count for sidebar widget (max 20)',
         'auth' => false,
         'auth_level' => 'public',
         'group' => 'public',
