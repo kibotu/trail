@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-09-17
+
+### Added
+
+- Collections sidebar on the landing page: a sticky rail of avatar bubbles (top 20 collections by entry count) with a "view all" link. Desktop shows a 3-wide grid; mobile collapses to a horizontal-scroll strip behind a disclosure toggle. The sidebar is server-rendered; the only client JS is the mobile expand/collapse.
+- `GET /api/collections/sidebar` — public endpoint returning top collections sorted by entry count descending (capped at 20, 5-min cache). Minimal payload: `name`, `slug`, `avatar_url`, `entry_count`.
+- `Collection::getAllByEntryCount()` model method and `SIDEBAR_LIMIT` constant.
+- Integration test for `/api/collections/sidebar` (verifies cap, sort order, cache header, minimal payload).
+- Unit test asserting `sidebar` is a reserved collection slug.
+
+### Changed
+
+- Landing page layout restructured to a flex container (`.landing-layout`) with the feed and sidebar as siblings. Max width raised to 1100px when sidebar is present.
+- `sync.sh` landing bundle now includes `collections-sidebar.js`.
+- `Collection::RESERVED_SLUGS` updated with `sidebar`.
+
 ## [2.2.0] - 2026-09-17
 
 ### Added
@@ -121,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized first page load and improved static asset caching.
 - `created_at` field now optional in entry creation.
 
-[unreleased]: https://github.com/kibotu/trail/compare/2.2.0...HEAD
+[unreleased]: https://github.com/kibotu/trail/compare/2.2.1...HEAD
+[2.2.1]: https://github.com/kibotu/trail/compare/2.2.0...2.2.1
 [2.2.0]: https://github.com/kibotu/trail/compare/2.1.3...2.2.0
 [2.1.3]: https://github.com/kibotu/trail/compare/2.1.2...2.1.3
 [2.1.2]: https://github.com/kibotu/trail/compare/2.1.0...2.1.2
