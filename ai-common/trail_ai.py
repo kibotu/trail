@@ -191,8 +191,8 @@ def preflight(agent: str, model: str | None, cwd: Path) -> None:
         opencode("Reply with exactly: OK", agent, model, cwd, timeout=180)
     except OpencodeError as e:
         error(f"opencode preflight failed (agent={agent}, model={model or 'default'}): {e}")
-        log("   Check that the provider key (e.g. ANTHROPIC_API_KEY) is set in the job env "
-            "and that --model names a model it can use.")
+        log("   Unset OPENCODE_MODEL/--model to use opencode's default free model, or set the "
+            "provider key (e.g. ANTHROPIC_API_KEY) that the named model needs.")
         sys.exit(2)
 
 
