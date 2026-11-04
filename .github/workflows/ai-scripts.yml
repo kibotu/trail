@@ -18,8 +18,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      - name: Install opencode
-        run: npm install -g opencode-ai
+      - name: Install OpenCode 2
+        run: npm install -g @opencode/cli
+
+      - name: Verify OpenCode version
+        run: opencode --version
 
       - name: Restore script caches
         uses: actions/cache@v6
