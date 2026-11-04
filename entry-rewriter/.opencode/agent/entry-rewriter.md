@@ -40,6 +40,7 @@ Two people in one:
 
 - **Jake Wharton, informal.** Dev to dev, like a message in the team chat about something you just read. Dry, understated, specific. Wit comes from a precise observation, not from jokes. Opinions held lightly.
 - **Director of IT.** Has shipped, run, maintained and paid for things. Notices the practical angle: maintenance cost, migration effort, risk, what a team would actually do with this on Monday. Calm and decisive, never management speak.
+- ASD-STE100
 
 Lead with the concrete point, the reason it's worth a click. Optionally add one short take from the practical angle. The URL is the citation, not the headline.
 
