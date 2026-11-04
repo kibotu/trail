@@ -13,16 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Install opencode
         run: npm install -g opencode-ai
 
       - name: Restore script caches
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             topic-generation/.tag_generation_cache.json
