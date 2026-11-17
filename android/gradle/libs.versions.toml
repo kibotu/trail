@@ -64,7 +64,7 @@ play-update-ktx = { module = "com.google.android.play:app-update-ktx", version =
 [plugins]
 android-application = { id = "com.android.application", version = "9.5.1" }
 android-test = { id = "com.android.test", version = "9.5.1" }
-baselineprofile = { id = "androidx.baselineprofile", version = "1.5.0" }
+baselineprofile = { id = "androidx.baselineprofile", version = "1.6.0-alpha01" } #
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version = "3.0.8" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.4.21" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version = "2.4.21" }
