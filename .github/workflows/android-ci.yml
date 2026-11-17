@@ -30,51 +30,9 @@ jobs:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
-      - name: Generate debug keystore
-        working-directory: android/app
-        run: |
-          mkdir -p certificates
-          keytool -genkeypair -v \
-            -keystore certificates/debug.jks \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Debug,OU=Debug,O=Debug,L=Debug,ST=Debug,C=US"
-
-      - name: Create local.properties
-        working-directory: android
-        run: |
-          printf '%s\n' \
-            'API_BASE_URL=http://localhost/' \
-            'DEBUG_KEYSTORE_PATH=certificates/debug.jks' \
-            'DEBUG_STORE_PASSWORD=android' \
-            'DEBUG_KEY_PASSWORD=android' \
-            'DEBUG_KEYSTORE_ALIAS=androiddebugkey' \
-            > local.properties
-
-      - name: Create dummy google-services.json
-        working-directory: android/app
-        run: |
-          cat > google-services.json <<'EOJSON'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "dummy-project",
-              "storage_bucket": "dummy-project.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
-                  "android_client_info": { "package_name": "net.kibotu.trail" }
-                },
-                "api_key": [ { "current_key": "dummy-key" } ],
-                "services": {}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          EOJSON
+      # No local.properties here: its absence marks this as a CI build, which enables
+      # the google-services/crashlytics plugins against the checked-in sample
+      # google-services.json. Debug signing uses the checked-in certificates/debug.jks.
 
       - name: Build debug APK
         working-directory: android

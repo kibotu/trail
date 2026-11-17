@@ -16,6 +16,13 @@ jobs:
     permissions:
       contents: write
     timeout-minutes: 30
+    env:
+      # Read by app/build.gradle.kts via signingValue(); no local.properties is
+      # written so the CI detection in the build script stays active and the
+      # google-services/crashlytics plugins apply.
+      RELEASE_STORE_PASSWORD: ${{ secrets.STORE_STORE_PASSWORD }}
+      RELEASE_KEY_PASSWORD: ${{ secrets.STORE_KEY_PASSWORD }}
+      RELEASE_KEYSTORE_ALIAS: release
 
     steps:
       - uses: actions/checkout@v7
@@ -45,21 +52,10 @@ jobs:
           mkdir -p certificates
           echo "${{ secrets.STORE_KEYSTORE_FILE }}" | base64 -d > certificates/store.jks
 
-      - name: Create google-services.json
+      - name: Override google-services.json with production config
         working-directory: android/app
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
-
-      - name: Create local.properties
-        working-directory: android
-        run: |
-          printf '%s\n' \
-            'API_BASE_URL=https://trail.services.kibotu.net/' \
-            'RELEASE_KEYSTORE_PATH=certificates/store.jks' \
-            'RELEASE_KEYSTORE_ALIAS=release' \
-            'RELEASE_STORE_PASSWORD=${{ secrets.STORE_STORE_PASSWORD }}' \
-            'RELEASE_KEY_PASSWORD=${{ secrets.STORE_KEY_PASSWORD }}' \
-            > local.properties
 
       - name: Extract version from tag
         id: version
