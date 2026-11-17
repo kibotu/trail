@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/hy4-flash-free",
   "agent": {
     "tag-generator": {
       "description": "Restricted agent for generating tags from web content - web fetch only",

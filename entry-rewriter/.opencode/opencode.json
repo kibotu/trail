@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/hy4-flash-free",
   "agent": {
     "entry-rewriter": {
       "description": "Rewrite a bookmark as one tweet-length note, informal Jake Wharton meets IT director - webfetch only",
