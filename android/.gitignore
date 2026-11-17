@@ -301,7 +301,11 @@ gradle-daemon-jvm.properties
 
 /build
 **/*/google-services.json
-app/certificates
+app/certificates/*
+
+# Checked-in sample Firebase config (overridden by CI) and debug keystore
+!app/google-services.json
+!app/certificates/debug.jks
 
 */**/startup-prof.txt
 */**/baseline-prof.txt

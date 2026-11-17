@@ -4,11 +4,28 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.play.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.baselineprofile)
     alias(libs.plugins.ruler)
 }
+
+// region CI detection
+
+// Local builds have a non-empty local.properties; CI machines don't.
+// GitHub Actions must not create local.properties, or the google-services
+// plugins below stay disabled and release builds ship without Firebase init.
+val isLocal = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+    .asText
+    .map { it.isNotEmpty() }
+    .orElse(false)
+    .get()
+val isCI = !isLocal
+
+if (isCI) {
+    apply(plugin = libs.plugins.play.services.get().pluginId)
+    apply(plugin = libs.plugins.firebase.crashlytics.get().pluginId)
+}
+
+// endregion
 
 // Load local.properties for Mapbox token and signing configs
 val localPropertiesFile = project.file("../local.properties")
@@ -17,6 +34,10 @@ val localProperties = Properties().apply {
         load(localPropertiesFile.inputStream())
     }
 }
+
+// Signing credentials: environment variable (CI override) → local.properties → checked-in default.
+fun signingValue(name: String, default: String = ""): String =
+    System.getenv(name) ?: localProperties.getProperty(name) ?: default
 
 android {
     namespace = "net.kibotu.trail"
@@ -44,29 +65,30 @@ android {
     }
 
     signingConfigs {
+        // Debug: keystore is checked in (app/certificates/debug.jks) so debug builds
+        // sign identically on every machine. local.properties or env vars can override.
         getByName("debug") {
-            storeFile =
-                file(localProperties.getProperty("DEBUG_KEYSTORE_PATH", "certificates/debug.jks"))
-            storePassword = localProperties.getProperty("DEBUG_STORE_PASSWORD", "")
-            keyAlias = localProperties.getProperty("DEBUG_KEYSTORE_ALIAS", "debug")
-            keyPassword = localProperties.getProperty("DEBUG_KEY_PASSWORD", "")
+            storeFile = file(signingValue("DEBUG_KEYSTORE_PATH", "certificates/debug.jks"))
+            storePassword = signingValue("DEBUG_STORE_PASSWORD", "android")
+            keyAlias = signingValue("DEBUG_KEYSTORE_ALIAS", "debug")
+            keyPassword = signingValue("DEBUG_KEY_PASSWORD", "android")
         }
+        // Release: real credentials come from CI env vars or local.properties.
         create("release") {
-            storeFile = file(
-                localProperties.getProperty(
-                    "RELEASE_KEYSTORE_PATH",
-                    "certificates/store.jks"
-                )
-            )
-            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-            keyAlias = localProperties.getProperty("RELEASE_KEYSTORE_ALIAS", "release")
-            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+            storeFile = file(signingValue("RELEASE_KEYSTORE_PATH", "certificates/store.jks"))
+            storePassword = signingValue("RELEASE_STORE_PASSWORD")
+            keyAlias = signingValue("RELEASE_KEYSTORE_ALIAS", "release")
+            keyPassword = signingValue("RELEASE_KEY_PASSWORD")
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Sign with the release keystore only when it actually exists — a local dev
+            // machine without release keys still gets an (unsigned) release build.
+            if (file(signingValue("RELEASE_KEYSTORE_PATH", "certificates/store.jks")).exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -133,8 +155,8 @@ android {
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true
@@ -149,7 +171,7 @@ android {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
@@ -277,6 +299,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.font.awesome.compose)
     implementation(libs.haze)
+    implementation(libs.haze.blur)
     implementation(libs.timber)
     implementation(libs.plumber.android)
     testImplementation(libs.junit)
@@ -455,7 +478,7 @@ tasks.register("logVersionOverrides") {
 
         // For output, use appropriate version for each conflict
         // For Kotlin stdlib, all should match the main kotlin-stdlib version
-        val kotlinStdlibVersion = resolvedVersions["org.jetbrains.kotlin:kotlin-stdlib"] ?: "2.3.0"
+        val kotlinStdlibVersion = resolvedVersions["org.jetbrains.kotlin:kotlin-stdlib"] ?: "2.4.21"
         val toForce = unresolvedMap.mapValues { (moduleId, _) ->
             if (moduleId.startsWith("org.jetbrains.kotlin:kotlin-stdlib")) {
                 kotlinStdlibVersion
