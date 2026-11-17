@@ -83,8 +83,8 @@ import net.kibotu.trail.shared.theme.isCompactWidth
 import net.kibotu.trail.shared.theme.ui.EntryCard
 import net.kibotu.trail.shared.theme.ui.staggeredFadeIn
 import net.kibotu.trail.shared.util.shareEntry
+import timber.log.Timber
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyFeedScreen(
     onNavigateToEntry: (String) -> Unit,
@@ -120,7 +120,7 @@ fun MyFeedScreen(
 
     LaunchedEffect(Unit) {
         viewModel.reviewEvent.collect {
-            timber.log.Timber.d("──── MyFeedScreen: reviewEvent received, marking has posted ────")
+            Timber.d("──── MyFeedScreen: reviewEvent received, marking has posted ────")
             inAppReviewManager.markHasPosted()
         }
     }

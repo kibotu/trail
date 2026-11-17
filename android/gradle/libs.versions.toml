@@ -38,6 +38,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version = "1.0.0" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version = "1.2.1" }
 haze = { module = "dev.chrisbanes.haze:haze", version = "2.1.0" }
+haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version = "2.1.0" }
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.13.0" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version = "1.11.0" }

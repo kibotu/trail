@@ -70,6 +70,7 @@ import net.kibotu.trail.shared.network.ApiClient
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,7 +146,7 @@ fun ShareScreen(
                 CreateEntryRequest(text, imageIds.ifEmpty { null })
             ).fold(
                 onSuccess = {
-                    timber.log.Timber.d("──── ShareScreen: entry created successfully ────")
+                    Timber.d("──── ShareScreen: entry created successfully ────")
                     inAppReviewManager.markHasPosted()
                     onShareSuccess()
                 },

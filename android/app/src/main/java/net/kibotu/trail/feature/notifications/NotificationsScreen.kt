@@ -41,6 +41,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,8 +53,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import net.kibotu.trail.shared.notification.Notification
 import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.isCompactWidth
@@ -216,6 +219,9 @@ fun NotificationsScreen(
 
         if (onNavigateBack != null) {
             val hazeBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
+            val hazeStyle = remember(hazeBackgroundColor) {
+                HazeBlurStyle { backgroundColor(hazeBackgroundColor) }
+            }
             val backButtonModifier = Modifier
                 .statusBarsPadding()
                 .padding(start = 12.dp, top = 8.dp)
@@ -224,9 +230,7 @@ fun NotificationsScreen(
                 .clip(CircleShape)
                 .let { mod ->
                     if (hazeState != null) {
-                        mod.hazeEffect(state = hazeState) {
-                            backgroundColor = hazeBackgroundColor
-                        }
+                        mod.hazeBlur(input = HazeInput.Sources(hazeState), style = hazeStyle)
                     } else {
                         mod
                     }
