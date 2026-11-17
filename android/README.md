@@ -138,7 +138,7 @@ Versions intentionally omitted — they go stale fast. See [`gradle/libs.version
 ## Prerequisites
 
 - **Android Studio** Ladybug+ (or command-line SDK tools)
-- **JDK 17**
+- **JDK 21**
 - **Google Cloud project** with OAuth 2.0 Web Client ID
 
 ## Configure

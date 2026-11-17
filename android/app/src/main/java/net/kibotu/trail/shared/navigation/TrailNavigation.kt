@@ -53,7 +53,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.guru.fontawesomecomposelib.FaIcon
 import com.guru.fontawesomecomposelib.FaIcons
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.StateFlow
@@ -424,7 +425,7 @@ private fun TrailNavigationContent(
                     selectedTabKey = currentRoute ?: Routes.HOME,
                     scrollConnection = scrollConnection,
                     contentKey = Triple(currentRoute, authState.isLoggedIn, unreadCount),
-                    tabBarContentModifier = Modifier.hazeEffect(state = hazeState),
+                    tabBarContentModifier = Modifier.hazeBlur(input = HazeInput.Sources(hazeState)),
                     colors = FloatingTabBarDefaults.colors(
                         backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
                     )

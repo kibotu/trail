@@ -17,10 +17,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.kibotu.splashscreen.SplashScreenDecorator
 import net.kibotu.splashscreen.splash
@@ -36,6 +37,7 @@ import net.kibotu.trail.shared.theme.LocalWindowSizeClass
 import net.kibotu.trail.shared.theme.TrailTheme
 import net.kibotu.trail.shared.update.InAppUpdateManager
 import net.kibotu.trail.shared.update.LocalInAppUpdateManager
+import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : ComponentActivity() {
@@ -69,7 +71,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         themePreferences = ThemePreferences(applicationContext)
-        timber.log.Timber.d("──── MainActivity.onCreate: creating InAppReviewManager ────")
+        Timber.d("──── MainActivity.onCreate: creating InAppReviewManager ────")
         inAppReviewManager = InAppReviewManager(applicationContext)
         inAppUpdateManager = InAppUpdateManager(applicationContext)
 
@@ -91,9 +93,13 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(authState.isLoading, authState.isLoggedIn) {
                 if (!authState.isLoading && authState.isLoggedIn) {
-                    kotlinx.coroutines.delay(3000)
-                    timber.log.Timber.d("──── MainActivity: auth loaded, checking review on app start ────")
-                    timber.log.Timber.d("MainActivity: isLoggedIn=%s, user=%s", authState.isLoggedIn, authState.user?.nickname)
+                    delay(3000.milliseconds)
+                    Timber.d("──── MainActivity: auth loaded, checking review on app start ────")
+                    Timber.d(
+                        "MainActivity: isLoggedIn=%s, user=%s",
+                        authState.isLoggedIn,
+                        authState.user?.nickname
+                    )
                     inAppReviewManager.dumpState()
                     inAppReviewManager.promptIfEligible(this@MainActivity)
                 }
@@ -106,6 +112,7 @@ class MainActivity : ComponentActivity() {
                     override fun onStart(owner: LifecycleOwner) {
                         authViewModel.refreshAuthTokenIfNeeded()
                     }
+
                     override fun onPause(owner: LifecycleOwner) {}
                     override fun onStop(owner: LifecycleOwner) {}
                     override fun onDestroy(owner: LifecycleOwner) {}
@@ -164,6 +171,7 @@ class MainActivity : ComponentActivity() {
                     intent.action = null
                 }
             }
+
             Intent.ACTION_VIEW -> {
                 intent.data?.toString()?.let { url ->
                     pendingSharedText.value = url
