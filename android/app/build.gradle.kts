@@ -163,6 +163,14 @@ android {
         buildConfig = true
     }
 
+    // AGP 9.5 registers generate<Variant>ComposePreviewRunfiles, which refuses to
+    // be created unless unit tests include Android resources.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     defaultConfig {
         buildConfigField("String", "API_BASE_URL", "\"https://trail.services.kibotu.net/\"")
         buildConfigField("String", "WEB_BASE_URL", "\"https://trail.kibotu.net\"")
