@@ -7,22 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-18
+
 ### Changed
 
 - Search now combines tags and text instead of picking one. `?q=` is split by `SearchService::parseQuery()` into free text and `#tag` tokens, and every tag is ANDed with the text. Applies to `/api/entries`, `/api/users/{nickname}/entries` and `/api/collections/{slug}/entries`.
 - Tag chips append to the search field instead of replacing it: `memory` + a click on `#openai` yields `memory #openai`. Landing page, user profile, collection page and embeds.
 - `Entry::searchAll`, `searchByUser`, `countSearchAll` and `countSearchByUser` take a tag slug list. `searchByTagSlug`, `searchByTagSlugWithImages` and `countByTagSlug` removed: tag queries now run through the same code path.
+- Dependencies raised to current releases. Backend: `firebase/php-jwt` 7.2.2, `slim/slim` 4.15.3, `slim/psr7` 1.8.1, `embed/embed` 4.6.2, `enshrined/svg-sanitize` 1.1.1, `symfony/yaml` 8.1.11, PHPStan 2.3.6, PHPUnit 13.4.7, PHP floor 8.4.1. Android: `FontAwesomeCompose` 1.0.0 → 1.1.0. Helper scripts: raised floors in `entry-rewriter`, `topic-generation` and `twitter-migration` (requests 2.34.2, urllib3 2.8.0, trafilatura 2.3.1, pyyaml 6.0.3). Four call sites adjusted with them: `UrlEmbedService` drops the now-redundant `?? null` on `providerName`, `JwtServiceTest` secrets are lengthened to the 32 bytes php-jwt 7 requires for HS256, and PHPStan 2.3 no longer needs the null guards in `EntryController` and `AuthMiddleware`.
 
 ### Fixed
 
 - Tag links on the server-rendered first page no longer swallow the click. `searchManager` was declared inside the feed block, out of reach of `hydrateEntryCard`, which had already called `preventDefault()`.
 - Tapping a trail link in the Android app opens the page it names instead of the share composer. `/status/{hashId}` goes to `entry/{hashId}`, `/@{nickname}` to `user/{nickname}`, `/collection/{slug}` to `collection/{slug}`. Shared text and every other path keep the composer.
+- Tag-based collection attribution is scoped to the collection owner. A tag shared by a collection and by someone else's entry used to pull that entry into the collection: it showed up in the collection's list and inflated its `entry_count`. The ownership check now sits in the join in `Entry::COLLECTION_CLAIM_JOIN_SQL` and `Collection::COLLECTION_SELECT`, so other accounts' entries keep their poster attribution.
 
 ### Added
 
 - `SearchService::parseQuery()`, `SearchManager.appendTag()`.
 - `SearchServiceTest` (query parsing) and `TagSearchTest` (combined tag and text queries over the live API).
 - `TrailDeepLink.routeFor()` (App Link path → nav route) and `TrailDeepLinkTest`.
+- `CollectionsIntegrationTest::testNonOwnerEntriesAreNotClaimed`. Needs `TRAIL_ADMIN_API_TOKEN` and `TRAIL_USER_API_TOKEN`; skips without them.
 
 ## [2.2.1] - 2026-09-17
 
