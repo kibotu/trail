@@ -521,7 +521,7 @@ class UrlEmbedService
                 'title' => $this->sanitizeText($info->title),
                 'description' => $this->sanitizeText($info->description),
                 'image' => $this->sanitizeUrl($info->image),
-                'site_name' => $this->sanitizeText($info->authorName ?? $info->providerName ?? null),
+                'site_name' => $this->sanitizeText($info->authorName ?? $info->providerName),
                 'json' => null, // No JSON for embed library
                 'source' => 'embed',
             ];
@@ -944,7 +944,7 @@ class UrlEmbedService
                 'title' => $this->sanitizeText($info->title),
                 'description' => $this->sanitizeText($info->description),
                 'image' => $this->sanitizeUrl($info->image),
-                'site_name' => $this->sanitizeText($info->authorName ?? $info->providerName ?? null),
+                'site_name' => $this->sanitizeText($info->authorName ?? $info->providerName),
             ];
             
             if ($this->isValidPreviewData($preview)) {

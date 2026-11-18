@@ -66,7 +66,7 @@ class JwtServiceTest extends TestCase
     {
         $expiredConfig = [
             'jwt' => [
-                'secret' => 'test_secret_key',
+                'secret' => 'test_secret_key_for_testing_purposes_only',
                 'expiry_hours' => -1, // Expired
             ],
         ];
@@ -85,7 +85,7 @@ class JwtServiceTest extends TestCase
     {
         $expiredConfig = [
             'jwt' => [
-                'secret' => 'test_secret_key',
+                'secret' => 'test_secret_key_for_testing_purposes_only',
                 'expiry_hours' => -1, // Expired
             ],
         ];

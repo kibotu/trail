@@ -103,7 +103,7 @@ class AuthMiddleware implements MiddlewareInterface
                     
                     // Update session with new JWT token and extend expiration
                     $sessionId = $_COOKIE[SESSION_COOKIE_NAME] ?? null;
-                    if ($sessionId && $db) {
+                    if ($sessionId) {
                         $newExpiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
                         $stmt = $db->prepare("UPDATE trail_sessions SET jwt_token = ?, expires_at = ? WHERE session_id = ?");
                         $stmt->execute([$token, $newExpiresAt, $sessionId]);

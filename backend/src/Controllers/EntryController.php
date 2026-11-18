@@ -468,7 +468,7 @@ class EntryController
         ];
         
         // Include search query and total count in response if searching
-        if ($isValidSearch && isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+        if ($isValidSearch && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
             
             // Include tag info for tag searches
@@ -821,7 +821,7 @@ class EntryController
         ];
         
         // Include search query and total count in response if searching
-        if ($isValidSearch && isset($searchQuery) && $searchQuery !== null && trim($searchQuery) !== '') {
+        if ($isValidSearch && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
             
             // Only get total count on first page (no cursor) for performance
