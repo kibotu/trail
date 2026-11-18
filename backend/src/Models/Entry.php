@@ -14,6 +14,10 @@ class Entry
     /**
      * Shared claim join: each entry's claimed collection (lowest collection_id wins)
      * plus the resolved collection columns. Used by getAll/searchAll/searchByTagSlug.
+     *
+     * Only the collection owner's own entries are claimed: the ownership check sits
+     * in the collection join so entries by other registered accounts resolve to
+     * col = NULL and keep their poster attribution.
      */
     public const COLLECTION_CLAIM_JOIN_SQL = " LEFT JOIN (
         SELECT et.entry_id, MIN(ct.collection_id) AS collection_id
@@ -21,7 +25,7 @@ class Entry
         JOIN trail_collection_tags ct ON ct.tag_id = et.tag_id
         GROUP BY et.entry_id
     ) claimed ON claimed.entry_id = e.id
-    LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+    LEFT JOIN trail_collections col ON col.id = claimed.collection_id AND col.owner_user_id = e.user_id";
 
     public function __construct(PDO $db)
     {
@@ -1005,7 +1009,7 @@ class Entry
                 WHERE ct.collection_id = ?
                 GROUP BY et.entry_id
             ) claimed ON claimed.entry_id = e.id
-            LEFT JOIN trail_collections col ON col.id = claimed.collection_id";
+            INNER JOIN trail_collections col ON col.id = claimed.collection_id AND col.owner_user_id = e.user_id";
             $params[] = $collectionId;
         }
 
