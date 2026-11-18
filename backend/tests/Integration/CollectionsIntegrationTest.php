@@ -208,6 +208,84 @@ class CollectionsIntegrationTest extends TestCase
     }
 
     /**
+     * Tag-based attribution is scoped to the collection owner (the admin
+     * account). An entry posted by another registered account that carries the
+     * same tag must stay attributed to its poster and must not show up in the
+     * collection's entry list or count.
+     *
+     * Requires TRAIL_ADMIN_API_TOKEN (the collection owner) and
+     * TRAIL_USER_API_TOKEN (any non-admin account) in the env.
+     */
+    public function testNonOwnerEntriesAreNotClaimed(): void
+    {
+        $adminToken = getenv('TRAIL_ADMIN_API_TOKEN') ?: null;
+        $userToken = getenv('TRAIL_USER_API_TOKEN') ?: null;
+        if ($adminToken === null || $userToken === null) {
+            $this->markTestSkipped('TRAIL_ADMIN_API_TOKEN and TRAIL_USER_API_TOKEN must both be set.');
+        }
+
+        $suffix = str_replace('.', '-', uniqid());
+        $tagName = 'it-nc-' . $suffix;
+        $slug = 'it-nc-' . $suffix;
+
+        $entryId = null;
+        $tagId = null;
+        $collectionId = null;
+
+        try {
+            // Non-admin posts and tags an entry
+            $create = $this->makeRequest('POST', '/api/entries', ['text' => 'Non-owner claim IT entry ' . $suffix], $userToken);
+            $this->assertEquals(201, $create['status']);
+            $entryId = (int) ($create['data']['id'] ?? 0);
+            $this->assertGreaterThan(0, $entryId);
+
+            $list = $this->makeRequest('GET', '/api/entries?limit=50');
+            $entry = $this->findEntry($list['data'], $entryId);
+            $this->assertNotNull($entry, 'Seeded entry not found in /api/entries');
+
+            $tagged = $this->makeRequest('PUT', "/api/entries/{$entry['hash_id']}/tags", ['tags' => [$tagName]], $userToken);
+            $this->assertEquals(200, $tagged['status']);
+            $tagId = (int) ($tagged['data']['tags'][0]['id'] ?? 0);
+            $this->assertGreaterThan(0, $tagId);
+
+            // Admin claims the same tag with a collection
+            $created = $this->makeRequest('POST', '/api/admin/collections', [
+                'name' => 'IT Non-Owner ' . $suffix,
+                'slug' => $slug,
+                'tag_ids' => [$tagId],
+            ], $adminToken);
+            $this->assertEquals(201, $created['status']);
+            $collectionId = (int) ($created['data']['collection']['id'] ?? 0);
+            $this->assertGreaterThan(0, $collectionId);
+
+            // Landing feed / public API keep poster attribution
+            $api = $this->makeRequest('GET', '/api/entries?limit=50');
+            $unclaimed = $this->findEntry($api['data'], $entryId);
+            $this->assertNotNull($unclaimed);
+            $this->assertNull($unclaimed['collection'] ?? null, 'Non-owner entry was claimed by a collection');
+
+            // Collection page and count exclude it
+            $scoped = $this->makeRequest('GET', "/api/collections/{$slug}/entries?limit=50");
+            $this->assertEquals(200, $scoped['status']);
+            $this->assertNull($this->findEntry($scoped['data'], $entryId), 'Non-owner entry leaked into collection entries');
+
+            $detail = $this->makeRequest('GET', "/api/collections/{$slug}");
+            $this->assertEquals(200, $detail['status']);
+            $this->assertSame(0, (int) $detail['data']['collection']['entry_count']);
+        } finally {
+            if ($collectionId !== null) {
+                $this->makeRequest('DELETE', "/api/admin/collections/{$collectionId}", null, $adminToken);
+            }
+            if ($entryId !== null) {
+                $this->makeRequest('DELETE', "/api/admin/entries/{$entryId}", null, $adminToken);
+            }
+            if ($tagId !== null) {
+                $this->makeRequest('DELETE', "/api/admin/tags/{$tagId}", null, $adminToken);
+            }
+        }
+    }
+
+    /**
      * Find an entry by id in a list response's entries array.
      */
     private function findEntry(array $data, int $id): ?array

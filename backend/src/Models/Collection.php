@@ -56,10 +56,12 @@ class Collection
     /**
      * Shared SELECT with entry/view counts and avatar/header image metadata.
      * GROUP BY c.id required (tag join fans out).
+     * Only entries authored by the collection owner count toward entry_count,
+     * matching the claim join in Entry::COLLECTION_CLAIM_JOIN_SQL.
      */
     private const COLLECTION_SELECT =
         "SELECT c.*,
-                COUNT(DISTINCT et.entry_id) AS entry_count,
+                COUNT(DISTINCT ec.id) AS entry_count,
                 COALESCE(vc.view_count, 0) AS view_count,
                 av.filename AS avatar_filename,
                 av.user_id AS avatar_user_id,
@@ -68,6 +70,7 @@ class Collection
          FROM " . self::TABLE . " c
          LEFT JOIN trail_collection_tags ct ON ct.collection_id = c.id
          LEFT JOIN trail_entry_tags et ON et.tag_id = ct.tag_id
+         LEFT JOIN trail_entries ec ON ec.id = et.entry_id AND ec.user_id = c.owner_user_id
          LEFT JOIN trail_view_counts vc ON vc.target_type = 'collection' AND vc.target_id = c.id
          LEFT JOIN trail_images av ON av.id = c.avatar_image_id
          LEFT JOIN trail_images hd ON hd.id = c.header_image_id";
