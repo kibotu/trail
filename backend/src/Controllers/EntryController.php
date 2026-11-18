@@ -375,42 +375,37 @@ class EntryController
 
         // Handle search if query provided
         $isValidSearch = false;
-        $isTagSearch = false;
         $tagInfo = null;
-        
+        $text = '';
+        $tagSlugs = [];
+
         if ($searchQuery !== null && trim($searchQuery) !== '') {
-            // Check for hashtag search (e.g., #machine-learning)
-            if (str_starts_with($searchQuery, '#') && strlen($searchQuery) > 1) {
-                $tagSlug = substr($searchQuery, 1);
-                // Validate tag slug format (alphanumeric and hyphens only)
-                if (preg_match('/^[a-z0-9-]+$/i', $tagSlug)) {
-                    $tagModel = new \Trail\Models\Tag($db);
-                    $tag = $tagModel->findBySlug(strtolower($tagSlug));
-                    
-                    if ($tag) {
-                        $entries = $entryModel->searchByTagSlugWithImages($tag['slug'], $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
-                        $isValidSearch = true;
-                        $isTagSearch = true;
-                        $tagInfo = ['name' => $tag['name'], 'slug' => $tag['slug']];
-                    } else {
-                        // Tag not found - return empty results
-                        $entries = [];
-                        $isTagSearch = true;
-                    }
-                } else {
-                    // Invalid tag slug format
-                    $entries = [];
-                }
+            $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
+            $parsed = \Trail\Services\SearchService::parseQuery($searchQuery);
+            $text = $parsed['text'];
+            $tagSlugs = $parsed['tags'];
+
+            if ($text !== '' && !\Trail\Services\SearchService::isSafe($text)) {
+                // Unsafe free text - return empty results
+                $entries = [];
             } else {
-                // Regular text search
-                $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
-                
-                if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
-                    $entries = $entryModel->searchAllWithImages($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $userId);
-                    $isValidSearch = true;
-                } else {
-                    // Invalid or unsafe query - return empty results
-                    $entries = [];
+                $entries = $entryModel->searchAllWithImages(
+                    $text !== '' ? $text : null,
+                    $limit,
+                    $before,
+                    $excludeUserId,
+                    $excludeEntryIds,
+                    $userId,
+                    $tagSlugs
+                );
+                $isValidSearch = true;
+
+                if (count($tagSlugs) === 1 && $text === '') {
+                    $tagModel = new \Trail\Models\Tag($db);
+                    $tag = $tagModel->findBySlug($tagSlugs[0]);
+                    if ($tag) {
+                        $tagInfo = ['name' => $tag['name'], 'slug' => $tag['slug']];
+                    }
                 }
             }
         } else {
@@ -471,28 +466,25 @@ class EntryController
         if ($isValidSearch && trim($searchQuery) !== '') {
             $responseData['search_query'] = $searchQuery;
             
-            // Include tag info for tag searches
-            if ($isTagSearch && $tagInfo !== null) {
+            // Include tag info for a single tag search
+            if ($tagInfo !== null) {
                 $responseData['tag'] = $tagInfo;
             }
             
             // Only get total count on first page (no cursor) for performance
             if ($before === null) {
                 try {
-                    if ($isTagSearch && $tagInfo !== null) {
-                        $responseData['total_count'] = $entryModel->countByTagSlug($tagInfo['slug'], $excludeUserId, $excludeEntryIds);
-                    } else {
-                        $responseData['total_count'] = $entryModel->countSearchAll($searchQuery, $excludeUserId, $excludeEntryIds);
-                    }
+                    $responseData['total_count'] = $entryModel->countSearchAll(
+                        $text !== '' ? $text : null,
+                        $excludeUserId,
+                        $excludeEntryIds,
+                        $tagSlugs
+                    );
                 } catch (\Throwable $e) {
                     error_log("EntryController::listPublic: Failed to count search results: " . $e->getMessage());
                     // Don't include total_count on error - frontend will fall back to entries.length
                 }
             }
-        } elseif ($isTagSearch && $tagInfo === null) {
-            // Tag search with non-existent tag
-            $responseData['search_query'] = $searchQuery;
-            $responseData['total_count'] = 0;
         }
 
         $response->getBody()->write(json_encode($responseData));
@@ -765,16 +757,28 @@ class EntryController
         
         // Handle search if query provided
         $isValidSearch = false;
+        $text = '';
+        $tagSlugs = [];
         if ($searchQuery !== null && trim($searchQuery) !== '') {
             // Sanitize and validate search query
             $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
-            
-            if (!\Trail\Services\SearchService::isEmpty($searchQuery) && \Trail\Services\SearchService::isSafe($searchQuery)) {
-                $entries = $entryModel->searchByUserWithImages($user['id'], $searchQuery, $limit, $before, $userId);
-                $isValidSearch = true;
-            } else {
-                // Invalid or unsafe query - return empty results
+            $parsed = \Trail\Services\SearchService::parseQuery($searchQuery);
+            $text = $parsed['text'];
+            $tagSlugs = $parsed['tags'];
+
+            if ($text !== '' && !\Trail\Services\SearchService::isSafe($text)) {
+                // Unsafe free text - return empty results
                 $entries = [];
+            } else {
+                $entries = $entryModel->searchByUserWithImages(
+                    $user['id'],
+                    $text !== '' ? $text : null,
+                    $limit,
+                    $before,
+                    $userId,
+                    $tagSlugs
+                );
+                $isValidSearch = true;
             }
         } else {
             // No search query - use regular listing
@@ -827,7 +831,7 @@ class EntryController
             // Only get total count on first page (no cursor) for performance
             if ($before === null) {
                 try {
-                    $responseData['total_count'] = $entryModel->countSearchByUser($user['id'], $searchQuery);
+                    $responseData['total_count'] = $entryModel->countSearchByUser($user['id'], $text !== '' ? $text : null, $tagSlugs);
                 } catch (\Throwable $e) {
                     error_log("EntryController::listByNickname: Failed to count search results: " . $e->getMessage());
                     // Don't include total_count on error - frontend will fall back to entries.length

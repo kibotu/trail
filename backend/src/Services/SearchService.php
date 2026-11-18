@@ -44,6 +44,37 @@ class SearchService
     }
 
     /**
+     * Split a query into free text and hashtag filters
+     *
+     * Tag tokens are matched against trail_tags.slug, which Tag::slugify() builds from
+     * letters, numbers and hyphens. Anything left over is the free text part.
+     *
+     * @param string $query Sanitized query
+     * @return array{text: string, tags: string[]} Free text and tag slugs, in order of appearance
+     */
+    public static function parseQuery(string $query): array
+    {
+        $tags = [];
+
+        $text = preg_replace_callback(
+            '/#[\p{L}\p{N}][\p{L}\p{N}-]*/u',
+            function (array $match) use (&$tags): string {
+                $slug = trim(mb_substr(mb_strtolower($match[0], 'UTF-8'), 1), '-');
+                if ($slug !== '' && !in_array($slug, $tags, true)) {
+                    $tags[] = $slug;
+                }
+                return ' ';
+            },
+            $query
+        ) ?? $query;
+
+        return [
+            'text' => trim(preg_replace('/\s+/u', ' ', $text) ?? $text),
+            'tags' => $tags,
+        ];
+    }
+
+    /**
      * Prepare query for FULLTEXT search
      * 
      * @param string $query Sanitized query

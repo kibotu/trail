@@ -63,7 +63,7 @@
                 currentUserId: sessionState.userId,
                 onTagClick: (tagSlug) => {
                     if (searchManager) {
-                        searchManager.setQuery('#' + tagSlug);
+                        searchManager.appendTag(tagSlug);
                         document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     } else {
                         window.open(`${baseUrl || window.location.origin}/?q=${encodeURIComponent('#' + tagSlug)}`, '_blank', 'noopener');

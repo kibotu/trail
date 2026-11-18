@@ -13,7 +13,7 @@ class Entry
 
     /**
      * Shared claim join: each entry's claimed collection (lowest collection_id wins)
-     * plus the resolved collection columns. Used by getAll/searchAll/searchByTagSlug.
+     * plus the resolved collection columns. Used by getAll/searchAll.
      *
      * Only the collection owner's own entries are claimed: the ownership check sits
      * in the collection join so entries by other registered accounts resolve to
@@ -943,18 +943,36 @@ class Entry
     }
 
     /**
+     * Conditions that require an entry to carry every one of the given tags
+     *
+     * Emits one EXISTS per slug, joined with AND, and each one holds a single placeholder.
+     * Callers append $tagSlugs to the bound parameters in the same order.
+     *
+     * @param int $count Number of tags to filter by
+     * @return string SQL condition for the entry aliased as e
+     */
+    private static function tagFilterConditions(int $count): string
+    {
+        $condition = "EXISTS (SELECT 1 FROM trail_entry_tags et JOIN trail_tags t ON t.id = et.tag_id
+                              WHERE et.entry_id = e.id AND t.slug = ?)";
+
+        return implode(' AND ', array_fill(0, $count, $condition));
+    }
+
+    /**
      * Search all entries with FULLTEXT or LIKE fallback
      * 
-     * @param string|null $searchQuery Search query (already sanitized); null = no search filter
+     * @param string|null $searchQuery Search query (already sanitized); null or empty = no text filter
      * @param int $limit Maximum number of entries to return
      * @param string|null $before Cursor for pagination (created_at timestamp)
      * @param int|null $excludeUserId User ID to exclude muted users for
      * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
      * @param int|null $currentUserId Current user ID for clap counts
      * @param int|null $collectionId When set, restricts results to entries claimed by this collection
+     * @param string[] $tagSlugs Tags every returned entry must carry
      * @return array Array of entries matching search query
      */
-     public function searchAll(?string $searchQuery = null, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?int $collectionId = null): array
+     public function searchAll(?string $searchQuery = null, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, ?int $collectionId = null, array $tagSlugs = []): array
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
         $useFulltext = $searchQuery !== null && !\Trail\Services\SearchService::isShortQuery($searchQuery);
@@ -1022,7 +1040,7 @@ class Entry
         $whereConditions = ["u.deletion_requested_at IS NULL"];
         
         // Add search condition
-        if ($searchQuery !== null) {
+        if ($searchQuery !== null && $searchQuery !== '') {
             if ($useFulltext) {
                 // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
                 $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
@@ -1042,6 +1060,12 @@ class Entry
                 $params[] = $likeQuery;
                 $params[] = $likeQuery;
             }
+        }
+
+        // Add tag conditions
+        if ($tagSlugs !== []) {
+            $whereConditions[] = self::tagFilterConditions(count($tagSlugs));
+            $params = array_merge($params, $tagSlugs);
         }
         
         // Add cursor-based pagination
@@ -1082,16 +1106,18 @@ class Entry
      * Search entries by specific user with FULLTEXT or LIKE fallback
      * 
      * @param int $userId User ID to search within
-     * @param string $searchQuery Search query (already sanitized)
+     * @param string|null $searchQuery Search query (already sanitized); null or empty = no text filter
      * @param int $limit Maximum number of entries to return
      * @param string|null $before Cursor for pagination (created_at timestamp)
      * @param int|null $currentUserId Current user ID for clap counts
+     * @param string[] $tagSlugs Tags every returned entry must carry
      * @return array Array of entries matching search query for this user
      */
-    public function searchByUser(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
+    public function searchByUser(int $userId, ?string $searchQuery = null, int $limit = 20, ?string $before = null, ?int $currentUserId = null, array $tagSlugs = []): array
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
+        $hasText = $searchQuery !== null && $searchQuery !== '';
+        $useFulltext = $hasText && !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         // Build SELECT with clap counts, comment counts, view counts, and relevance score
         $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
@@ -1143,24 +1169,32 @@ class Entry
         $params[] = $userId;
         
         // Add search condition
-        if ($useFulltext) {
-            // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $searchQuery;
-            $params[] = $searchQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-        } else {
-            // LIKE search for short queries
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
+        if ($hasText) {
+            if ($useFulltext) {
+                // FULLTEXT + LIKE hybrid for reliable matching with relevance ranking
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $searchQuery;
+                $params[] = $searchQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            } else {
+                // LIKE search for short queries
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            }
+        }
+
+        // Add tag conditions
+        if ($tagSlugs !== []) {
+            $whereConditions[] = self::tagFilterConditions(count($tagSlugs));
+            $params = array_merge($params, $tagSlugs);
         }
         
         // Add cursor-based pagination
@@ -1185,9 +1219,9 @@ class Entry
     /**
      * Search all entries with images attached
      */
-    public function searchAllWithImages(string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
+    public function searchAllWithImages(?string $searchQuery, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null, array $tagSlugs = []): array
     {
-        $entries = $this->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
+        $entries = $this->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId, null, $tagSlugs);
         $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
@@ -1195,9 +1229,9 @@ class Entry
     /**
      * Search user entries with images attached
      */
-    public function searchByUserWithImages(int $userId, string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null): array
+    public function searchByUserWithImages(int $userId, ?string $searchQuery, int $limit = 20, ?string $before = null, ?int $currentUserId = null, array $tagSlugs = []): array
     {
-        $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId);
+        $entries = $this->searchByUser($userId, $searchQuery, $limit, $before, $currentUserId, $tagSlugs);
         $entries = $this->attachImagesToEntries($entries);
         return $this->attachTagsToEntries($entries);
     }
@@ -1205,15 +1239,17 @@ class Entry
     /**
      * Count all entries matching a search query
      * 
-     * @param string $searchQuery Search query (already sanitized)
+     * @param string|null $searchQuery Search query (already sanitized); null or empty = no text filter
      * @param int|null $excludeUserId User ID to exclude muted users for
      * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
+     * @param string[] $tagSlugs Tags every counted entry must carry
      * @return int Total count of matching entries
      */
-    public function countSearchAll(string $searchQuery, ?int $excludeUserId = null, array $excludeEntryIds = []): int
+    public function countSearchAll(?string $searchQuery, ?int $excludeUserId = null, array $excludeEntryIds = [], array $tagSlugs = []): int
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
+        $hasText = $searchQuery !== null && $searchQuery !== '';
+        $useFulltext = $hasText && !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         $sql = "SELECT COUNT(DISTINCT e.id) as total
                 FROM trail_entries e
@@ -1224,22 +1260,30 @@ class Entry
         $whereConditions = ["u.deletion_requested_at IS NULL"];
         
         // Add search condition
-        if ($useFulltext) {
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $searchQuery;
-            $params[] = $searchQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-        } else {
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
+        if ($hasText) {
+            if ($useFulltext) {
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $searchQuery;
+                $params[] = $searchQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            } else {
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $whereConditions[] = "(e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            }
+        }
+
+        // Add tag conditions
+        if ($tagSlugs !== []) {
+            $whereConditions[] = self::tagFilterConditions(count($tagSlugs));
+            $params = array_merge($params, $tagSlugs);
         }
         
         // Exclude muted users if user is authenticated
@@ -1267,153 +1311,18 @@ class Entry
     }
 
     /**
-     * Search entries by tag slug
-     * 
-     * @param string $tagSlug Tag slug to filter by
-     * @param int $limit Maximum number of entries to return
-     * @param string|null $before Cursor for pagination (created_at timestamp)
-     * @param int|null $excludeUserId User ID to exclude muted users for
-     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
-     * @param int|null $currentUserId Current user ID for clap counts
-     * @return array Array of entries with the specified tag
-     */
-    public function searchByTagSlug(string $tagSlug, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
-    {
-        $sql = "SELECT e.*, u.name as user_name, u.email as user_email, u.nickname as user_nickname, u.gravatar_hash, u.photo_url, u.google_id,
-                p.url as preview_url, p.title as preview_title, p.description as preview_description,
-                p.image as preview_image, p.site_name as preview_site_name, p.json as preview_json, p.source as preview_source,
-                COALESCE(clap_totals.total_claps, 0) as clap_count,
-                COALESCE(comment_counts.comment_count, 0) as comment_count,
-                COALESCE(view_counts.view_count, 0) as view_count,
-                col.id as collection_id, col.slug as collection_slug, col.name as collection_name,
-                col.avatar_image_id as collection_avatar_image_id";
-        
-        $params = [];
-        
-        if ($currentUserId !== null) {
-            $sql .= ", COALESCE(user_claps.clap_count, 0) as user_clap_count";
-        }
-        
-        $sql .= " FROM {$this->table} e 
-                 JOIN trail_users u ON e.user_id = u.id 
-                 JOIN trail_entry_tags et ON e.id = et.entry_id
-                 JOIN trail_tags t ON et.tag_id = t.id
-                 LEFT JOIN trail_url_previews p ON e.url_preview_id = p.id
-                 LEFT JOIN (
-                     SELECT entry_id, SUM(clap_count) as total_claps
-                     FROM trail_claps
-                     GROUP BY entry_id
-                 ) clap_totals ON e.id = clap_totals.entry_id
-                 LEFT JOIN (
-                     SELECT entry_id, COUNT(*) as comment_count
-                     FROM trail_comments
-                     GROUP BY entry_id
-                 ) comment_counts ON e.id = comment_counts.entry_id
-                  LEFT JOIN trail_view_counts view_counts 
-                       ON view_counts.target_type = 'entry' AND view_counts.target_id = e.id";
-
-        $sql .= self::COLLECTION_CLAIM_JOIN_SQL;
-        
-        if ($currentUserId !== null) {
-            $sql .= " LEFT JOIN trail_claps user_claps ON e.id = user_claps.entry_id AND user_claps.user_id = ?";
-            $params[] = $currentUserId;
-        }
-        
-        // Build WHERE clause
-        $whereConditions = ["t.slug = ?", "u.deletion_requested_at IS NULL"];
-        $params[] = $tagSlug;
-        
-        if ($before !== null) {
-            $whereConditions[] = "e.created_at < ?";
-            $params[] = $before;
-        }
-        
-        // Exclude muted users
-        if ($excludeUserId !== null) {
-            $whereConditions[] = "e.user_id NOT IN (
-                SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?
-            )";
-            $params[] = $excludeUserId;
-        }
-        
-        // Exclude hidden entries
-        if (!empty($excludeEntryIds)) {
-            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
-            $whereConditions[] = "e.id NOT IN ($placeholders)";
-            $params = array_merge($params, $excludeEntryIds);
-        }
-        
-        $sql .= " WHERE " . implode(' AND ', $whereConditions);
-        $sql .= " ORDER BY e.created_at DESC LIMIT ?";
-        $params[] = $limit;
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        
-        return $this->attachCollections($stmt->fetchAll());
-    }
-
-    /**
-     * Search entries by tag slug with images attached
-     */
-    public function searchByTagSlugWithImages(string $tagSlug, int $limit = 50, ?string $before = null, ?int $excludeUserId = null, array $excludeEntryIds = [], ?int $currentUserId = null): array
-    {
-        $entries = $this->searchByTagSlug($tagSlug, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId);
-        $entries = $this->attachImagesToEntries($entries);
-        return $this->attachTagsToEntries($entries);
-    }
-
-    /**
-     * Count entries by tag slug
-     * 
-     * @param string $tagSlug Tag slug to filter by
-     * @param int|null $excludeUserId User ID to exclude muted users for
-     * @param array $excludeEntryIds Entry IDs to exclude (hidden entries)
-     * @return int Total count of entries with this tag
-     */
-    public function countByTagSlug(string $tagSlug, ?int $excludeUserId = null, array $excludeEntryIds = []): int
-    {
-        $sql = "SELECT COUNT(DISTINCT e.id) as total
-                FROM trail_entries e
-                JOIN trail_users u ON e.user_id = u.id
-                JOIN trail_entry_tags et ON e.id = et.entry_id
-                JOIN trail_tags t ON et.tag_id = t.id";
-        
-        $params = [];
-        $whereConditions = ["t.slug = ?", "u.deletion_requested_at IS NULL"];
-        $params[] = $tagSlug;
-        
-        if ($excludeUserId !== null) {
-            $whereConditions[] = "e.user_id NOT IN (SELECT muted_user_id FROM trail_muted_users WHERE muter_user_id = ?)";
-            $params[] = $excludeUserId;
-        }
-        
-        if (!empty($excludeEntryIds)) {
-            $placeholders = implode(',', array_fill(0, count($excludeEntryIds), '?'));
-            $whereConditions[] = "e.id NOT IN ($placeholders)";
-            $params = array_merge($params, $excludeEntryIds);
-        }
-        
-        $sql .= " WHERE " . implode(' AND ', $whereConditions);
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        
-        return (int) ($result['total'] ?? 0);
-    }
-
-    /**
      * Count entries by specific user matching a search query
      * 
      * @param int $userId User ID to search within
-     * @param string $searchQuery Search query (already sanitized)
+     * @param string|null $searchQuery Search query (already sanitized); null or empty = no text filter
+     * @param string[] $tagSlugs Tags every counted entry must carry
      * @return int Total count of matching entries for this user
      */
-    public function countSearchByUser(int $userId, string $searchQuery): int
+    public function countSearchByUser(int $userId, ?string $searchQuery, array $tagSlugs = []): int
     {
         // Use FULLTEXT for queries >= 4 chars, LIKE for shorter
-        $useFulltext = !\Trail\Services\SearchService::isShortQuery($searchQuery);
+        $hasText = $searchQuery !== null && $searchQuery !== '';
+        $useFulltext = $hasText && !\Trail\Services\SearchService::isShortQuery($searchQuery);
         
         $sql = "SELECT COUNT(DISTINCT e.id) as total
                 FROM trail_entries e
@@ -1424,22 +1333,30 @@ class Entry
         $params = [$userId];
         
         // Add search condition
-        if ($useFulltext) {
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $sql .= " AND (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $searchQuery;
-            $params[] = $searchQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-        } else {
-            $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
-            $sql .= " AND (e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
-            $params[] = $likeQuery;
+        if ($hasText) {
+            if ($useFulltext) {
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $sql .= " AND (MATCH(e.text) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR MATCH(p.title, p.description, p.site_name) AGAINST(? IN NATURAL LANGUAGE MODE) > 0 OR e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $searchQuery;
+                $params[] = $searchQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            } else {
+                $likeQuery = \Trail\Services\SearchService::prepareForLike($searchQuery);
+                $sql .= " AND (e.text LIKE ? OR p.title LIKE ? OR p.description LIKE ? OR p.site_name LIKE ?)";
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+                $params[] = $likeQuery;
+            }
+        }
+
+        // Add tag conditions
+        if ($tagSlugs !== []) {
+            $sql .= " AND " . self::tagFilterConditions(count($tagSlugs));
+            $params = array_merge($params, $tagSlugs);
         }
         
         $stmt = $this->db->prepare($sql);
