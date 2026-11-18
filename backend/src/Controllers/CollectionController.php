@@ -102,10 +102,23 @@ class CollectionController
             $collectionId = (int) $collection['id'];
             if ($searchQuery !== null && trim($searchQuery) !== '') {
                 $searchQuery = \Trail\Services\SearchService::sanitize($searchQuery);
-                if (\Trail\Services\SearchService::isEmpty($searchQuery) || !\Trail\Services\SearchService::isSafe($searchQuery)) {
+                $parsed = \Trail\Services\SearchService::parseQuery($searchQuery);
+                $text = $parsed['text'];
+                $tagSlugs = $parsed['tags'];
+
+                if ($text !== '' && !\Trail\Services\SearchService::isSafe($text)) {
                     $entries = [];
                 } else {
-                    $entries = $entryModel->searchAll($searchQuery, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId, $collectionId);
+                    $entries = $entryModel->searchAll(
+                        $text !== '' ? $text : null,
+                        $limit,
+                        $before,
+                        $excludeUserId,
+                        $excludeEntryIds,
+                        $currentUserId,
+                        $collectionId,
+                        $tagSlugs
+                    );
                 }
             } else {
                 $entries = $entryModel->searchAll(null, $limit, $before, $excludeUserId, $excludeEntryIds, $currentUserId, $collectionId);

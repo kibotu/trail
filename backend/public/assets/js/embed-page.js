@@ -60,7 +60,7 @@
                     currentUserId: null,
                     onTagClick: (slug) => {
                         if (searchManager) {
-                            searchManager.setQuery('#' + slug);
+                            searchManager.appendTag(slug);
                             document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         } else {
                             window.open(`${baseUrl}/?q=${encodeURIComponent('#' + slug)}`, '_blank', 'noopener');
