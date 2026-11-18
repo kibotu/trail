@@ -138,6 +138,8 @@ fun TrailNavigation(
     themePreferences: ThemePreferences,
     pendingSharedText: StateFlow<String?>,
     onConsumeSharedText: () -> Unit,
+    pendingDeepLink: StateFlow<String?>,
+    onConsumeDeepLink: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val authViewModel = LocalAuthViewModel.current
@@ -153,13 +155,21 @@ fun TrailNavigation(
     }
 
     var sharedTextForScreen by rememberSaveable { mutableStateOf<String?>(null) }
+    var deepLinkRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val pendingText by pendingSharedText.collectAsState()
+    val pendingRoute by pendingDeepLink.collectAsState()
 
-    LaunchedEffect(pendingText, authState.isLoading) {
+    // Held until auth settles: TrailNavigationContent sits under key(sessionKey), so navigating
+    // while that key still moves throws the navigation away with the old NavHost.
+    LaunchedEffect(pendingText, pendingRoute, authState.isLoading) {
         if (authState.isLoading) return@LaunchedEffect
         pendingText?.let { text ->
             sharedTextForScreen = text
             onConsumeSharedText()
+        }
+        pendingRoute?.let { route ->
+            deepLinkRoute = route
+            onConsumeDeepLink()
         }
     }
 
@@ -170,6 +180,8 @@ fun TrailNavigation(
             themePreferences = themePreferences,
             sharedTextForScreen = sharedTextForScreen,
             onSharedTextConsumed = { sharedTextForScreen = null },
+            deepLinkRoute = deepLinkRoute,
+            onDeepLinkConsumed = { deepLinkRoute = null },
             modifier = modifier
         )
     }
@@ -180,6 +192,8 @@ private fun TrailNavigationContent(
     themePreferences: ThemePreferences,
     sharedTextForScreen: String?,
     onSharedTextConsumed: () -> Unit,
+    deepLinkRoute: String?,
+    onDeepLinkConsumed: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -203,6 +217,18 @@ private fun TrailNavigationContent(
             navController.navigate(Routes.SHARE) {
                 launchSingleTop = true
             }
+        }
+    }
+
+    // The route comes out of TrailDeepLink already resolved, so it is navigated as given and then
+    // dropped: the opened screen is left on the back stack, and the link is not replayed on the
+    // next recomposition.
+    LaunchedEffect(deepLinkRoute) {
+        deepLinkRoute?.let { route ->
+            navController.navigate(route) {
+                launchSingleTop = true
+            }
+            onDeepLinkConsumed()
         }
     }
 

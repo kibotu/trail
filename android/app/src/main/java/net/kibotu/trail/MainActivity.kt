@@ -27,6 +27,7 @@ import net.kibotu.splashscreen.SplashScreenDecorator
 import net.kibotu.splashscreen.splash
 import net.kibotu.trail.feature.auth.AuthViewModel
 import net.kibotu.trail.feature.auth.LocalAuthViewModel
+import net.kibotu.trail.shared.navigation.TrailDeepLink
 import net.kibotu.trail.shared.navigation.TrailNavigation
 import net.kibotu.trail.shared.review.InAppReviewManager
 import net.kibotu.trail.shared.review.LocalInAppReviewManager
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var inAppUpdateManager: InAppUpdateManager
     private var splashScreenDecorator: SplashScreenDecorator? = null
     private val pendingSharedText = MutableStateFlow<String?>(null)
+    private val pendingDeepLink = MutableStateFlow<String?>(null)
 
     private val updateResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -138,7 +140,9 @@ class MainActivity : ComponentActivity() {
                         TrailNavigation(
                             themePreferences = themePreferences,
                             pendingSharedText = pendingSharedText,
-                            onConsumeSharedText = { pendingSharedText.value = null }
+                            onConsumeSharedText = { pendingSharedText.value = null },
+                            pendingDeepLink = pendingDeepLink,
+                            onConsumeDeepLink = { pendingDeepLink.value = null }
                         )
                     }
                 }
@@ -173,8 +177,12 @@ class MainActivity : ComponentActivity() {
             }
 
             Intent.ACTION_VIEW -> {
-                intent.data?.toString()?.let { url ->
-                    pendingSharedText.value = url
+                intent.dataString?.let { url ->
+                    // A link that names a page opens that page. Anything else keeps the old
+                    // behaviour of prefilling the composer with the URL.
+                    val route = TrailDeepLink.routeFor(url)
+                    if (route != null) pendingDeepLink.value = route
+                    else pendingSharedText.value = url
                 }
                 intent.action = null
             }

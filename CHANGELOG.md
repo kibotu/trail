@@ -16,11 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Tag links on the server-rendered first page no longer swallow the click. `searchManager` was declared inside the feed block, out of reach of `hydrateEntryCard`, which had already called `preventDefault()`.
+- Tapping a trail link in the Android app opens the page it names instead of the share composer. `/status/{hashId}` goes to `entry/{hashId}`, `/@{nickname}` to `user/{nickname}`, `/collection/{slug}` to `collection/{slug}`. Shared text and every other path keep the composer.
 
 ### Added
 
 - `SearchService::parseQuery()`, `SearchManager.appendTag()`.
 - `SearchServiceTest` (query parsing) and `TagSearchTest` (combined tag and text queries over the live API).
+- `TrailDeepLink.routeFor()` (App Link path → nav route) and `TrailDeepLinkTest`.
 
 ## [2.2.1] - 2026-09-17
 
