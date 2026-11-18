@@ -5,5 +5,5 @@
 #   uv run generate_tags.py --api-key YOUR_API_KEY
 #
 # If you prefer traditional pip:
-requests>=2.31.0
-urllib3>=2.0.0
+requests>=2.34.2
+urllib3>=2.8.0

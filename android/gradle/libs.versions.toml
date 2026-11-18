@@ -35,7 +35,7 @@ desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version = "2
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "35.2.0" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
-font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version = "1.0.0" }
+font-awesome-compose = { module = "com.github.Gurupreet:FontAwesomeCompose", version = "1.1.0" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version = "1.2.1" }
 haze = { module = "dev.chrisbanes.haze:haze", version = "2.1.0" }
 haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version = "2.1.0" }

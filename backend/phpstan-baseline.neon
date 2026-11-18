@@ -25,12 +25,6 @@ parameters:
 			path: src/Controllers/EntryController.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 2
-			path: src/Controllers/EntryController.php
-
-		-
 			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
@@ -61,21 +55,9 @@ parameters:
 			path: src/Middleware/AuthMiddleware.php
 
 		-
-			message: '#^Left side of && is always true\.$#'
-			identifier: booleanAnd.leftAlwaysTrue
-			count: 1
-			path: src/Middleware/AuthMiddleware.php
-
-		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 4
-			path: src/Middleware/AuthMiddleware.php
-
-		-
-			message: '#^Right side of && is always true\.$#'
-			identifier: booleanAnd.rightAlwaysTrue
-			count: 2
 			path: src/Middleware/AuthMiddleware.php
 
 		-
@@ -173,12 +155,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 1
 			path: src/Services/TextSanitizer.php
-
-		-
-			message: '#^Property Embed\\Extractor\:\:\$providerName \(string\) on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.property
-			count: 2
-			path: src/Services/UrlEmbedService.php
 
 		-
 			message: '#^Property Trail\\Services\\UrlEmbedService\:\:\$iframelyApiUrl \(string\|null\) is never assigned null so it can be removed from the property type\.$#'

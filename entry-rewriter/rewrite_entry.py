@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["requests>=2.31.0", "trafilatura>=2.0.0"]
+# dependencies = ["requests>=2.34.2", "trafilatura>=2.3.1"]
 # ///
 """Rewrite bare-URL Trail entries into a tweet-length note with opencode.
 
