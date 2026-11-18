@@ -180,7 +180,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 if (typeof searchManager !== 'undefined' && searchManager) {
-                    searchManager.setQuery('#' + tagEl.dataset.tagSlug);
+                    searchManager.appendTag(tagEl.dataset.tagSlug);
                     document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             });
@@ -279,7 +279,7 @@
                     currentUserId: sessionState.userId,
                     onTagClick: (slug) => {
                         if (searchManager) {
-                            searchManager.setQuery('#' + slug);
+                            searchManager.appendTag(slug);
                             document.getElementById('searchInput')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }
                     }

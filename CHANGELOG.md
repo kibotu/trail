@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Search now combines tags and text instead of picking one. `?q=` is split by `SearchService::parseQuery()` into free text and `#tag` tokens, and every tag is ANDed with the text. Applies to `/api/entries`, `/api/users/{nickname}/entries` and `/api/collections/{slug}/entries`.
+- Tag chips append to the search field instead of replacing it: `memory` + a click on `#openai` yields `memory #openai`. Landing page, user profile, collection page and embeds.
+- `Entry::searchAll`, `searchByUser`, `countSearchAll` and `countSearchByUser` take a tag slug list. `searchByTagSlug`, `searchByTagSlugWithImages` and `countByTagSlug` removed: tag queries now run through the same code path.
+
+### Fixed
+
+- Tag links on the server-rendered first page no longer swallow the click. `searchManager` was declared inside the feed block, out of reach of `hydrateEntryCard`, which had already called `preventDefault()`.
+
+### Added
+
+- `SearchService::parseQuery()`, `SearchManager.appendTag()`.
+- `SearchServiceTest` (query parsing) and `TagSearchTest` (combined tag and text queries over the live API).
+
 ## [2.2.1] - 2026-09-17
 
 ### Added

@@ -196,6 +196,26 @@ class SearchManager {
     }
 
     /**
+     * Add a tag to the end of the current query, keeping whatever is already typed
+     * @param {string} tagSlug - Tag slug without the leading hash
+     */
+    appendTag(tagSlug) {
+        const searchInput = document.getElementById('searchInput');
+        const current = (searchInput ? searchInput.value : this.currentQuery).trim();
+        const slug = String(tagSlug).toLowerCase();
+
+        const tokens = current.match(/#[\p{L}\p{N}][\p{L}\p{N}-]*/gu) || [];
+        const alreadyInQuery = tokens.some((token) => token.slice(1).toLowerCase() === slug);
+
+        if (alreadyInQuery) {
+            this.setQuery(current);
+            return;
+        }
+
+        this.setQuery(current ? `${current} #${tagSlug}` : `#${tagSlug}`);
+    }
+
+    /**
      * Update the URL with search query (for sharing)
      * @param {string} query - Search query
      */
