@@ -134,6 +134,7 @@
     // Setup infinite scroll for entries
     let nextCursor = null;
     let currentSearchQuery = '';
+    let searchManager = null;
     const entriesContainer = document.getElementById('entriesContainer');
     const loadingElement = document.getElementById('loading');
     const endMessage = document.getElementById('endMessage');
@@ -333,7 +334,6 @@
 
         // Initialize SearchManager
         const searchSection = document.getElementById('searchSection');
-        let searchManager = null;
         if (searchSection) {
             searchManager = new SearchManager({
                 onSearch: (query) => {
